@@ -27,6 +27,15 @@
 %       
 %       background_signal = repet.original(audio_signal,sample_rate);
 %       
+%
+%   REPET (extended)
+%       
+%       The original REPET can be easily extended to handle varying 
+%       repeating structures, by simply applying the method along time, on 
+%       individual segments or via a sliding window.
+%       
+%       background_signal = repet.extended(audio_signal,sample_rate);
+%
 %   
 %   Adaptive REPET
 %   
@@ -60,7 +69,10 @@
 %   
 %   Author
 %       Zafar Rafii
-%   
+%
+%   Date
+%       07/21/17
+%
 %   
 %   References
 %       Zafar Rafii, Antoine Liutkus, and Bryan Pardo. "REPET for 
@@ -99,8 +111,9 @@ classdef repet
         
         % REPET (original)
         function background_signal = original(audio_signal,sample_rate)               
-            
-            %%% Fixed parameters
+        % REPET (original) (see repet)
+        
+            %%% Defined parameters
             % Window length in seconds for the STFT (audio stationary 
             % around 40 milliseconds)
             window_duration = 0.040;
@@ -112,18 +125,10 @@ classdef repet
             % foreground (vocals are rarely below 100 Hz)
             cutoff_frequency = 100;
             
-            %%% STFT parameters
-            % Window length in samples (power of 2 for fast FFT)
-            window_length = 2.^nextpow2(window_duration*sample_rate);
-            
-            % Window function (even window length and 'periodic' Hamming 
-            % window for constant overlap-add)
-            window_function = hamming(window_length,'periodic');
-            
-            % Step length (half the window length for constant overlap-add)
-            step_length = window_length/2;
-            
             %%% STFT and spectrogram
+            % STFT parameters
+            [window_length,window_function,step_length] = repet.stftparameters(window_duration,sample_rate);
+            
             % Number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
             
@@ -185,22 +190,185 @@ classdef repet
             
         end
         
-%         % Adaptive REPET
-%         function adaptive
-%             
-%         end
-%         
-%         % REPET-SIM (with self-similarity matrix)
-%         function sim
-%             
-%         end
+        % REPET (extended)
+        function background_signal = extended(audio_signal,sample_rate)
+        % REPET (extended) (see repet)
+            
+            %%% Defined parameters
+            % Segmentation length and step in seconds
+            segment_length = 20;
+            segment_step = 10;
+            
+            % Window length in seconds for the STFT (audio stationary 
+            % around 40 milliseconds)
+            window_duration = 0.040;
+            
+            % Cutoff frequency in Hz for the dual high-pass filter of the
+            % foreground (vocals are rarely below 100 Hz)
+            cutoff_frequency = 100;
+            
+            %%%
+            % Segmentation window length, step, and overlap in samples
+            segment_length = round(segment_length*sample_rate);
+            segment_step = round(segment_step*sample_rate);
+            segment_overlap = segment_length-segment_step;
+            
+            % STFT parameters
+            [window_length,window_function,step_length] = repet.stftparameters(window_duration,sample_rate);
+            
+            % Cutoff frequency in frequency channels for the dual high-pass 
+            % filter of the foreground
+            cutoff_frequency = ceil(cutoff_frequency*(window_length-1)/sample_rate);
+            
+            % Number of samples and channels
+            [number_samples,number_channels] = size(audio_signal);
+            if number_samples < segment_length+segment_step
+                
+                % Just one segment if the signal is too short
+                number_segments = 1;
+            else
+                
+                % Number of segments (the last one could be longer)
+                number_segments = 1+floor((number_samples-segment_length)/segment_step);
+                
+                % Triangular window for the overlapping parts
+                segment_window = triang(2*segment_overlap);
+            end
+
+            background_signal = zeros(number_samples,number_channels);
+            h = waitbar(0,'REPET-WIN');
+            
+            % Loop over the segments
+            for j = 1:number_segments
+                if number_segments == 1                                                               % Case one segment
+                    xj = audio_signal;
+                    segment_length = l;                                                              % Update window length
+                else
+                    if j < number_segments                                                            % Case first segments
+                        xj = audio_signal((1:segment_length)+(j-1)*segment_step,:);
+                    elseif j == number_segments                                                       % Case last segment (could be longer)
+                        xj = audio_signal((j-1)*segment_step+1:number_samples,:);
+                        segment_length = length(xj);                                                 % Update window length
+                    end
+                end
+
+                Xj = [];
+                
+                % Loop over the channels
+                for channel_index = 1:number_channels
+                    
+                    % STFT of one channel
+                    Xji = stft(xj(:,channel_index),window_function,step_length);
+                    Xj = cat(3,Xj,Xji);                                                 % Concatenate the STFTs
+                end
+                Vj = abs(Xj(1:N/2+1,:,:));                                              % Magnitude spectrogram (with DC component and without mirrored frequencies)
+                
+                
+                
+                %%% Beat spectrum and repeating period
+                % Beat spectrum of the mean power spectrograms (squared to 
+                % emphasize peaks of periodicitiy)
+                beat_spectrum = repet.beatspectrum(mean(audio_spectrogram.^2,3));
+
+                % Period range in time frames for the beat spectrum 
+                % (compensate for the zero-padding at the start in the 
+                % STFT)
+                period_range = ceil((period_range*sample_rate+window_length-step_length)/step_length-0.5);
+
+                % Repeating period in time frames given the period range
+                repeating_period = repet.period(beat_spectrum,period_range);
+                    
+                % Loop over the channels
+                for channel_index = 1:number_channels
+                    
+                    % Repeating mask for one channel
+                    repeating_mask = repet.mask(audio_spectrogram(:,:,channel_index),repeating_period);
+                    
+                    % High-pass filtering of the dual foreground
+                    repeating_mask(2:cutoff_frequency+1,:) = 1;
+                    
+                    % Mirror the frequency channels for the STFT
+                    repeating_mask = cat(1,repeating_mask,flipud(repeating_mask(2:end-1,:)));
+                    
+                    % Estimated repeating background for one channel
+                    background_signal1 = repet.istft(repeating_mask.*audio_stft(:,:,channel_index),window_function,step_length);
+                    
+                    % Truncate to the original number of samples
+                    background_signal(:,channel_index) = background_signal1(1:number_samples);
+                end
+                
+%                 if numel(per) == 1                                                      % If single value
+%                     pj = per;                                                           % Defined repeating period in time frames
+%                 else
+%                     bj = beat_spectrum(mean(Vj.^2,3));                                  % Beat spectrum of the mean power spectrograms (square to emphasize peaks of periodicitiy)
+%                     pj = repeating_period(bj,per);                                      % Estimated repeating period in time frames
+%                 end
+% 
+%                 yj = zeros(w,number_channels);
+%                 for i = 1:number_channels                                                             % Loop over the channels
+%                     Mji = repeating_mask(Vj(:,:,i),pj);                                 % Repeating mask for channel i
+%                     Mji(1+(1:cof),:) = 1;                                               % High-pass filtering of the (dual) non-repeating foreground
+%                     Mji = cat(1,Mji,flipud(Mji(2:end-1,:)));                            % Mirror the frequencies
+%                     yji = istft(Mji.*Xj(:,:,i),win,stp);                                % Estimated repeating background
+%                     yj(:,i) = yji(1:segment_length);                                                 % Truncate to the original mixture length
+%                 end
+              
+                
+                % Case one segment
+                if number_segments == 1
+                    background_signal = yj;
+                else
+                    if j == 1                                                           % Case first segment
+                        background_signal(1:segment_length,:) = background_signal(1:segment_length,:) + yj;
+                    elseif j <= m                                                       % Case last segments
+                        background_signal((1:segment_overlap)+(j-1)*segment_step,:) ...                                          % Half windowing of the overlap part of y on the right
+                            = background_signal((1:segment_overlap)+(j-1)*segment_step,:).*repmat(segment_window((1:segment_overlap)+segment_overlap),[1,number_channels]);
+                        yj(1:segment_overlap,:) ...                                                   % Half windowing of the overlap part of yj on the left
+                            = yj(1:segment_overlap,:).*repmat(segment_window(1:segment_overlap),[1,number_channels]);
+                        background_signal((1:segment_length)+(j-1)*segment_step,:) = background_signal((1:segment_length)+(j-1)*segment_step,:) + yj;
+                    end
+                end
+                waitbar(j/m,h);
+            end
+            close(h)
+        end
+        
+        % Adaptive REPET
+        function background_signal = adaptive(audio_signal,sample_rate)
+        % Adaptive REPET (see repet)
+            
+            background_signal = 0*audio_signal*sample_rate;
+            
+        end
+        
+        % REPET-SIM (with self-similarity matrix)
+        function background_signal = sim(audio_signal,sample_rate)
+            
+            background_signal = 0*audio_signal*sample_rate;
+            
+        end
         
     end
     
     % Methods (access from methods in class of subclasses and does not 
     % depend on a object of the class)
-    methods (Access = protected, Static = true)
-
+    methods (Access = protected, Hidden = true, Static = true)
+        
+        % STFT parameters
+        function [window_length,window_function,step_length] = stftparameters(window_duration,sample_rate)
+            
+            % Window length in samples (power of 2 for fast FFT)
+            window_length = 2.^nextpow2(window_duration*sample_rate);
+            
+            % Window function (even window length and 'periodic' Hamming 
+            % window for constant overlap-add)
+            window_function = hamming(window_length,'periodic');
+            
+            % Step length (half the window length for constant overlap-add)
+            step_length = window_length/2;
+            
+        end
+        
         % Short-Time Fourier Transform (STFT) (with zero-padding at the 
         % edges)
         function audio_stft = stft(audio_signal,window_function,step_length)
