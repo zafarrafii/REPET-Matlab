@@ -40,7 +40,7 @@
 %           36th International Conference on Acoustics, Speech and Signal Processing,
 %           Prague, Czech Republic, May 22-27, 2011.
 
-function y = repet(x,fs,per)
+function y = repet_old(x,fs,per)
 
 if nargin < 3, per = [0.8,min(8,(length(x)/fs)/3)]; end                     % Default repeating period range
 

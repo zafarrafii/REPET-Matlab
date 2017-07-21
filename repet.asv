@@ -100,19 +100,11 @@ classdef repet
         % REPET (original)
         function background_signal = original(audio_signal,sample_rate)               
             
-            %%% Fixed parameters
-            % Window length in seconds for the STFT (audio stationary 
-            % around 40 milliseconds)
+            %%% STFT parameters
+            % Window length in seconds (audio stationary around 40 
+            % milliseconds)
             window_duration = 0.040;
             
-            % Period range in seconds for the beat spectrum 
-            period_range = [1,10];
-            
-            % Cutoff frequency in Hz for the dual high-pass filter of the
-            % foreground (vocals are rarely below 100 Hz)
-            cutoff_frequency = 100;
-            
-            %%% STFT parameters
             % Window length in samples (power of 2 for fast FFT)
             window_length = 2.^nextpow2(window_duration*sample_rate);
             
@@ -148,18 +140,14 @@ classdef repet
             % Beat spectrum of the mean power spectrograms (squared to 
             % emphasize peaks of periodicitiy)
             beat_spectrum = repet.beatspectrum(mean(audio_spectrogram.^2,3));
-            
-            % Period range in time frames for the beat spectrum (compensate
-            % for the zero-padding at the start in the STFT)
-            period_range = ceil((period_range*sample_rate+window_length-step_length)/step_length-0.5);
-            
-            % Repeating period in time frames given the period range
-            repeating_period = repet.period(beat_spectrum,period_range);
-            
+            repeating_period = ci
+            % Estimated repeating period in time frames
+            repeating_period = repet.period(beat_spectrum);
+            figure, plot(beat_spectrum), title(num2str(repeating_period))
             %%% Background signal
             % Cutoff frequency in frequency channels for the dual high-pass 
-            % filter of the foreground
-            cutoff_frequency = ceil(cutoff_frequency*(window_length-1)/sample_rate);                          
+            % filtering of the foreground (vocals are rarely below 100 Hz)
+            cutoff_frequency = ceil(100*(window_length-1)/sample_rate);                          
             
             % Initialize the background signal
             background_signal = zeros(number_samples,number_channels);
@@ -307,17 +295,14 @@ classdef repet
             
         end
         
-        % Repeating period for REPET (simple approach)
-        function repeating_period = period(beat_spectrum,period_range)
+        % Repeating period for REPET
+        function repeating_period = period(beat_spectrum)
             
-            % The repeating period is the index of the maximum value in the
-            % beat spectrum given the period range (it does not take into 
-            % account lag 0 and should be shorter than one third of the 
-            % signal length since the median needs at least three segments)
-            [~,repeating_period] = max(beat_spectrum(period_range(1)+1:min(period_range(2),floor(length(beat_spectrum)/3))));
+            % Discard lag 0
+            beat_spectrum(1) = [];
             
-            % Re-adjust the index
-            repeating_period = repeating_period+period_range(1);
+            % Index of the maximum value in the beat spectrum
+            [~,repeating_period] = max(beat_spectrum);
             
         end
         
