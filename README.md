@@ -1,2 +1,2 @@
 # REPET
-REpeating Pattern Extraction Technique
+REpeating Pattern Extraction Technique (REPET)
