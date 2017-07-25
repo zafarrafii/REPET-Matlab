@@ -28,7 +28,7 @@
 %       background_signal = repet.original(audio_signal,sample_rate);
 %       
 %
-%   REPET (extended)
+%   REPET extended
 %       
 %       The original REPET can be easily extended to handle varying 
 %       repeating structures, by simply applying the method along time, on 
@@ -113,7 +113,7 @@ classdef repet
         function background_signal = original(audio_signal,sample_rate)               
         % REPET (original) (see repet)
         
-            %%% Defined parameters
+            %%% Defined parameters (can be redefined)
             % Window length in seconds for the STFT (audio stationary 
             % around 40 milliseconds)
             window_duration = 0.040;
@@ -154,17 +154,16 @@ classdef repet
             % emphasize peaks of periodicitiy)
             beat_spectrum = repet.beatspectrum(mean(audio_spectrogram.^2,3));
             
-            % Period range in time frames for the beat spectrum (compensate
-            % for the zero-padding at the start of the STFT)
-            period_range = ceil((period_range*sample_rate+window_length-step_length)/step_length-0.5);
+            % Period range in time frames for the beat spectrum
+            period_range = round(period_range*sample_rate/step_length);
             
             % Repeating period in time frames given the period range
-            repeating_period = repet.period(beat_spectrum,period_range);
+            repeating_period = repet.periods(beat_spectrum,period_range);
             
             %%% Background signal
             % Cutoff frequency in frequency channels for the dual high-pass 
             % filter of the foreground
-            cutoff_frequency = ceil(cutoff_frequency*(window_length-1)/sample_rate);                          
+            cutoff_frequency = ceil(cutoff_frequency*(window_length-1)/sample_rate);
             
             % Initialize the background signal
             background_signal = zeros(number_samples,number_channels);
@@ -190,11 +189,11 @@ classdef repet
             
         end
         
-        % REPET (extended)
+        % REPET extended
         function background_signal = extended(audio_signal,sample_rate)
-        % REPET (extended) (see repet)
+        % REPET extended (see repet)
             
-            %%% Defined parameters
+            %%% Defined parameters (can be redefined)
             % Segmentation length and step in seconds
             segment_length = 10;
             segment_step = 5;
@@ -233,9 +232,8 @@ classdef repet
             % STFT parameters
             [window_length,window_function,step_length] = repet.stftparameters(window_duration,sample_rate);
             
-            % Period range in time frames for the beat spectrum (compensate 
-            % for the zero-padding at the start of the STFT)
-            period_range = ceil((period_range*sample_rate+window_length-step_length)/step_length-0.5);
+            % Period range in time frames for the beat spectrum
+            period_range = round(period_range*sample_rate/step_length);
             
             % Cutoff frequency in frequency channels for the dual high-pass 
             % filter of the foreground
@@ -357,7 +355,91 @@ classdef repet
         function background_signal = adaptive(audio_signal,sample_rate)
         % Adaptive REPET (see repet)
             
-            background_signal = 0*audio_signal*sample_rate;
+            %%% Defined parameters (can be redefined)
+            % Window length in seconds for the STFT (audio stationary 
+            % around 40 milliseconds)
+            window_duration = 0.040;
+            
+            % Segment length and step in seconds for the beat spectrogram
+            segment_length = 10;
+            segment_step = 5;
+            
+            % Period range in seconds for the beat spectrum 
+            period_range = [1,10];
+            
+            % Number of points for the median filter
+            number_points = 5;
+            
+            % Cutoff frequency in Hz for the dual high-pass filter of the
+            % foreground (vocals are rarely below 100 Hz)
+            cutoff_frequency = 100;
+            
+            %%% Fourier analysis
+            % STFT parameters
+            [window_length,window_function,step_length] = repet.stftparameters(window_duration,sample_rate);
+            
+            % Number of samples and channels
+            [number_samples,number_channels] = size(audio_signal);
+            
+            % Initialize the STFT
+            audio_stft = [];
+            
+            % Loop over the channels
+            for channel_index = 1:number_channels
+                
+                % STFT of one channel
+                audio_stft1 = repet.stft(audio_signal(:,channel_index),window_function,step_length);
+                
+                % Concatenate the STFTs
+                audio_stft = cat(3,audio_stft,audio_stft1);
+            end
+            
+            % Magnitude spectrogram (with DC component and without mirrored 
+            % frequencies)
+            audio_spectrogram = abs(audio_stft(1:window_length/2+1,:,:));
+            
+            %%% Beat spectrogram and repeating periods
+            % Segment length and step in time frames for the beat 
+            % spectrogram
+            segment_length = round(segment_length*sample_rate/step_length);
+            segment_step = round(segment_step*sample_rate/step_length);
+            
+            % Beat spectrogram of the mean power spectrograms (squared to 
+            % emphasize peaks of periodicitiy)
+            beat_spectrogram = repet.beatspectrogram(mean(audio_spectrogram.^2,3),segment_length,segment_step);
+            
+            % Period range in time frames for the beat spectrogram 
+            period_range = round(period_range*sample_rate/step_length);
+            
+            % Repeating period in time frames given the period range
+            repeating_periods = repet.periods(beat_spectrogram,period_range);
+            
+            %%% Background signal
+            % Cutoff frequency in frequency channels for the dual high-pass 
+            % filter of the foreground
+            cutoff_frequency = ceil(cutoff_frequency*(window_length-1)/sample_rate);
+            
+            % Initialize the background signal
+            background_signal = zeros(number_samples,number_channels);
+            
+            % Loop over the channels
+            for channel_index = 1:number_channels
+                
+                % Repeating mask for one channel
+                repeating_mask = repet.maskadaptive(audio_spectrogram(:,:,channel_index),repeating_periods,number_points);
+                
+                % High-pass filtering of the dual foreground
+                repeating_mask(2:cutoff_frequency+1,:) = 1;
+                
+                % Mirror the frequency channels
+                repeating_mask = cat(1,repeating_mask,flipud(repeating_mask(2:end-1,:)));
+                
+                % Estimated repeating background for one channel
+                background_signal1 = repet.istft(repeating_mask.*audio_stft(:,:,channel_index),window_function,step_length);
+                
+                % Truncate to the original number of samples
+                background_signal(:,channel_index) = background_signal1(1:number_samples);
+            end
             
         end
         
@@ -495,17 +577,47 @@ classdef repet
             
         end
         
-        % Repeating period for REPET (simple approach)
-        function repeating_period = period(beat_spectrum,period_range)
+        % Beat spectrogram using the beat spectrum for the Adaptive REPET
+        function beat_spectrogram = beatspectrogram(audio_spectrogram,segment_length,segment_step)
+
+            % Number of frequency channels and time frames
+            [number_frequencies,number_times] = size(audio_spectrogram);
             
-            % The repeating period is the index of the maximum value in the
-            % beat spectrum given the period range (it does not take into 
-            % account lag 0 and should be shorter than one third of the 
-            % signal length since the median needs at least three segments)
-            [~,repeating_period] = max(beat_spectrum(period_range(1)+1:min(period_range(2),floor(length(beat_spectrum)/3))));
+            % Zero-padding the audio spectrogram to center the segments
+            audio_spectrogram = [zeros(number_frequencies,ceil((segment_length-1)/2)),audio_spectrogram,zeros(number_frequencies,floor((segment_length-1)/2))];
             
-            % Re-adjust the index
-            repeating_period = repeating_period+period_range(1);
+            % Initialize beat spectrogram
+            beat_spectrogram = zeros(segment_length,number_times);
+            
+            % Wait bar
+            wait_bar = waitbar(0,'Adaptive REPET 1/2');
+            
+            % Loop over the time frames (including the last one)
+            for time_index = [1:segment_step:number_times-1,number_times]
+                
+                % Beat spectrum of the centered audio spectrogram segment
+                beat_spectrogram(:,time_index) = repet.beatspectrum(audio_spectrogram(:,time_index:time_index+segment_length-1));
+                
+                % Update wait bar
+                waitbar(time_index/number_times,wait_bar);
+            end
+            
+            % Close wait bar
+            close(wait_bar)
+
+        end
+        
+        % Repeating periods from the beat spectra (spectrum or spectrogram)
+        function repeating_periods = periods(beat_spectra,period_range)
+            
+            % The repeating periods are the indices of the maximum values 
+            % in the beat spectra given the period range (they do not count 
+            % lag 0 and should be shorter than one third of the signal 
+            % length since the median needs at least three segments)
+            [~,repeating_periods] = max(beat_spectra(period_range(1)+1:min(period_range(2),floor(size(beat_spectra,1)/3)),:),[],1);
+            
+            % Re-adjust the index or indices
+            repeating_periods = repeating_periods+period_range(1);
             
         end
         
@@ -548,6 +660,51 @@ classdef repet
             
         end
         
+        % Repeating mask for the Adaptive REPET
+        function repeating_mask = maskadaptive(audio_spectrogram,repeating_periods,number_points)
+            
+            % Number of frequency channels and time frames
+            [number_channels,number_times] = size(audio_spectrogram);
+            
+            % Indices of the points for the median filtering centered on 0 
+            % (e.g., 3 => [-1,0,1], 4 => [-1,0,1,2], etc.)
+            point_indices = (1:number_points)-ceil(number_points/2);
+            
+            % Initialize the repeating spectrogram
+            repeating_spectrogram = zeros(number_channels,number_times);
+            
+            % Wait bar
+            wait_bar = waitbar(0,'Adaptive REPET 2/2');
+            
+            % Loop over the time frames
+            for time_index = 1:number_times
+                
+                % Indices of the frames for the median filtering
+                time_indices = time_index+point_indices*repeating_periods(time_index);
+                
+                % Discard out-of-range indices
+                time_indices(time_indices<1 | time_indices>number_times) = [];
+                
+                % Median filter centered on the current time frame
+                repeating_spectrogram(:,time_index) = median(audio_spectrogram(:,time_indices),2);
+                
+                % Update wait bar
+                waitbar(time_index/number_times,wait_bar);
+            end
+            
+            % Close wait bar
+            close(wait_bar)
+            
+            % Make sure the energy in the repeating spectrogram is smaller 
+            % than in the audio spectrogram, for every time-frequency bins
+            repeating_spectrogram = min(audio_spectrogram,repeating_spectrogram);
+            
+            % Derive the repeating mask by normalizing the repeating
+            % spectrogram by the audio spectrogram
+            repeating_mask = (repeating_spectrogram+eps)./(audio_spectrogram+eps);
+
+        end
+    
     end
     
 end
