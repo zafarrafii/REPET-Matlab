@@ -71,7 +71,7 @@
 %       Zafar Rafii
 %
 %   Date
-%       07/21/17
+%       07/25/17
 %
 %   
 %   References
@@ -125,7 +125,7 @@ classdef repet
             % foreground (vocals are rarely below 100 Hz)
             cutoff_frequency = 100;
             
-            %%% STFT and spectrogram
+            %%% Fourier analysis
             % STFT parameters
             [window_length,window_function,step_length] = repet.stftparameters(window_duration,sample_rate);
             
@@ -155,7 +155,7 @@ classdef repet
             beat_spectrum = repet.beatspectrum(mean(audio_spectrogram.^2,3));
             
             % Period range in time frames for the beat spectrum (compensate
-            % for the zero-padding at the start in the STFT)
+            % for the zero-padding at the start of the STFT)
             period_range = ceil((period_range*sample_rate+window_length-step_length)/step_length-0.5);
             
             % Repeating period in time frames given the period range
@@ -178,7 +178,7 @@ classdef repet
                 % High-pass filtering of the dual foreground
                 repeating_mask(2:cutoff_frequency+1,:) = 1;
                 
-                % Mirror the frequency channels for the STFT
+                % Mirror the frequency channels
                 repeating_mask = cat(1,repeating_mask,flipud(repeating_mask(2:end-1,:)));
                 
                 % Estimated repeating background for one channel
@@ -196,88 +196,110 @@ classdef repet
             
             %%% Defined parameters
             % Segmentation length and step in seconds
-            segment_length = 20;
-            segment_step = 10;
+            segment_length = 10;
+            segment_step = 5;
             
             % Window length in seconds for the STFT (audio stationary 
             % around 40 milliseconds)
             window_duration = 0.040;
             
+            % Period range in seconds for the beat spectrum 
+            period_range = [1,10];
+            
             % Cutoff frequency in Hz for the dual high-pass filter of the
             % foreground (vocals are rarely below 100 Hz)
             cutoff_frequency = 100;
             
-            %%%
-            % Segmentation window length, step, and overlap in samples
+            %%% Derived parameters
+            % Segmentation length, step, and overlap in samples
             segment_length = round(segment_length*sample_rate);
             segment_step = round(segment_step*sample_rate);
             segment_overlap = segment_length-segment_step;
             
-            % STFT parameters
-            [window_length,window_function,step_length] = repet.stftparameters(window_duration,sample_rate);
-            
-            % Cutoff frequency in frequency channels for the dual high-pass 
-            % filter of the foreground
-            cutoff_frequency = ceil(cutoff_frequency*(window_length-1)/sample_rate);
-            
             % Number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
+            
+            % One segment if the signal is too short
             if number_samples < segment_length+segment_step
-                
-                % Just one segment if the signal is too short
                 number_segments = 1;
             else
-                
                 % Number of segments (the last one could be longer)
                 number_segments = 1+floor((number_samples-segment_length)/segment_step);
                 
                 % Triangular window for the overlapping parts
                 segment_window = triang(2*segment_overlap);
             end
-
+            
+            % STFT parameters
+            [window_length,window_function,step_length] = repet.stftparameters(window_duration,sample_rate);
+            
+            % Period range in time frames for the beat spectrum (compensate 
+            % for the zero-padding at the start of the STFT)
+            period_range = ceil((period_range*sample_rate+window_length-step_length)/step_length-0.5);
+            
+            % Cutoff frequency in frequency channels for the dual high-pass 
+            % filter of the foreground
+            cutoff_frequency = ceil(cutoff_frequency*(window_length-1)/sample_rate);
+            
+            %%% Segmentation
+            % Initialize background signal
             background_signal = zeros(number_samples,number_channels);
-            h = waitbar(0,'REPET-WIN');
+            
+            % Wait bar
+            wait_bar = waitbar(0,'REPET-WIN');
             
             % Loop over the segments
-            for j = 1:number_segments
-                if number_segments == 1                                                               % Case one segment
-                    xj = audio_signal;
-                    segment_length = l;                                                              % Update window length
+            for segment_index = 1:number_segments
+                
+                % Case one segment
+                if number_segments == 1
+                    audio_segment = audio_signal;
+                    segment_length = number_samples;
                 else
-                    if j < number_segments                                                            % Case first segments
-                        xj = audio_signal((1:segment_length)+(j-1)*segment_step,:);
-                    elseif j == number_segments                                                       % Case last segment (could be longer)
-                        xj = audio_signal((j-1)*segment_step+1:number_samples,:);
-                        segment_length = length(xj);                                                 % Update window length
+                    % Sample index for the segment
+                    sample_index = (segment_index-1)*segment_step;
+                    
+                    % Case first segments (same length)
+                    if segment_index < number_segments
+                        audio_segment = audio_signal(sample_index+1:sample_index+segment_length,:);
+                    
+                    % Case last segment (could be longer)
+                    elseif segment_index == number_segments
+                        audio_segment = audio_signal(sample_index+1:number_samples,:);
+                        segment_length = length(audio_segment);
                     end
                 end
-
-                Xj = [];
+                
+                %%% Fourier analysis
+                % Initialize STFT
+                audio_stft = [];
                 
                 % Loop over the channels
                 for channel_index = 1:number_channels
                     
                     % STFT of one channel
-                    Xji = stft(xj(:,channel_index),window_function,step_length);
-                    Xj = cat(3,Xj,Xji);                                                 % Concatenate the STFTs
+                    audio_stft1 = repet.stft(audio_segment(:,channel_index),window_function,step_length);
+                    
+                    % Concatenate the STFTs
+                    audio_stft = cat(3,audio_stft,audio_stft1);
                 end
-                Vj = abs(Xj(1:N/2+1,:,:));                                              % Magnitude spectrogram (with DC component and without mirrored frequencies)
                 
-                
+                % Magnitude spectrogram (with DC component and without 
+                % mirrored frequencies)
+                audio_spectrogram = abs(audio_stft(1:window_length/2+1,:,:));
                 
                 %%% Beat spectrum and repeating period
                 % Beat spectrum of the mean power spectrograms (squared to 
                 % emphasize peaks of periodicitiy)
                 beat_spectrum = repet.beatspectrum(mean(audio_spectrogram.^2,3));
-
-                % Period range in time frames for the beat spectrum 
-                % (compensate for the zero-padding at the start in the 
-                % STFT)
-                period_range = ceil((period_range*sample_rate+window_length-step_length)/step_length-0.5);
-
+                
                 % Repeating period in time frames given the period range
                 repeating_period = repet.period(beat_spectrum,period_range);
-                    
+                
+                %%% Process
+                % Initialize background segment
+                background_segment = zeros(segment_length,number_channels);
+                
                 % Loop over the channels
                 for channel_index = 1:number_channels
                     
@@ -287,50 +309,48 @@ classdef repet
                     % High-pass filtering of the dual foreground
                     repeating_mask(2:cutoff_frequency+1,:) = 1;
                     
-                    % Mirror the frequency channels for the STFT
+                    % Mirror the frequency channels
                     repeating_mask = cat(1,repeating_mask,flipud(repeating_mask(2:end-1,:)));
                     
                     % Estimated repeating background for one channel
-                    background_signal1 = repet.istft(repeating_mask.*audio_stft(:,:,channel_index),window_function,step_length);
+                    background_segment1 = repet.istft(repeating_mask.*audio_stft(:,:,channel_index),window_function,step_length);
                     
                     % Truncate to the original number of samples
-                    background_signal(:,channel_index) = background_signal1(1:number_samples);
+                    background_segment(:,channel_index) = background_segment1(1:segment_length);
                 end
                 
-%                 if numel(per) == 1                                                      % If single value
-%                     pj = per;                                                           % Defined repeating period in time frames
-%                 else
-%                     bj = beat_spectrum(mean(Vj.^2,3));                                  % Beat spectrum of the mean power spectrograms (square to emphasize peaks of periodicitiy)
-%                     pj = repeating_period(bj,per);                                      % Estimated repeating period in time frames
-%                 end
-% 
-%                 yj = zeros(w,number_channels);
-%                 for i = 1:number_channels                                                             % Loop over the channels
-%                     Mji = repeating_mask(Vj(:,:,i),pj);                                 % Repeating mask for channel i
-%                     Mji(1+(1:cof),:) = 1;                                               % High-pass filtering of the (dual) non-repeating foreground
-%                     Mji = cat(1,Mji,flipud(Mji(2:end-1,:)));                            % Mirror the frequencies
-%                     yji = istft(Mji.*Xj(:,:,i),win,stp);                                % Estimated repeating background
-%                     yj(:,i) = yji(1:segment_length);                                                 % Truncate to the original mixture length
-%                 end
-              
-                
+                %%% Combination
                 % Case one segment
                 if number_segments == 1
-                    background_signal = yj;
+                    background_signal = background_segment;
                 else
-                    if j == 1                                                           % Case first segment
-                        background_signal(1:segment_length,:) = background_signal(1:segment_length,:) + yj;
-                    elseif j <= m                                                       % Case last segments
-                        background_signal((1:segment_overlap)+(j-1)*segment_step,:) ...                                          % Half windowing of the overlap part of y on the right
-                            = background_signal((1:segment_overlap)+(j-1)*segment_step,:).*repmat(segment_window((1:segment_overlap)+segment_overlap),[1,number_channels]);
-                        yj(1:segment_overlap,:) ...                                                   % Half windowing of the overlap part of yj on the left
-                            = yj(1:segment_overlap,:).*repmat(segment_window(1:segment_overlap),[1,number_channels]);
-                        background_signal((1:segment_length)+(j-1)*segment_step,:) = background_signal((1:segment_length)+(j-1)*segment_step,:) + yj;
+                    
+                    % Case first segment
+                    if segment_index == 1
+                        background_signal(1:segment_length,:) ...
+                            = background_signal(1:segment_length,:) + background_segment;
+                        
+                    % Case last segments
+                    elseif segment_index <= number_segments
+                        
+                        % Half windowing of the overlap part of the background signal on the right
+                        background_signal(sample_index+1:sample_index+segment_overlap,:) ...
+                            = bsxfun(@times,background_signal(sample_index+1:sample_index+segment_overlap,:),segment_window(segment_overlap+1:2*segment_overlap));
+                        
+                        % Half windowing of the overlap part of the background segment on the left
+                        background_segment(1:segment_overlap,:) ...
+                            = bsxfun(@times,background_segment(1:segment_overlap,:),segment_window(1:segment_overlap));
+                        background_signal(sample_index+1:sample_index+segment_length,:) ...
+                            = background_signal(sample_index+1:sample_index+segment_length,:) + background_segment;
                     end
                 end
-                waitbar(j/m,h);
+                
+                % Update wait bar
+                waitbar(segment_index/number_segments,wait_bar);
             end
-            close(h)
+            
+            % Close wait bar
+            close(wait_bar)
         end
         
         % Adaptive REPET
