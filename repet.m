@@ -68,6 +68,10 @@
 %       Separation, chapter 14, pages 395-411, Springer Berlin Heidelberg, 
 %       2014.
 %       
+%       Zafar Rafii and Bryan Pardo. "Online REPET-SIM for Real-time Speech 
+%       Enhancement," 38th International Conference on Acoustics, Speech 
+%       and Signal Processing, Vancouver, BC, Canada, May 26-31, 2013.
+%       
 %       Zafar Rafii and Bryan Pardo. "Audio Separation System and Method," 
 %       US20130064379 A1, US 13/612,413, March 14, 2013.
 %       
@@ -426,8 +430,9 @@ classdef repet
             
         end
         
-        % REPET-SIM (with self-similarity matrix)
+        % REPET-SIM
         function background_signal = sim(audio_signal,sample_rate)
+        % REPET-SIM (see repet)
             
             %%% Fourier analysis
             % STFT parameters
@@ -489,6 +494,88 @@ classdef repet
                 % Truncate to the original number of samples
                 background_signal(:,channel_index) = background_signal1(1:number_samples);
             end
+            
+        end
+        
+        % Online REPET-SIM
+        function background_signal = simonline(audio_signal,sample_rate)
+        % Online REPET-SIM (see repet)
+            
+            %%% Fourier analysis
+            % STFT parameters
+            [window_length,window_function,step_length] = repet.stftparameters(repet.window_duration,sample_rate);
+            
+            % Number of samples and channels
+            [number_samples,number_channels] = size(audio_signal);
+            
+            % Initialize the STFT
+            audio_stft = [];
+            
+            % Loop over the channels
+            for channel_index = 1:number_channels
+                
+                % STFT of the current channel
+                audio_stft1 = repet.stft(audio_signal(:,channel_index),window_function,step_length);
+                
+                % Concatenate the STFTs
+                audio_stft = cat(3,audio_stft,audio_stft1);
+            end
+            
+            % Magnitude spectrogram (with DC component and without mirrored 
+            % frequencies)
+            audio_spectrogram = abs(audio_stft(1:window_length/2+1,:,:));
+            
+            
+            
+par(2) = round(par(2)*fs/stp);                                              % Distance in time frames
+buf = round(buf*fs/stp);                                                    % Buffer in time frames
+
+[t,k] = size(x);
+X = [];
+for i = 1:k                                                                 % Loop over the channels
+    Xi = stft(x(:,i),win,stp);                                              % Short-Time Fourier Transform (STFT)
+    X = cat(3,X,Xi);                                                        % Concatenate the STFTs
+end
+
+[N,m,k] = size(X);
+Y = zeros(N,m,k);
+h = waitbar(0,'Online REPET-SIM');
+for j = 1:m                                                                 % Loop over the frames for all the channels
+    v = abs(X(1:end/2+1,j,:));                                              % Frame being processed
+    if j <= buf(1) && j < m-buf(2)                                          % If not enough frames for past buffer
+        V = abs(X(1:end/2+1,1:j+buf(2),:));
+    elseif j > buf(1) && j >= m-buf(2)                                      % If not enough frames for future buffer
+        V = abs(X(1:end/2+1,j-buf(1):m,:));
+    elseif j <= buf(1) && j >= m-buf(2)                                     % If not enough frames for past buffer and future buffer
+        V = abs(X(1:end/2+1,1:m,:));
+    else
+        V = abs(X(1:end/2+1,j+(-buf(1):buf(2)),:));
+    end
+    
+    S = similarity_vector(mean(v,3),mean(V,3));                             % Similarity vector
+    [~,S] = findpeaks(S, ...                                                % Find local maxima
+        'minpeakheight',par(1), ...                                         % Minimum peak height
+        'minpeakdistance',par(2), ...                                       % Minimum peak distance
+        'npeaks',par(3), ...                                                % Number of peaks
+        'sortstr','descend');                                               % Peak sorting
+    
+    for i = 1:k                                                             % Loop over the channels
+        Mi = repeating_mask(v(:,:,i),V(:,:,i),S);                           % Repeating mask for frame being processed
+        Mi(1+(1:cof),:) = 1;                                                % High-pass filtering of the (dual) non-repeating foreground
+        Mi = cat(1,Mi,flipud(Mi(2:end-1)));                                 % Mirror the frequencies
+        Y(:,j,i) = Mi.*X(:,j,i);                                            % Apply mask to frame being processed
+    end
+    waitbar(j/m,h);
+end
+close(h)
+
+y = zeros(t,k);
+for i = 1:k                                                                 % Loop over the channels
+    yi = istft(Y(:,:,i),win,stp);                                           % Estimated repeating background
+    y(:,i) = yi(1:t);                                                       % Truncate to the original length
+end
+            
+            background_signal = resample(audio_signal,sample_rate,sample_rate);
             
         end
         
