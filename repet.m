@@ -1,5 +1,4 @@
 % REpeating Pattern Extraction Technique (REPET) class
-%   
 %   Repetition is a fundamental element in generating and perceiving 
 %   structure. In audio, mixtures are often composed of structures where a 
 %   repeating background signal is superimposed with a varying foreground 
@@ -18,7 +17,6 @@
 %   completely and easily automatable.
 %   
 %   REPET (original)
-%       
 %       The original REPET aims at identifying and extracting the repeating 
 %       patterns in an audio mixture, by estimating a period of the 
 %       underlying repeating structure and modeling a segment of the 
@@ -27,7 +25,6 @@
 %       background_signal = repet.original(audio_signal,sample_rate);
 %       
 %   REPET extended
-%       
 %       The original REPET can be easily extended to handle varying 
 %       repeating structures, by simply applying the method along time, on 
 %       individual segments or via a sliding window.
@@ -35,7 +32,6 @@
 %       background_signal = repet.extended(audio_signal,sample_rate);
 %
 %   Adaptive REPET
-%   
 %       The original REPET works well when the repeating background is 
 %       relatively stable (e.g., a verse or the chorus in a song); however, 
 %       the repeating background can also vary over time (e.g., a verse 
@@ -45,10 +41,9 @@
 %       extracting the repeating background locally, without the need for 
 %       segmentation or windowing.
 %       
-%       background_signal = repet.adaptive(audio_signal)
+%       background_signal = repet.adaptive(audio_signal,sample_rate);
 %       
-%   REPET-SIM (with self-similarity matrix)
-%       
+%   REPET-SIM
 %       The REPET methods work well when the repeating background has 
 %       periodically repeating patterns (e.g., jackhammer noise); however, 
 %       the repeating patterns can also happen intermittently or without a 
@@ -57,11 +52,19 @@
 %       repeating structures, by using a similarity matrix to identify the 
 %       repeating elements.
 %       
-%       background_signal = repet.sim(audio_signal)
+%       background_signal = repet.sim(audio_signal,sample_rate);
 %   
+%   Online REPET-SIM
+%       REPET-SIM can be easily implemented online to handle real-time 
+%       computing, particularly for real-time speech enhancement. The 
+%       online REPET-SIM simply processes the time frames of the mixture 
+%       one after the other given a buffer that temporally stores past 
+%       frames.
+%
+%      background_signal = repet.simonline(audio_signal,sample_rate);
+%
 %   See also http://zafarrafii.com/repet.html
 %
-%   
 %   References
 %       Zafar Rafii, Antoine Liutkus, and Bryan Pardo. "REPET for 
 %       Background/Foreground Separation in Audio," Blind Source 
@@ -95,11 +98,10 @@
 %       36th International Conference on Acoustics, Speech and Signal 
 %       Processing, Prague, Czech Republic, May 22-27, 2011.
 %   
-%
 %   Author
 %       Zafar Rafii
 %       zafarrafii@gmail.com
-%       07/26/17
+%       07/27/17
 
 classdef repet
     
@@ -126,17 +128,16 @@ classdef repet
             % Filter order for the median filter (for adaptive REPET)
             filter_order = 5;
             
-            % Minimal threshold for two similar frames in [0,1] (for
-            % REPET-SIM)
+            % Minimal threshold for two similar frames in [0,1], minimal 
+            % distance between two similar frames in seconds, and maximal 
+            % number of similar frames for one frame (for REPET-SIM and 
+            % online REPET-SIM)
             similarity_threshold = 0;
-            
-            % Minimal distance between two similar frames in seconds (for
-            % REPET-SIM)
             similarity_distance = 1;
-            
-            % Maximal number of similar frames for the median filter (for
-            % REPET-SIM)
             similarity_number = 100;
+            
+            % Buffer length in seconds (for online REPET-SIM)
+            buffer_length = 5;
             
     end
     
@@ -521,61 +522,91 @@ classdef repet
                 audio_stft = cat(3,audio_stft,audio_stft1);
             end
             
-            % Magnitude spectrogram (with DC component and without mirrored 
-            % frequencies)
-            audio_spectrogram = abs(audio_stft(1:window_length/2+1,:,:));
+            %%% Repetition/similarity analysis
+            % Buffer in time frames
+            buffer_length = round(repet.buffer_length*sample_rate/step_length);
             
+            % Similarity distance in time frames
+            similarity_distance = round(repet.similarity_distance*sample_rate/step_length);
             
+            % Cutoff frequency in frequency channels for the dual high-pass 
+            % filter of the foreground
+            cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sample_rate);
             
-par(2) = round(par(2)*fs/stp);                                              % Distance in time frames
-buf = round(buf*fs/stp);                                                    % Buffer in time frames
-
-[t,k] = size(x);
-X = [];
-for i = 1:k                                                                 % Loop over the channels
-    Xi = stft(x(:,i),win,stp);                                              % Short-Time Fourier Transform (STFT)
-    X = cat(3,X,Xi);                                                        % Concatenate the STFTs
-end
-
-[N,m,k] = size(X);
-Y = zeros(N,m,k);
-h = waitbar(0,'Online REPET-SIM');
-for j = 1:m                                                                 % Loop over the frames for all the channels
-    v = abs(X(1:end/2+1,j,:));                                              % Frame being processed
-    if j <= buf(1) && j < m-buf(2)                                          % If not enough frames for past buffer
-        V = abs(X(1:end/2+1,1:j+buf(2),:));
-    elseif j > buf(1) && j >= m-buf(2)                                      % If not enough frames for future buffer
-        V = abs(X(1:end/2+1,j-buf(1):m,:));
-    elseif j <= buf(1) && j >= m-buf(2)                                     % If not enough frames for past buffer and future buffer
-        V = abs(X(1:end/2+1,1:m,:));
-    else
-        V = abs(X(1:end/2+1,j+(-buf(1):buf(2)),:));
-    end
-    
-    S = similarity_vector(mean(v,3),mean(V,3));                             % Similarity vector
-    [~,S] = findpeaks(S, ...                                                % Find local maxima
-        'minpeakheight',par(1), ...                                         % Minimum peak height
-        'minpeakdistance',par(2), ...                                       % Minimum peak distance
-        'npeaks',par(3), ...                                                % Number of peaks
-        'sortstr','descend');                                               % Peak sorting
-    
-    for i = 1:k                                                             % Loop over the channels
-        Mi = repeating_mask(v(:,:,i),V(:,:,i),S);                           % Repeating mask for frame being processed
-        Mi(1+(1:cof),:) = 1;                                                % High-pass filtering of the (dual) non-repeating foreground
-        Mi = cat(1,Mi,flipud(Mi(2:end-1)));                                 % Mirror the frequencies
-        Y(:,j,i) = Mi.*X(:,j,i);                                            % Apply mask to frame being processed
-    end
-    waitbar(j/m,h);
-end
-close(h)
-
-y = zeros(t,k);
-for i = 1:k                                                                 % Loop over the channels
-    yi = istft(Y(:,:,i),win,stp);                                           % Estimated repeating background
-    y(:,i) = yi(1:t);                                                       % Truncate to the original length
-end
+            % Number of time frames
+            number_times = size(audio_stft,2);
             
-            background_signal = resample(audio_signal,sample_rate,sample_rate);
+            % Initialize background STFT
+            background_stft = zeros(window_length,number_times,number_channels);
+            
+            % Open the wait bar
+            wait_bar = waitbar(0,'Online REPET-SIM');
+            
+            % Loop over the frames, for all the channels
+            for time_index = similarity_distance+2:number_times
+                
+                % Magnitude spectrum of the frame being processing
+                audio_spectrum = abs(audio_stft(1:end/2+1,time_index,:));
+                
+                % Magnitude spectrum  of the past frames in the buffer
+                audio_buffer = abs(audio_stft(1:end/2+1,max(time_index-buffer_length+1,1):time_index,:));
+                
+                % Cosine similarity between the frame being processed and 
+                % the past frames in the buffer, for both channels
+                similarity_vector = (mean(audio_spectrum,3)/norm(mean(audio_spectrum,3),2))'...
+                    *bsxfun(@rdivide,mean(audio_buffer,3),sqrt(sum(mean(audio_buffer,3).^2,1)));
+                
+                % Find the indices of the similar frames using findpeaks
+                [~,similarity_indices] = findpeaks(similarity_vector, ...
+                    'MinPeakHeight',repet.similarity_threshold, ...
+                    'MinPeakDistance',similarity_distance, ...
+                    'NPeaks',repet.similarity_number, ...
+                    'SortStr','descend');
+                
+                % Loop over the channels
+                for channel_index = 1:number_channels
+                    
+                    % Repeating spectrum for the frame being processed
+                    repeating_spectrum = median(audio_buffer(:,similarity_indices,channel_index),2);
+                    
+                    % Refine the repeating spectrum
+                    repeating_spectrum = min(audio_spectrum(:,:,channel_index),repeating_spectrum);
+                    
+                    % Repeating mask for the frame being processing
+                    repeating_mask = (repeating_spectrum+eps)./(audio_spectrum(:,:,channel_index)+eps);
+                    
+                    % High-pass filtering of the (dual) non-repeating 
+                    % foreground
+                    repeating_mask(2:cutoff_frequency+1,:) = 1;
+                    
+                    % Mirror the frequencies
+                    repeating_mask = cat(1,repeating_mask,flipud(repeating_mask(2:end-1)));
+                    
+                    % Apply the repeating mask to the STFT of the frame 
+                    % being processed
+                    background_stft(:,time_index,channel_index) = repeating_mask.*audio_stft(:,time_index,channel_index);
+                end
+                
+                % Update the wait bar
+                waitbar(time_index/number_times,wait_bar);
+            end
+            
+            % Close the wait bar
+            close(wait_bar)
+            
+            %%% Background synthesis
+            % Initialize the background signal
+            background_signal = zeros(number_samples,number_channels);
+            
+            % Loop over the channels
+            for channel_index = 1:number_channels
+                
+                % Synthesize the repeating background signal
+                background_signal1 = repet.istft(background_stft(:,:,channel_index),window_function,step_length);
+                
+                % Truncate it to the original length
+                background_signal(:,channel_index) = background_signal1(1:number_samples);
+            end
             
         end
         
