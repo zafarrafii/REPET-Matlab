@@ -21,14 +21,12 @@
 %       patterns in an audio mixture, by estimating a period of the 
 %       underlying repeating structure and modeling a segment of the 
 %       periodically repeating background.
-%       
 %       background_signal = repet.original(audio_signal,sample_rate);
 %       
 %   REPET extended
 %       The original REPET can be easily extended to handle varying 
 %       repeating structures, by simply applying the method along time, on 
 %       individual segments or via a sliding window.
-%       
 %       background_signal = repet.extended(audio_signal,sample_rate);
 %
 %   Adaptive REPET
@@ -40,7 +38,6 @@
 %       structures, by estimating the time-varying repeating periods and 
 %       extracting the repeating background locally, without the need for 
 %       segmentation or windowing.
-%       
 %       background_signal = repet.adaptive(audio_signal,sample_rate);
 %       
 %   REPET-SIM
@@ -51,7 +48,6 @@
 %       generalization of REPET that can also handle non-periodically 
 %       repeating structures, by using a similarity matrix to identify the 
 %       repeating elements.
-%       
 %       background_signal = repet.sim(audio_signal,sample_rate);
 %   
 %   Online REPET-SIM
@@ -60,8 +56,22 @@
 %       online REPET-SIM simply processes the time frames of the mixture 
 %       one after the other given a buffer that temporally stores past 
 %       frames.
+%       background_signal = repet.simonline(audio_signal,sample_rate);
 %
-%      background_signal = repet.simonline(audio_signal,sample_rate);
+%   Example
+%       % Read the audio file, here, corresponding to a song
+%       [audio_signal,sample_rate] = audioread('song.wav');
+%       
+%       % Estimate the background using REPET-SIM, and derive the 
+%       % corresponding foreground (the parameters of the algorithm can be 
+%       % redefined if necessary, in the properties of the class)
+%       background_signal = repet.sim(audio_signal,sample_rate);
+%       foreground_signal = audio_signal-background_signal;
+%       
+%       % Write the background and foreground files, here corresponding to 
+%       % the accompaniment and vocals, respectively
+%       audiowrite('accompaniment.wav',background_signal,sample_rate)
+%       audiowrite('vocals.wav',foreground_signal,sample_rate)
 %
 %   See also http://zafarrafii.com/repet.html
 %
@@ -101,11 +111,11 @@
 %   Author
 %       Zafar Rafii
 %       zafarrafii@gmail.com
-%       07/27/17
+%       07/28/17
 
 classdef repet
     
-    % Defined properties (protected) (can be redefined!)
+    % Defined properties (protected) (can be redefined if necessary)
     properties (Access = protected, Constant = true, Hidden = true)
         
             % Window length in seconds for the STFT (audio stationary 
