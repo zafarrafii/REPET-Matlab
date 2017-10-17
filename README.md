@@ -56,6 +56,18 @@ audiowrite('vocals.wav',foreground_signal,sample_rate)
 
 Working on it...
 
+### REPET (original)
+
+### REPET extended
+
+### Adaptive REPET
+
+### REPET-SIM
+
+### Online REPET-SIM
+ 
+### Example
+
 ## References
 
 - Zafar Rafii, Antoine Liutkus, and Bryan Pardo. "REPET for Background/Foreground Separation in Audio," Blind Source Separation, chapter 14, pages 395-411, Springer Berlin Heidelberg, 2014.
