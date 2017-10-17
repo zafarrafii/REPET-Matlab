@@ -84,4 +84,7 @@ Working on it...
 
 - Zafar Rafii and Bryan Pardo. "A Simple Music/Voice Separation Method based on the Extraction of the Repeating Musical Structure," 36th International Conference on Acoustics, Speech and Signal Processing, Prague, Czech Republic, May 22-27, 2011.
 
-See also http://zafarrafii.com/repet.html
+## Author
+    Zafar Rafii
+    zafarrafii@gmail.com
+    http://zafarrafii.com/repet.html
