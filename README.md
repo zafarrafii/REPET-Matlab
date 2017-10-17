@@ -52,9 +52,11 @@ audiowrite('accompaniment.wav',background_signal,sample_rate)
 audiowrite('vocals.wav',foreground_signal,sample_rate)
 ```
 
-### See also http://zafarrafii.com/repet.html
+## REPET Python module (repet.py)
 
-### References
+Working on it...
+
+## References
 
 - Zafar Rafii, Antoine Liutkus, and Bryan Pardo. "REPET for Background/Foreground Separation in Audio," Blind Source Separation, chapter 14, pages 395-411, Springer Berlin Heidelberg, 2014.
 
@@ -70,13 +72,4 @@ audiowrite('vocals.wav',foreground_signal,sample_rate)
 
 - Zafar Rafii and Bryan Pardo. "A Simple Music/Voice Separation Method based on the Extraction of the Repeating Musical Structure," 36th International Conference on Acoustics, Speech and Signal Processing, Prague, Czech Republic, May 22-27, 2011.
 
-### Author
-
-    Zafar Rafii
-    zafarrafii@gmail.com
-    07/28/17
-
-
-## REPET Python module (repet.py)
-
-Working on it...
+See also http://zafarrafii.com/repet.html
