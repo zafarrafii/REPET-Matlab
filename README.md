@@ -83,6 +83,6 @@ zafarrafii@gmail.com
 
 ## repet.py
 
-### REPET Python class
+### REPET Python module
 
 Working on it...
