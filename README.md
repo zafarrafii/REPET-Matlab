@@ -1,6 +1,11 @@
 # REpeating Pattern Extraction Technique (REPET)
 
-## REPET Matlab class (repet.m)
+- [Matlab class](#repet-matlab-class)
+- [Python module](#repet-python-module)
+- [References](#references)
+- [Author](#author)
+
+## repet Matlab class
   
 Repetition is a fundamental element in generating and perceiving structure. In audio, mixtures are often composed of structures where a repeating background signal is superimposed with a varying foreground signal (e.g., a singer overlaying varying vocals on a repeating accompaniment or a varying speech signal mixed up with a repeating background noise). On this basis, we present the REpeating Pattern Extraction Technique (REPET), a simple approach for separating the repeating background from the non-repeating foreground in an audio mixture. The basic idea is to find the repeating elements in the mixture, derive the underlying repeating models, and extract the repeating  background by comparing the models to the mixture. Unlike other separation approaches, REPET does not depend on special parameterizations, does not rely on complex frameworks, and does not require external information. Because it is only based on repetition, it has the advantage of being simple, fast, blind, and therefore completely and easily automatable.
 
@@ -52,7 +57,7 @@ audiowrite('accompaniment.wav',background_signal,sample_rate)
 audiowrite('vocals.wav',foreground_signal,sample_rate)
 ```
 
-## REPET Python module (repet.py)
+## repet Python module
 
 Working on it...
 
@@ -72,7 +77,11 @@ Working on it...
 
 - Zafar Rafii and Bryan Pardo. "A Simple Music/Voice Separation Method based on the Extraction of the Repeating Musical Structure," 36th International Conference on Acoustics, Speech and Signal Processing, Prague, Czech Republic, May 22-27, 2011.
 
-## Author
-    Zafar Rafii
-    zafarrafii@gmail.com
-    http://zafarrafii.com/repet.html
+# Author
+
+- Zafar Rafii
+- zafarrafii@gmail.com
+- [Website](http://zafarrafii.com/)
+- [CV](http://zafarrafii.com/Zafar%20Rafii%20-%20C.V..pdf)
+- [Google Scholar](https://scholar.google.com/citations?user=8wbS2EsAAAAJ&hl=en)
+- [LinkedIn](https://www.linkedin.com/in/zafar-rafii-b44b59123/)
