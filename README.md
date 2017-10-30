@@ -1,7 +1,8 @@
 # REpeating Pattern Extraction Technique (REPET)
 
-- [Matlab class](#repet-matlab-class)
-- [Python module](#repet-python-module)
+- [repet Matlab class](#repet-matlab-class)
+- [repet_demo_gui Matlab GUI]
+- [repet Python module](#repet-python-module)
 - [References](#references)
 - [Author](#author)
 
@@ -56,6 +57,11 @@ foreground_signal = audio_signal-background_signal;
 audiowrite('accompaniment.wav',background_signal,sample_rate)
 audiowrite('vocals.wav',foreground_signal,sample_rate)
 ```
+
+## repet_demo_gui Matlab GUI
+
+[Demo](http://zafarrafii.com/Codes/repet_demo_gui.avi)
+
 
 ## repet Python module
 
