@@ -64,11 +64,15 @@ audiowrite('vocals.wav',foreground_signal,sample_rate)
 
 ## repet_demo_gui Matlab GUI
 
-[Demo](http://zafarrafii.com/Codes/repet_demo_gui.avi)
+Coming soon...
 
 ## repet_sim_demo_gui Matlab GUI
 
+Coming soon...
+
 ## urepet Matlab GUI
+
+Coming soon...
 
 ## repet Python module
 
