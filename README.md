@@ -1,7 +1,7 @@
 # REpeating Pattern Extraction Technique (REPET)
 
 - [repet Matlab class](#repet-matlab-class)
-- [repet_demo_gui Matlab GUI]
+- [repet_demo_gui Matlab GUI](#repet_demo_gui-matlab-gui)
 - [repet Python module](#repet-python-module)
 - [References](#references)
 - [Author](#author)
