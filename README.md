@@ -63,7 +63,7 @@ Working on it...
 
 ## References
 
-- Zafar Rafii, Antoine Liutkus, and Bryan Pardo. "REPET for Background/Foreground Separation in Audio," Blind Source Separation, chapter 14, pages 395-411, Springer Berlin Heidelberg, 2014.
+- [Zafar Rafii, Antoine Liutkus, and Bryan Pardo. "REPET for Background/Foreground Separation in Audio," Blind Source Separation, chapter 14, pages 395-411, Springer Berlin Heidelberg, 2014.](http://zafarrafii.com/Publications/Rafii-Liutkus-Pardo%20-%20REPET%20for%20Background-Foreground%20Separation%20in%20Audio%20-%202014.pdf)
 
 - Zafar Rafii and Bryan Pardo. "Online REPET-SIM for Real-time Speech Enhancement," 38th International Conference on Acoustics, Speech and Signal Processing, Vancouver, BC, Canada, May 26-31, 2013.
 
