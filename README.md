@@ -1,6 +1,6 @@
 # REpeating Pattern Extraction Technique (REPET)
 
-[](http://zafarrafii.com/Images/repet.png)
+![REPET](http://zafarrafii.com/Images/repet.png)
 
 This repository includes a Matlab class and a Python module which implement a number of methods/functions for the different algorithms of the REpeating Pattern Extraction Technique (REPET), and Matlab GUIs to demo the original REPET, REPET-SIM, and uREPET.
 
@@ -18,6 +18,8 @@ Repetition is a fundamental element in generating and perceiving structure. In a
 
 ### REPET (original)
 
+![REPET (original)](http://zafarrafii.com/Images/repet_original_overview.png)
+
 The original REPET aims at identifying and extracting the repeating patterns in an audio mixture, by estimating a period of the underlying repeating structure and modeling a segment of the periodically repeating background.
 
 `background_signal = repet.original(audio_signal,sample_rate);`
@@ -30,11 +32,15 @@ The original REPET can be easily extended to handle varying repeating structures
 
 ### Adaptive REPET
 
+![Adaptive REPET](http://zafarrafii.com/Images/repet_adaptive_overview.png)
+
 The original REPET works well when the repeating background is relatively stable (e.g., a verse or the chorus in a song); however, the repeating background can also vary over time (e.g., a verse followed by the chorus in the song). The adaptive REPET is an extension of the original repet that can handle varying repeating structures, by estimating the time-varying repeating periods and extracting the repeating background locally, without the need for segmentation or windowing.
 
 `background_signal = repet.adaptive(audio_signal,sample_rate);`
 
 ### REPET-SIM
+
+![REPET-SIM](http://zafarrafii.com/Images/repet_sim_overview.png)
 
 The REPET methods work well when the repeating background has periodically repeating patterns (e.g., jackhammer noise); however, the repeating patterns can also happen intermittently or without a global or local periodicity (e.g., frogs by a pond). REPET-SIM is a generalization of repet that can also handle non-periodically repeating structures, by using a similarity matrix to identify the repeating elements.
 
