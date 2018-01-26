@@ -75,24 +75,6 @@ The REPET methods work well when the repeating background has periodically repea
 REPET-SIM can be easily implemented online to handle real-time computing, particularly for real-time speech enhancement. The online REPET-SIM simply processes the time frames of the mixture one after the other given a buffer that temporally stores past frames.
 
 `background_signal = repet.simonline(audio_signal,sample_rate);`
- 
-### Example
-
-```
-% Read the audio file, here, corresponding to a song
-[audio_signal,sample_rate] = audioread('song.wav');
-
-% Estimate the background using repet-SIM, and derive the 
-% corresponding foreground (the parameters of the algorithm can be 
-% redefined if necessary, in the properties of the class)
-background_signal = repet.sim(audio_signal,sample_rate);
-foreground_signal = audio_signal-background_signal;
-
-% Write the background and foreground files, here corresponding to 
-% the accompaniment and vocals, respectively
-audiowrite('accompaniment.wav',background_signal,sample_rate)
-audiowrite('vocals.wav',foreground_signal,sample_rate)
-```
 
 ## repet_demo_gui Matlab GUI
 
