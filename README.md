@@ -67,8 +67,8 @@ The REPET methods work well when the repeating background has periodically repea
 * Mixture [[audio](http://zafarrafii.com/Audio/dev_Sq1_Co_B_mix.wav)]
 * Estimated foreground [[audio](http://zafarrafii.com/Audio/dev_Sq1_Co_B_mix_foreground.wav)]
 * Estimated background [[audio](http://zafarrafii.com/Audio/dev_Sq1_Co_B_mix_background.wav)]
-* Original vocals [[audio](http://zafarrafii.com/Audio/dev_Sq1_Co_B_sim.wav)]
-* Original accompaniment [[audio](http://zafarrafii.com/Audio/dev_Sq1_Co_B_noi.wav)]
+* Original speech [[audio](http://zafarrafii.com/Audio/dev_Sq1_Co_B_sim.wav)]
+* Original noise [[audio](http://zafarrafii.com/Audio/dev_Sq1_Co_B_noi.wav)]
 
 ### Online REPET-SIM
 
