@@ -1,6 +1,6 @@
 # REpeating Pattern Extraction Technique (REPET)
 
-![REPET](http://zafarrafii.com/Images/repet.png)
+![REPET](http://zafarrafii.com/Images/repet.png | width=100)
 
 This repository includes a Matlab class and a Python module which implement a number of methods/functions for the different algorithms of the REpeating Pattern Extraction Technique (REPET), and Matlab GUIs to demo the original REPET, REPET-SIM, and uREPET.
 
