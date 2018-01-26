@@ -24,6 +24,8 @@ The original REPET aims at identifying and extracting the repeating patterns in 
 
 `background_signal = repet.original(audio_signal,sample_rate);`
 
+![](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__mix.wav)
+
 ### REPET extended
 
 The original REPET can be easily extended to handle varying repeating structures, by simply applying the method along time, on individual segments or via a sliding window.
