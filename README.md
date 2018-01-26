@@ -24,8 +24,6 @@ The original REPET aims at identifying and extracting the repeating patterns in 
 
 `background_signal = repet.original(audio_signal,sample_rate);`
 
-#### Example
-
 <img src="http://zafarrafii.com/Images/repet_original_example.png" width="750">
 
 * Mixture [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__mix.wav)]
@@ -48,8 +46,6 @@ The original REPET works well when the repeating background is relatively stable
 
 `background_signal = repet.adaptive(audio_signal,sample_rate);`
 
-#### Example
-
 <img src="http://zafarrafii.com/Images/repet_adaptive_example.png" width="750">
 
 * Mixture [[audio](http://zafarrafii.com/Audio/dev2__another_dreamer-the_ones_we_love__snip_69_94__mix.wav)]
@@ -65,8 +61,6 @@ The original REPET works well when the repeating background is relatively stable
 The REPET methods work well when the repeating background has periodically repeating patterns (e.g., jackhammer noise); however, the repeating patterns can also happen intermittently or without a global or local periodicity (e.g., frogs by a pond). REPET-SIM is a generalization of repet that can also handle non-periodically repeating structures, by using a similarity matrix to identify the repeating elements.
 
 `background_signal = repet.sim(audio_signal,sample_rate);`
-
-#### Example
 
 <img src="http://zafarrafii.com/Images/repet_sim_example.png" width="750">
 
