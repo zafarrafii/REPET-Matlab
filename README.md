@@ -26,13 +26,13 @@ The original REPET aims at identifying and extracting the repeating patterns in 
 
 #### Example
 
+<img src="http://zafarrafii.com/Images/repet_original_example.png" width="750">
+
 * Mixture [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__mix.wav)]
 * Estimated foreground [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__mix_foreground.wav)]
 * Estimated background [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__mix_background.wav)]
 * Original vocals [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__vocals.wav)]
 * Original accompaniment [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__guitar.wav)]
-
-<img src="http://zafarrafii.com/Images/repet_original_example.png" width="750">
 
 ### REPET extended
 
