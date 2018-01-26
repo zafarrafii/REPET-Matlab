@@ -66,6 +66,16 @@ The REPET methods work well when the repeating background has periodically repea
 
 `background_signal = repet.sim(audio_signal,sample_rate);`
 
+#### Example
+
+<img src="http://zafarrafii.com/Images/repet_sim_example.png" width="750">
+
+* Mixture [[audio](http://zafarrafii.com/Audio/dev_Sq1_Co_B_mix.wav)]
+* Estimated foreground [[audio](http://zafarrafii.com/Audio/dev_Sq1_Co_B_mix_foreground.wav)]
+* Estimated background [[audio](http://zafarrafii.com/Audio/dev_Sq1_Co_B_mix_background.wav)]
+* Original vocals [[audio](http://zafarrafii.com/Audio/dev_Sq1_Co_B_sim.wav)]
+* Original accompaniment [[audio](http://zafarrafii.com/Audio/dev_Sq1_Co_B_noi.wav)]
+
 ### Online REPET-SIM
 
 REPET-SIM can be easily implemented online to handle real-time computing, particularly for real-time speech enhancement. The online REPET-SIM simply processes the time frames of the mixture one after the other given a buffer that temporally stores past frames.
