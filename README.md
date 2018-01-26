@@ -32,6 +32,8 @@ The original REPET aims at identifying and extracting the repeating patterns in 
 * Original vocals [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__vocals.wav)]
 * Original accompaniment [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__guitar.wav)]
 
+<img src="http://zafarrafii.com/Images/repet_original_example.png" width="750">
+
 ### REPET extended
 
 The original REPET can be easily extended to handle varying repeating structures, by simply applying the method along time, on individual segments or via a sliding window.
