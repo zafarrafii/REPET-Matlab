@@ -48,6 +48,16 @@ The original REPET works well when the repeating background is relatively stable
 
 `background_signal = repet.adaptive(audio_signal,sample_rate);`
 
+#### Example
+
+<img src="http://zafarrafii.com/Images/repet_adaptive_example.png" width="750">
+
+* Mixture [[audio](http://zafarrafii.com/Audio/dev2__another_dreamer-the_ones_we_love__snip_69_94__mix.wav)]
+* Estimated foreground [[audio](http://zafarrafii.com/Audio/dev2__another_dreamer-the_ones_we_love__snip_69_94__foreground.wav)]
+* Estimated background [[audio](http://zafarrafii.com/Audio/dev2__another_dreamer-the_ones_we_love__snip_69_94__background.wav)]
+* Original vocals [[audio](http://zafarrafii.com/Audio/dev2__another_dreamer-the_ones_we_love__snip_69_94__vocals.wav)]
+* Original accompaniment [[audio](http://zafarrafii.com/Audio/dev2__another_dreamer-the_ones_we_love__snip_69_94__mix-vocals.wav)]
+
 ### REPET-SIM
 
 <img src="http://zafarrafii.com/Images/repet_sim_overview.png" width="750">
