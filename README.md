@@ -24,7 +24,13 @@ The original REPET aims at identifying and extracting the repeating patterns in 
 
 `background_signal = repet.original(audio_signal,sample_rate);`
 
-[link](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__mix.wav)
+#### Example
+
+* Mixture [audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__mix.wav)
+* Estimated foreground [audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__mix_foreground.wav)
+* Estimated background [audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__mix_background.wav)
+* Original vocals [audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__vocals.wav)
+* Original accompaniment [audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__guitar.wav)
 
 ### REPET extended
 
