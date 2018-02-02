@@ -476,6 +476,7 @@ classdef repet
                 
                 % Concatenate the STFTs
                 audio_stft = cat(3,audio_stft,audio_stft1);
+                
             end
             
             % Magnitude spectrogram (with DC component and without mirrored 
@@ -517,6 +518,7 @@ classdef repet
                 
                 % Truncate to the original number of samples
                 background_signal(:,channel_index) = background_signal1(1:number_samples);
+                
             end
             
         end
@@ -678,8 +680,7 @@ classdef repet
                 
                 % Window the signal
                 sample_index = step_length*(time_index-1);
-                audio_stft(:,time_index) ...
-                    = audio_signal(1+sample_index:window_length+sample_index).*window_function;
+                audio_stft(:,time_index) = audio_signal(1+sample_index:window_length+sample_index).*window_function;
                 
             end
             
@@ -715,6 +716,7 @@ classdef repet
                 sample_index = step_length*(time_index-1);
                 audio_signal(1+sample_index:window_length+sample_index) ...
                     = audio_signal(1+sample_index:window_length+sample_index)+audio_stft(:,time_index); 
+                
             end
             
             % Remove the zero-padding at the start and the end
@@ -729,14 +731,12 @@ classdef repet
         % using xcorr)
         function autocorrelation_matrix = acorr(data_matrix)
             
-            % Each column represents a data vector
-            [number_points,number_frames] = size(data_matrix);
-            
-            % Zero-padding to twice the length for a proper autocorrelation
-            data_matrix = [data_matrix;zeros(number_points,number_frames)];
+            % Number of points in each column
+            number_points = size(data_matrix,1);
             
             % Power Spectral Density (PSD): PSD(X) = fft(X).*conj(fft(X))
-            data_matrix = abs(fft(data_matrix)).^2;
+            % (after zero-padding for proper autocorrelation)
+            data_matrix = abs(fft(data_matrix,2*number_points)).^2;
             
             % Wiener–Khinchin theorem: PSD(X) = fft(acorr(X))
             autocorrelation_matrix = ifft(data_matrix); 
@@ -746,6 +746,7 @@ classdef repet
             
             % Unbiased autocorrelation (lag 0 to number_points-1)
             autocorrelation_matrix = bsxfun(@rdivide,autocorrelation_matrix,(number_points:-1:1)');
+            
         end
         
         % Beat spectrum using the autocorrelation
@@ -782,6 +783,7 @@ classdef repet
                 
                 % Update wait bar
                 waitbar(time_index/number_times,wait_bar);
+                
             end
             
             % Close wait bar
@@ -794,7 +796,7 @@ classdef repet
         function similarity_matrix = similarity(data_matrix)
             
             % Divide each column by its Euclidean norm
-            data_matrix = bsxfun(@rdivide,data_matrix,sqrt(sum(data_matrix.^2,1)));
+            data_matrix = data_matrix./sqrt(sum(data_matrix.^2,1));
             
             % Multiply each normalized columns with each other
             similarity_matrix = data_matrix'*data_matrix;
@@ -842,6 +844,7 @@ classdef repet
                 
                 % Update wait bar
                 waitbar(time_index/number_times,wait_bar);
+                
             end
             
             % Close wait bar
@@ -918,6 +921,7 @@ classdef repet
                 
                 % Update wait bar
                 waitbar(time_index/number_times,wait_bar);
+                
             end
             
             % Close wait bar
@@ -956,6 +960,7 @@ classdef repet
                 
                 % Update wait bar
                 waitbar(time_index/number_times,wait_bar);
+                
             end
             
             % Close wait bar
