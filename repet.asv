@@ -13,64 +13,64 @@ classdef repet
     %   repeating elements in the mixture, derive the underlying repeating 
     %   models, and extract the repeating  background by comparing the 
     %   models to the mixture. Unlike other separation approaches, REPET 
-    %   does not depend on special parameterizations, does not rely on 
-    %   complex frameworks, and does not require external information. 
-    %   Because it is only based on repetition, it has the advantage of 
-    %   being simple, fast, blind, and therefore completely and easily 
-    %   automatable.
+    %does not depend on special 
+    % parameterizations, does not rely on complex frameworks, and does not 
+    % require external information. Because it is only based on repetition, 
+    % it has the advantage of being simple, fast, blind, and therefore 
+    % completely and easily automatable.
     % 
     % z Methods:
     %   original - REPET (original)
     %   
-    %     The original REPET aims at identifying and extracting the 
-    %     repeating patterns in an audio mixture, by estimating a period of 
-    %     the underlying repeating structure and modeling a segment of the 
-    %     periodically repeating background.
-    %     
-    %     background_signal = repet.original(audio_signal,sample_rate);
+    %   The original REPET aims at identifying and extracting the repeating 
+    %   patterns in an audio mixture, by estimating a period of the 
+    %   underlying repeating structure and modeling a segment of the 
+    %   periodically repeating background.
+    %   
+    %   background_signal = repet.original(audio_signal,sample_rate);
     %   
     %   extended - REPET extended
     %   
-    %     The original REPET can be easily extended to handle varying 
-    %     repeating structures, by simply applying the method along time, 
-    %     on individual segments or via a sliding window.
-    %     
-    %     background_signal = repet.extended(audio_signal,sample_rate);
+    %   The original REPET can be easily extended to handle varying 
+    %   repeating structures, by simply applying the method along time, on 
+    %   individual segments or via a sliding window.
+    %   
+    %   background_signal = repet.extended(audio_signal,sample_rate);
     %   
     %   adaptive - Adaptive REPET
     %   
-    %     The original REPET works well when the repeating background is 
-    %     relatively stable (e.g., a verse or the chorus in a song); 
-    %     however, the repeating background can also vary over time (e.g., 
-    %     a verse followed by the chorus in the song). The adaptive REPET 
-    %     is an extension of the original REPET that can handle varying 
-    %     repeating structures, by estimating the time-varying repeating 
-    %     periods and extracting the repeating background locally, without 
-    %     the need for segmentation or windowing.
-    %     
-    %     background_signal = repet.adaptive(audio_signal,sample_rate);
+    %   The original REPET works well when the repeating background is 
+    %   relatively stable (e.g., a verse or the chorus in a song); however, 
+    %   the repeating background can also vary over time (e.g., a verse 
+    %   followed by the chorus in the song). The adaptive REPET is an 
+    %   extension of the original REPET that can handle varying repeating 
+    %   structures, by estimating the time-varying repeating periods and 
+    %   extracting the repeating background locally, without the need for 
+    %   segmentation or windowing.
+    %   
+    %   background_signal = repet.adaptive(audio_signal,sample_rate);
     %   
     %   sim - REPET-SIM
     %   
-    %     The REPET methods work well when the repeating background has 
-    %     periodically repeating patterns (e.g., jackhammer noise); 
-    %     however, the repeating patterns can also happen intermittently or 
-    %     without a global or local periodicity (e.g., frogs by a pond). 
-    %     REPET-SIM is a generalization of REPET that can also handle 
-    %     non-periodically repeating structures, by using a similarity 
-    %     matrix to identify the repeating elements.
-    %     
-    %     background_signal = repet.sim(audio_signal,sample_rate);
+    %   The REPET methods work well when the repeating background has 
+    %   periodically repeating patterns (e.g., jackhammer noise); however, 
+    %   the repeating patterns can also happen intermittently or without a 
+    %   global or local periodicity (e.g., frogs by a pond). REPET-SIM is a 
+    %   generalization of REPET that can also handle non-periodically 
+    %   repeating structures, by using a similarity matrix to identify the 
+    %   repeating elements.
+    %   
+    %   background_signal = repet.sim(audio_signal,sample_rate);
     %   
     %   simonline - Online REPET-SIM
     %   
-    %     REPET-SIM can be easily implemented online to handle real-time 
-    %     computing, particularly for real-time speech enhancement. The 
-    %     online REPET-SIM simply processes the time frames of the mixture 
-    %     one after the other given a buffer that temporally stores past 
-    %     frames.
-    %     
-    %     background_signal = repet.simonline(audio_signal,sample_rate);
+    %   REPET-SIM can be easily implemented online to handle real-time 
+    %   computing, particularly for real-time speech enhancement. The 
+    %   online REPET-SIM simply processes the time frames of the mixture 
+    %   one after the other given a buffer that temporally stores past 
+    %   frames.
+    %
+    %   background_signal = repet.simonline(audio_signal,sample_rate);
     %   
     % Example:
     %   % Read the audio file, here, corresponding to a song
@@ -133,36 +133,36 @@ classdef repet
     % Defined properties (protected) (can be redefined if necessary)
     properties (Access = protected, Constant = true, Hidden = true)
         
-        % Window length in seconds for the STFT (audio stationary around 40 
-        % milliseconds)
-        window_duration = 0.040;
-
-        % Cutoff frequency in Hz for the dual high-pass filter of the
-        % foreground (vocals are rarely below 100 Hz)
-        cutoff_frequency = 100;
-
-        % Period range in seconds for the beat spectrum (for REPET, REPET 
-        % extented, and adaptive REPET)
-        period_range = [1,10];
-
-        % Segmentation length and step in seconds (for REPET extented and 
-        % adaptive REPET)
-        segment_length = 10;
-        segment_step = 5;
-
-        % Filter order for the median filter (for adaptive REPET)
-        filter_order = 5;
-
-        % Minimal threshold for two similar frames in [0,1], minimal 
-        % distance between two similar frames in seconds, and maximal 
-        % number of similar frames for one frame (for REPET-SIM and online 
-        % REPET-SIM)
-        similarity_threshold = 0;
-        similarity_distance = 1;
-        similarity_number = 100;
-
-        % Buffer length in seconds (for online REPET-SIM)
-        buffer_length = 5;
+            % Window length in seconds for the STFT (audio stationary 
+            % around 40 milliseconds)
+            window_duration = 0.040;
+            
+            % Cutoff frequency in Hz for the dual high-pass filter of the
+            % foreground (vocals are rarely below 100 Hz)
+            cutoff_frequency = 100;
+        
+            % Period range in seconds for the beat spectrum (for REPET,
+            % REPET extented, and adaptive REPET)
+            period_range = [1,10];
+            
+            % Segmentation length and step in seconds (for REPET extented 
+            % and adaptive REPET)
+            segment_length = 10;
+            segment_step = 5;
+            
+            % Filter order for the median filter (for adaptive REPET)
+            filter_order = 5;
+            
+            % Minimal threshold for two similar frames in [0,1], minimal 
+            % distance between two similar frames in seconds, and maximal 
+            % number of similar frames for one frame (for REPET-SIM and 
+            % online REPET-SIM)
+            similarity_threshold = 0;
+            similarity_distance = 1;
+            similarity_number = 100;
+            
+            % Buffer length in seconds (for online REPET-SIM)
+            buffer_length = 5;
             
     end
     
@@ -365,11 +365,13 @@ classdef repet
                         
                         % Half windowing of the overlap part of the background signal on the right
                         background_signal(sample_index+1:sample_index+segment_overlap,:) ...
-                            = background_signal(sample_index+1:sample_index+segment_overlap,:).*segment_window(segment_overlap+1:2*segment_overlap);
+                            = bsxfun(@times,background_signal(sample_index+1:sample_index+segment_overlap,:),segment_window(segment_overlap+1:2*segment_overlap));
                         
                         % Half windowing of the overlap part of the background segment on the left
-                        background_segment(1:segment_overlap,:) = background_segment(1:segment_overlap,:).*segment_window(1:segment_overlap);
-                        background_signal(sample_index+1:sample_index+segment_length,:) = background_signal(sample_index+1:sample_index+segment_length,:) + background_segment;
+                        background_segment(1:segment_overlap,:) ...
+                            = bsxfun(@times,background_segment(1:segment_overlap,:),segment_window(1:segment_overlap));
+                        background_signal(sample_index+1:sample_index+segment_length,:) ...
+                            = background_signal(sample_index+1:sample_index+segment_length,:) + background_segment;
                     end
                 end
                 
