@@ -128,7 +128,7 @@ classdef repet
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   02/02/18
+    %   02/05/18
     
     % Defined properties (protected) (can be redefined if necessary)
     properties (Access = protected, Constant = true, Hidden = true)
@@ -191,6 +191,7 @@ classdef repet
                 
                 % Concatenate the STFTs
                 audio_stft = cat(3,audio_stft,audio_stft1);
+                
             end
             
             % Magnitude spectrogram (with DC component and without mirrored 
@@ -233,6 +234,7 @@ classdef repet
                 
                 % Truncate to the original number of samples
                 background_signal(:,channel_index) = background_signal1(1:number_samples);
+                
             end
             
         end
@@ -259,6 +261,7 @@ classdef repet
                 
                 % Triangular window for the overlapping parts
                 segment_window = triang(2*segment_overlap);
+                
             end
             
             % STFT parameters
@@ -286,6 +289,7 @@ classdef repet
                     audio_segment = audio_signal;
                     segment_length = number_samples;
                 else
+                    
                     % Sample index for the segment
                     sample_index = (segment_index-1)*segment_step;
                     
@@ -298,6 +302,7 @@ classdef repet
                         audio_segment = audio_signal(sample_index+1:number_samples,:);
                         segment_length = length(audio_segment);
                     end
+                    
                 end
                 
                 %%% Fourier analysis
@@ -312,6 +317,7 @@ classdef repet
                     
                     % Concatenate the STFTs
                     audio_stft = cat(3,audio_stft,audio_stft1);
+                    
                 end
                 
                 % Magnitude spectrogram (with DC component and without 
@@ -347,6 +353,7 @@ classdef repet
                     
                     % Truncate to the original number of samples
                     background_segment(:,channel_index) = background_segment1(1:segment_length);
+                    
                 end
                 
                 %%%% Combination
@@ -368,13 +375,17 @@ classdef repet
                             = background_signal(sample_index+1:sample_index+segment_overlap,:).*segment_window(segment_overlap+1:2*segment_overlap);
                         
                         % Half windowing of the overlap part of the background segment on the left
-                        background_segment(1:segment_overlap,:) = background_segment(1:segment_overlap,:).*segment_window(1:segment_overlap);
-                        background_signal(sample_index+1:sample_index+segment_length,:) = background_signal(sample_index+1:sample_index+segment_length,:) + background_segment;
+                        background_segment(1:segment_overlap,:) ...
+                            = background_segment(1:segment_overlap,:).*segment_window(1:segment_overlap);
+                        background_signal(sample_index+1:sample_index+segment_length,:) ...
+                            = background_signal(sample_index+1:sample_index+segment_length,:) + background_segment;
+                        
                     end
                 end
                 
                 % Update wait bar
                 waitbar(segment_index/number_segments,wait_bar);
+                
             end
             
             % Close wait bar
@@ -403,6 +414,7 @@ classdef repet
                 
                 % Concatenate the STFTs
                 audio_stft = cat(3,audio_stft,audio_stft1);
+                
             end
             
             % Magnitude spectrogram (with DC component and without mirrored 
@@ -450,6 +462,7 @@ classdef repet
                 
                 % Truncate to the original number of samples
                 background_signal(:,channel_index) = background_signal1(1:number_samples);
+                
             end
             
         end
@@ -545,6 +558,7 @@ classdef repet
                 
                 % Concatenate the STFTs
                 audio_stft = cat(3,audio_stft,audio_stft1);
+                
             end
             
             %%% Repetition/similarity analysis
@@ -579,7 +593,7 @@ classdef repet
                 % Cosine similarity between the frame being processed and 
                 % the past frames in the buffer, for both channels
                 similarity_vector = (mean(audio_spectrum,3)/norm(mean(audio_spectrum,3),2))'...
-                    *bsxfun(@rdivide,mean(audio_buffer,3),sqrt(sum(mean(audio_buffer,3).^2,1)));
+                    *(mean(audio_buffer,3)./sqrt(sum(mean(audio_buffer,3).^2,1)));
                 
                 % Find the indices of the similar frames using findpeaks
                 [~,similarity_indices] = findpeaks(similarity_vector, ...
@@ -610,10 +624,12 @@ classdef repet
                     % Apply the repeating mask to the STFT of the frame 
                     % being processed
                     background_stft(:,time_index,channel_index) = repeating_mask.*audio_stft(:,time_index,channel_index);
+                    
                 end
                 
                 % Update the wait bar
                 waitbar(time_index/number_times,wait_bar);
+                
             end
             
             % Close the wait bar
@@ -745,7 +761,7 @@ classdef repet
             autocorrelation_matrix = autocorrelation_matrix(1:number_points,:);
             
             % Unbiased autocorrelation (lag 0 to number_points-1)
-            autocorrelation_matrix = bsxfun(@rdivide,autocorrelation_matrix,(number_points:-1:1)');
+            autocorrelation_matrix = autocorrelation_matrix./(number_points:-1:1)';
             
         end
         
