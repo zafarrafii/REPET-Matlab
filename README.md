@@ -47,11 +47,11 @@ The original REPET can be easily extended to handle varying repeating structures
 
 ### Adaptive REPET
 
+<img src="http://zafarrafii.com/Images/repet_adaptive_overview.png" width="750">
+
 The original REPET works well when the repeating background is relatively stable (e.g., a verse or the chorus in a song); however, the repeating background can also vary over time (e.g., a verse followed by the chorus in the song). The adaptive REPET is an extension of the original repet that can handle varying repeating structures, by estimating the time-varying repeating periods and extracting the repeating background locally, without the need for segmentation or windowing.
 
 `background_signal = repet.adaptive(audio_signal,sample_rate);`
-
-<img src="http://zafarrafii.com/Images/repet_adaptive_overview.png" width="750">
 
 <img src="http://zafarrafii.com/Images/repet_adaptive_example.png" width="750">
 
@@ -63,11 +63,11 @@ The original REPET works well when the repeating background is relatively stable
 
 ### REPET-SIM
 
+<img src="http://zafarrafii.com/Images/repet_sim_overview.png" width="750">
+
 The REPET methods work well when the repeating background has periodically repeating patterns (e.g., jackhammer noise); however, the repeating patterns can also happen intermittently or without a global or local periodicity (e.g., frogs by a pond). REPET-SIM is a generalization of repet that can also handle non-periodically repeating structures, by using a similarity matrix to identify the repeating elements.
 
 `background_signal = repet.sim(audio_signal,sample_rate);`
-
-<img src="http://zafarrafii.com/Images/repet_sim_overview.png" width="750">
 
 <img src="http://zafarrafii.com/Images/repet_sim_example.png" width="750">
 
