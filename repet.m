@@ -1,6 +1,5 @@
 classdef repet
     % repet REpeating Pattern Extraction Technique (REPET) class
-    %
     %   Repetition is a fundamental element in generating and perceiving 
     %   structure. In audio, mixtures are often composed of structures 
     %   where a repeating background signal is superimposed with a varying 
@@ -19,58 +18,12 @@ classdef repet
     %   being simple, fast, blind, and therefore completely and easily 
     %   automatable.
     % 
-    % z Methods:
+    % repet Methods:
     %   original - REPET (original)
-    %   
-    %     The original REPET aims at identifying and extracting the 
-    %     repeating patterns in an audio mixture, by estimating a period of 
-    %     the underlying repeating structure and modeling a segment of the 
-    %     periodically repeating background.
-    %     
-    %     background_signal = repet.original(audio_signal,sample_rate);
-    %   
     %   extended - REPET extended
-    %   
-    %     The original REPET can be easily extended to handle varying 
-    %     repeating structures, by simply applying the method along time, 
-    %     on individual segments or via a sliding window.
-    %     
-    %     background_signal = repet.extended(audio_signal,sample_rate);
-    %   
     %   adaptive - Adaptive REPET
-    %   
-    %     The original REPET works well when the repeating background is 
-    %     relatively stable (e.g., a verse or the chorus in a song); 
-    %     however, the repeating background can also vary over time (e.g., 
-    %     a verse followed by the chorus in the song). The adaptive REPET 
-    %     is an extension of the original REPET that can handle varying 
-    %     repeating structures, by estimating the time-varying repeating 
-    %     periods and extracting the repeating background locally, without 
-    %     the need for segmentation or windowing.
-    %     
-    %     background_signal = repet.adaptive(audio_signal,sample_rate);
-    %   
     %   sim - REPET-SIM
-    %   
-    %     The REPET methods work well when the repeating background has 
-    %     periodically repeating patterns (e.g., jackhammer noise); 
-    %     however, the repeating patterns can also happen intermittently or 
-    %     without a global or local periodicity (e.g., frogs by a pond). 
-    %     REPET-SIM is a generalization of REPET that can also handle 
-    %     non-periodically repeating structures, by using a similarity 
-    %     matrix to identify the repeating elements.
-    %     
-    %     background_signal = repet.sim(audio_signal,sample_rate);
-    %   
     %   simonline - Online REPET-SIM
-    %   
-    %     REPET-SIM can be easily implemented online to handle real-time 
-    %     computing, particularly for real-time speech enhancement. The 
-    %     online REPET-SIM simply processes the time frames of the mixture 
-    %     one after the other given a buffer that temporally stores past 
-    %     frames.
-    %     
-    %     background_signal = repet.simonline(audio_signal,sample_rate);
     %   
     % Example:
     %   % Read the audio file, here, corresponding to a song
@@ -169,9 +122,60 @@ classdef repet
     % Main methods (public)
     methods (Access = public, Hidden = false, Static = true)
         
-        % REPET (original)
         function background_signal = original(audio_signal,sample_rate)
-        % REPET (original) (see repet)
+            % repet REPET (original)
+            %   The original REPET aims at identifying and extracting the 
+            %   repeating patterns in an audio mixture, by estimating a 
+            %   period of the underlying repeating structure and modeling a 
+            %   segment of the periodically repeating background.
+            %   
+            %   background_signal = repet.original(audio_signal,sample_rate);
+            %   
+            %   Arguments:
+            %       audio_signal: audio signal [number_samples,number_channels]
+            %       sample_rate: sample rate in Hz
+            %       background_signal: background signal [number_samples,number_channels]
+            %   
+            %   Example: Estimate the background and foreground signals and display their spectrograms
+            %       % Read the audio signal and return the sample rate
+            %       [audio_signal,sample_rate] = audioread('audio_file.wav');
+            %       
+            %       % Estimate the background signal and infer the foreground signal
+            %       background_signal = repet.original(audio_signal,sample_rate);
+            %       foreground_signal = audio_signal-background_signal;
+            %       
+            %       % Compute the audio, background, and foreground spectrograms
+            %       window_length = 2^nextpow2(0.04*sample_rate);
+            %       window_function = hanning(window_length,'periodic');
+            %       audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_length,window_length/2));
+            %       background_spectrogram = abs(spectrogram(mean(background_signal,2),window_length,window_length/2));
+            %       foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_length,window_length/2));
+            %       
+            %       % Display the audio, background, and foreground spectrograms
+            %       figure
+            %       subplot(1,3,1), imagesc(db(audio_spectrogram(2:end,:))), axis xy
+            %       title('Audio Spectrogram (dB)')
+            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
+            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
+            %       yticks(round((1e3:1e3:sample_rate/2)/sample_rate*window_length))
+            %       yticklabels(1:sample_rate/2*1e-3), ylabel('Frequency (kHz)')
+            %       set(gca,'FontSize',30)
+            %       subplot(1,3,2), imagesc(db(background_spectrogram(2:end,:))), axis xy
+            %       title('Background Spectrogram (dB)')
+            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
+            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
+            %       yticks(round((1e3:1e3:sample_rate/2)/sample_rate*window_length))
+            %       yticklabels(1:sample_rate/2*1e-3), ylabel('Frequency (kHz)')
+            %       set(gca,'FontSize',30)
+            %       subplot(1,3,3), imagesc(db(foreground_spectrogram(2:end,:))), axis xy
+            %       title('Foreground Spectrogram (dB)')
+            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
+            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
+            %       yticks(round((1e3:1e3:sample_rate/2)/sample_rate*window_length))
+            %       yticklabels(1:sample_rate/2*1e-3), ylabel('Frequency (kHz)')
+            %       set(gca,'FontSize',30)
+            %       
+            %   See also repet.extended, repet.adaptive, repet.sim, repet.simonline
             
             %%% Fourier analysis
             % STFT parameters
@@ -239,9 +243,25 @@ classdef repet
             
         end
         
-        % REPET extended
         function background_signal = extended(audio_signal,sample_rate)
-        % REPET extended (see repet)
+            % extended REPET extended
+            %   The original REPET can be easily extended to handle varying 
+            %   repeating structures, by simply applying the method along 
+            %   time, on individual segments or via a sliding window.
+            %   
+            %   background_signal = repet.extended(audio_signal,sample_rate);
+            %   
+            %   Arguments:
+            %       audio_signal: audio signal [number_samples,number_channels]
+            %       sample_rate: sample rate in Hz
+            %       background_signal: background signal [number_samples,number_channels]
+            %   
+            %   Example: Compute and display the spectrogram of an audio file
+            %       % Audio signal averaged over its channels and sample rate in Hz
+            %       [audio_signal,sample_rate] = audioread('audio_file.wav');
+            %       audio_signal = mean(audio_signal,2);
+            %
+            %   See also xcorr, z.istft, spectrogram
             
             %%%% Derived parameters
             % Segmentation length, step, and overlap in samples
@@ -392,9 +412,17 @@ classdef repet
             close(wait_bar)
         end
         
-        % Adaptive REPET
         function background_signal = adaptive(audio_signal,sample_rate)
-        % Adaptive REPET (see repet)
+            % adaptive Adaptive REPET
+            %   The original REPET works well when the repeating background 
+            %   is relatively stable (e.g., a verse or the chorus in a 
+            %   song); however, the repeating background can also vary over 
+            %   time (e.g., a verse followed by the chorus in the song). 
+            %   The adaptive REPET is an extension of the original REPET 
+            %   that can handle varying repeating structures, by estimating 
+            %   the time-varying repeating periods and extracting the 
+            %   repeating background locally, without the need for 
+            %   segmentation or windowing.
             
             %%% Fourier analysis
             % STFT parameters
@@ -467,9 +495,16 @@ classdef repet
             
         end
         
-        % REPET-SIM
         function background_signal = sim(audio_signal,sample_rate)
-        % REPET-SIM (see repet)
+            % sim REPET-SIM
+            %   The REPET methods work well when the repeating background 
+            %   has periodically repeating patterns (e.g., jackhammer 
+            %   noise); however, the repeating patterns can also happen 
+            %   intermittently or without a global or local periodicity 
+            %   (e.g., frogs by a pond). REPET-SIM is a generalization of 
+            %   REPET that can also handle non-periodically repeating 
+            %   structures, by using a similarity matrix to identify the 
+            %   repeating elements.
             
             %%% Fourier analysis
             % STFT parameters
@@ -536,9 +571,15 @@ classdef repet
             
         end
         
-        % Online REPET-SIM
         function background_signal = simonline(audio_signal,sample_rate)
-        % Online REPET-SIM (see repet)
+            % simonline Online REPET-SIM
+            %   REPET-SIM can be easily implemented online to handle 
+            %   real-time computing, particularly for real-time speech 
+            %   enhancement. The online REPET-SIM simply processes the time 
+            %   frames of the mixture one after the other given a buffer 
+            %   that temporally stores past frames.
+            %   
+            %   background_signal = repet.simonline(audio_signal,sample_rate);
             
             %%% Fourier analysis
             % STFT parameters
