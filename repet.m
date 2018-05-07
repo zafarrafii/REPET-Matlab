@@ -591,6 +591,60 @@ classdef repet
             %   REPET that can also handle non-periodically repeating 
             %   structures, by using a similarity matrix to identify the 
             %   repeating elements.
+            %   
+            %   background_signal = repet.sim(audio_signal,sample_rate);
+            %   
+            %   Arguments:
+            %       audio_signal: audio signal [number_samples,number_channels]
+            %       sample_rate: sample rate in Hz
+            %       background_signal: background signal [number_samples,number_channels]
+            %   
+            %   Example: Compute and display the spectrogram of an audio file
+            %       % Read the audio signal and return the sample rate
+            %       [audio_signal,sample_rate] = audioread('audio_file.wav');
+            %       
+            %       % Estimate the background signal and infer the foreground signal
+            %       background_signal = repet.sim(audio_signal,sample_rate);
+            %       foreground_signal = audio_signal-background_signal;
+            %       
+            %       % Write the background and foreground signals
+            %       audiowrite('background_signal.wav',background_signal,sample_rate)
+            %       audiowrite('foreground_signal.wav',foreground_signal,sample_rate)
+            %       
+            %       % Compute the audio, background, and foreground spectrograms
+            %       window_length = 2^nextpow2(0.04*sample_rate);
+            %       step_length = window_length/2;
+            %       window_function = hamming(window_length,'periodic');
+            %       audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_length,window_length-step_length));
+            %       background_spectrogram = abs(spectrogram(mean(background_signal,2),window_length,window_length-step_length));
+            %       foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_length,window_length-step_length));
+            %       
+            %       % Display the audio, background, and foreground spectrograms (up to 5kHz)
+            %       figure
+            %       subplot(3,1,1), imagesc(db(audio_spectrogram(2:window_length/8,:))), axis xy
+            %       title('Audio Spectrogram (dB)')
+            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
+            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
+            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
+            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
+            %       set(gca,'FontSize',30)
+            %       subplot(3,1,2), imagesc(db(background_spectrogram(2:window_length/8,:))), axis xy
+            %       title('Background Spectrogram (dB)')
+            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
+            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
+            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
+            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
+            %       set(gca,'FontSize',30)
+            %       subplot(3,1,3), imagesc(db(foreground_spectrogram(2:window_length/8,:))), axis xy
+            %       title('Foreground Spectrogram (dB)')
+            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
+            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
+            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
+            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
+            %       set(gca,'FontSize',30)
+            %       colormap(jet)
+            %
+            %   See also repet.original, repet.extended, repet.adaptive, repet.simonline
             
             %%% Fourier analysis
             % STFT parameters
