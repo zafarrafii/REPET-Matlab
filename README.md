@@ -47,6 +47,10 @@ Example: Estimate the background and foreground signals, and display their spect
 background_signal = repet.original(audio_signal,sample_rate);
 foreground_signal = audio_signal-background_signal;
 
+% Write the background and foreground signals
+audiowrite('background_signal.wav',background_signal,sample_rate)
+audiowrite('foreground_signal.wav',foreground_signal,sample_rate)
+
 % Compute the audio, background, and foreground spectrograms
 window_length = 2^nextpow2(0.04*sample_rate);
 step_length = window_length/2;
@@ -81,18 +85,7 @@ set(gca,'FontSize',30)
 colormap(jet)
 ```
 
-<img src="images/stft.png" width="1000">
-
-<img src="http://zafarrafii.com/Images/repet_original_example.png" width="750">
-
-* Mixture [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__mix.wav)]
-* Estimated foreground [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__mix_foreground.wav)]
-* Estimated background [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__mix_background.wav)]
-* Original vocals [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__vocals.wav)]
-* Original accompaniment [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__guitar.wav)]
-
-
-
+<img src="images/original.png" width="1000">
 
 ### REPET extended
 
