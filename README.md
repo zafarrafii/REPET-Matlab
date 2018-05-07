@@ -221,13 +221,61 @@ The REPET methods work well when the repeating background has periodically repea
 
 `background_signal = repet.sim(audio_signal,sample_rate);`
 
-<img src="http://zafarrafii.com/Images/repet_sim_example.png" width="750">
+Arguments:
+```
+audio_signal: audio signal [number_samples,number_channels]
+sample_rate: sample rate in Hz
+background_signal: background signal [number_samples,number_channels]
+```
 
-* Mixture [[audio](http://zafarrafii.com/Audio/dev_Sq1_Co_B_mix.wav)]
-* Estimated foreground [[audio](http://zafarrafii.com/Audio/dev_Sq1_Co_B_mix_foreground.wav)]
-* Estimated background [[audio](http://zafarrafii.com/Audio/dev_Sq1_Co_B_mix_background.wav)]
-* Original speech [[audio](http://zafarrafii.com/Audio/dev_Sq1_Co_B_sim.wav)]
-* Original noise [[audio](http://zafarrafii.com/Audio/dev_Sq1_Co_B_noi.wav)]
+Example: Estimate the background and foreground signals, and display their spectrograms
+```
+% Read the audio signal and return the sample rate
+[audio_signal,sample_rate] = audioread('audio_file.wav');
+
+% Estimate the background signal and infer the foreground signal
+background_signal = repet.sim(audio_signal,sample_rate);
+foreground_signal = audio_signal-background_signal;
+
+% Write the background and foreground signals
+audiowrite('background_signal.wav',background_signal,sample_rate)
+audiowrite('foreground_signal.wav',foreground_signal,sample_rate)
+
+% Compute the audio, background, and foreground spectrograms
+window_length = 2^nextpow2(0.04*sample_rate);
+step_length = window_length/2;
+window_function = hamming(window_length,'periodic');
+audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_length,window_length-step_length));
+background_spectrogram = abs(spectrogram(mean(background_signal,2),window_length,window_length-step_length));
+foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_length,window_length-step_length));
+
+% Display the audio, background, and foreground spectrograms (up to 5kHz)
+figure
+subplot(3,1,1), imagesc(db(audio_spectrogram(2:window_length/8,:))), axis xy
+title('Audio Spectrogram (dB)')
+xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
+xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
+yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
+yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
+set(gca,'FontSize',30)
+subplot(3,1,2), imagesc(db(background_spectrogram(2:window_length/8,:))), axis xy
+title('Background Spectrogram (dB)')
+xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
+xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
+yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
+yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
+set(gca,'FontSize',30)
+subplot(3,1,3), imagesc(db(foreground_spectrogram(2:window_length/8,:))), axis xy
+title('Foreground Spectrogram (dB)')
+xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
+xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
+yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
+yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
+set(gca,'FontSize',30)
+colormap(jet)
+```
+
+<img src="images/sim.png" width="1000">
 
 ### Online REPET-SIM
 
