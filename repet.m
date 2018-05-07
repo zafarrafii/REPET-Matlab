@@ -24,21 +24,6 @@ classdef repet
     %   adaptive - Adaptive REPET
     %   sim - REPET-SIM
     %   simonline - Online REPET-SIM
-    %   
-    % Example:
-    %   % Read the audio file, here, corresponding to a song
-    %   [audio_signal,sample_rate] = audioread('song.wav');
-    %   
-    %   % Estimate the background using REPET-SIM, and derive the 
-    %   % corresponding foreground (the parameters of the algorithm can be 
-    %   % redefined if necessary, in the properties of the class)
-    %   background_signal = repet.sim(audio_signal,sample_rate);
-    %   foreground_signal = audio_signal-background_signal;
-    %   
-    %   % Write the background and foreground files, here corresponding to 
-    %   % the accompaniment and vocals, respectively
-    %   audiowrite('accompaniment.wav',background_signal,sample_rate)
-    %   audiowrite('vocals.wav',foreground_signal,sample_rate)
     % 
     % See also http://zafarrafii.com/#REPET
     % 
@@ -81,7 +66,7 @@ classdef repet
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   02/05/18
+    %   05/07/18
     
     % Defined properties (protected) (can be redefined if necessary)
     properties (Access = protected, Constant = true, Hidden = true)
@@ -136,7 +121,7 @@ classdef repet
             %       sample_rate: sample rate in Hz
             %       background_signal: background signal [number_samples,number_channels]
             %   
-            %   Example: Estimate the background and foreground signals and display their spectrograms
+            %   Example: Estimate the background and foreground signals, and display their spectrograms
             %       % Read the audio signal and return the sample rate
             %       [audio_signal,sample_rate] = audioread('audio_file.wav');
             %       
@@ -146,34 +131,36 @@ classdef repet
             %       
             %       % Compute the audio, background, and foreground spectrograms
             %       window_length = 2^nextpow2(0.04*sample_rate);
+            %       step_length = window_length/2;
             %       window_function = hanning(window_length,'periodic');
-            %       audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_length,window_length/2));
-            %       background_spectrogram = abs(spectrogram(mean(background_signal,2),window_length,window_length/2));
-            %       foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_length,window_length/2));
+            %       audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_length,window_length-step_length));
+            %       background_spectrogram = abs(spectrogram(mean(background_signal,2),window_length,window_length-step_length));
+            %       foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_length,window_length-step_length));
             %       
-            %       % Display the audio, background, and foreground spectrograms
+            %       % Display the audio, background, and foreground spectrograms (up to 5kHz)
             %       figure
-            %       subplot(1,3,1), imagesc(db(audio_spectrogram(2:end,:))), axis xy
+            %       subplot(3,1,1), imagesc(db(audio_spectrogram(2:window_length/8,:))), axis xy
             %       title('Audio Spectrogram (dB)')
             %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
             %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/2)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/2*1e-3), ylabel('Frequency (kHz)')
+            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
+            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
             %       set(gca,'FontSize',30)
-            %       subplot(1,3,2), imagesc(db(background_spectrogram(2:end,:))), axis xy
+            %       subplot(3,1,2), imagesc(db(background_spectrogram(2:window_length/8,:))), axis xy
             %       title('Background Spectrogram (dB)')
             %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
             %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/2)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/2*1e-3), ylabel('Frequency (kHz)')
+            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
+            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
             %       set(gca,'FontSize',30)
-            %       subplot(1,3,3), imagesc(db(foreground_spectrogram(2:end,:))), axis xy
+            %       subplot(3,1,3), imagesc(db(foreground_spectrogram(2:window_length/8,:))), axis xy
             %       title('Foreground Spectrogram (dB)')
             %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
             %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/2)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/2*1e-3), ylabel('Frequency (kHz)')
+            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
+            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
             %       set(gca,'FontSize',30)
+            %       colormap(jet)
             %       
             %   See also repet.extended, repet.adaptive, repet.sim, repet.simonline
             
