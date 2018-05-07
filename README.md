@@ -91,7 +91,7 @@ colormap(jet)
 
 The original REPET can be easily extended to handle varying repeating structures, by simply applying the method along time, on individual segments or via a sliding window.
 
-`background_signal = repet.original(audio_signal,sample_rate);`
+`background_signal = repet.extended(audio_signal,sample_rate);`
 
 Arguments:
 ```
