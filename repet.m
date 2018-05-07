@@ -129,6 +129,10 @@ classdef repet
             %       background_signal = repet.original(audio_signal,sample_rate);
             %       foreground_signal = audio_signal-background_signal;
             %       
+            %       % Write the background and foreground signals
+            %       audiowrite('background_signal.wav',background_signal,sample_rate)
+            %       audiowrite('foreground_signal.wav',foreground_signal,sample_rate)
+            %       
             %       % Compute the audio, background, and foreground spectrograms
             %       window_length = 2^nextpow2(0.04*sample_rate);
             %       step_length = window_length/2;
