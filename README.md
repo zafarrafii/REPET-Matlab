@@ -81,18 +81,7 @@ set(gca,'FontSize',30)
 colormap(jet)
 ```
 
-<img src="images/stft.png" width="1000">
-
-<img src="http://zafarrafii.com/Images/repet_original_example.png" width="750">
-
-* Mixture [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__mix.wav)]
-* Estimated foreground [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__mix_foreground.wav)]
-* Estimated background [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__mix_background.wav)]
-* Original vocals [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__vocals.wav)]
-* Original accompaniment [[audio](http://zafarrafii.com/Audio/dev1__tamy-que_pena_tanto_faz__snip_6_19__guitar.wav)]
-
-
-
+<img src="images/original.png" width="1000">
 
 ### REPET extended
 
