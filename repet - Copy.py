@@ -3,11 +3,20 @@ from numpy import concatenate, zeros
 from numpy.fft import fft
 from scipy.signal import hamming
 
-class repet:
-    """A simple class"""
+# Public functions
+def repet(audio_signal, sample_rate):
+    """REPET (original)
+
+    The original REPET aims at identifying and extracting the repeating patterns in an audio mixture,
+    by estimating a period of the underlying repeating structure and modeling a segment of the
+    periodically repeating background.
+    background_signal = repet.original(audio_signal,sample_rate);
+    """
+
+    background_signal = audio_signal * sample_rate
+    return background_signal
 
 
-'''
 def _stftparameters(window_duration, sample_rate):
     """STFT parameters (for constant overlap-add)"""
     # Window length in samples (power of 2 for fast FFT)
@@ -67,4 +76,3 @@ def test():
     imshow(20*log10(abs(audio_stft)), extent=[0, 1, 0, 1])
 
     return audio_stft
-'''
