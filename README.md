@@ -341,7 +341,7 @@ colormap(jet)
 
 ## repet Python module
 
-repet Function:
+repet Functions:
 - [original - REPET (original)](#repet-original-1)
 - [extended - REPET extended](#repet-extended-1)
 - [adaptive - Adaptive REPET](#adaptive-repet-1)
