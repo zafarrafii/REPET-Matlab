@@ -14,8 +14,6 @@ This repository includes a Matlab class and a Python module which implement a nu
 
 <img src="http://zafarrafii.com/Images/repet.png" width="750">
 
-repet REpeating Pattern Extraction Technique (REPET) class
-
 Repetition is a fundamental element in generating and perceiving structure. In audio, mixtures are often composed of structures where a repeating background signal is superimposed with a varying foreground signal (e.g., a singer overlaying varying vocals on a repeating accompaniment or a varying speech signal mixed up with a repeating background noise). On this basis, we present the REpeating Pattern Extraction Technique (REPET), a simple approach for separating the repeating background from the non-repeating foreground in an audio mixture. The basic idea is to find the repeating elements in the mixture, derive the underlying repeating models, and extract the repeating  background by comparing the models to the mixture. Unlike other separation approaches, REPET does not depend on special parameterizations, does not rely on complex frameworks, and does not require external information. Because it is only based on repetition, it has the advantage of being simple, fast, blind, and therefore completely and easily automatable.
 
 repet Methods:
@@ -343,7 +341,87 @@ colormap(jet)
 
 ## repet Python module
 
-Working on it...
+repet Function:
+- [original - REPET (original)](#repet-original-1)
+- [extended - REPET extended](#repet-extended-1)
+- [adaptive - Adaptive REPET](#adaptive-repet-1)
+- [sim - REPET-SIM](#repet-sim-1)
+- [simonline - Online REPET-SIM](#online-repet-sim-1)
+
+### REPET (original)
+
+`background_signal = repet.original(audio_signal,sample_rate);`
+
+Arguments:
+```
+audio_signal: audio signal [number_samples,number_channels]
+sample_rate: sample rate in Hz
+background_signal: background signal [number_samples,number_channels]
+```
+
+Example: Estimate the background and foreground signals, and display their spectrograms
+```
+```
+
+### REPET extended
+
+`background_signal = repet.extended(audio_signal,sample_rate);`
+
+Arguments:
+```
+audio_signal: audio signal [number_samples,number_channels]
+sample_rate: sample rate in Hz
+background_signal: background signal [number_samples,number_channels]
+```
+
+Example: Estimate the background and foreground signals, and display their spectrograms
+```
+```
+
+### Adaptive REPET
+
+`background_signal = repet.adaptive(audio_signal,sample_rate);`
+
+Arguments:
+```
+audio_signal: audio signal [number_samples,number_channels]
+sample_rate: sample rate in Hz
+background_signal: background signal [number_samples,number_channels]
+```
+
+Example: Estimate the background and foreground signals, and display their spectrograms
+```
+```
+
+### REPET-SIM
+
+`background_signal = repet.sim(audio_signal,sample_rate);`
+
+Arguments:
+```
+audio_signal: audio signal [number_samples,number_channels]
+sample_rate: sample rate in Hz
+background_signal: background signal [number_samples,number_channels]
+```
+
+Example: Estimate the background and foreground signals, and display their spectrograms
+```
+```
+
+### Online REPET-SIM
+
+`background_signal = repet.simonline(audio_signal,sample_rate);`
+
+Arguments:
+```
+audio_signal: audio signal [number_samples,number_channels]
+sample_rate: sample rate in Hz
+background_signal: background signal [number_samples,number_channels]
+```
+
+Example: Estimate the background and foreground signals, and display their spectrograms
+```
+```
 
 ## repet_demo_gui Matlab GUI
 
