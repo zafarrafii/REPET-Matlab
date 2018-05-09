@@ -350,13 +350,16 @@ repet Functions:
 
 ### REPET (original)
 
-`background_signal = repet.original(audio_signal,sample_rate);`
+```
+import repet
+background_signal = repet.original(audio_signal, sample_rate);
+```
 
 Arguments:
 ```
-audio_signal: audio signal [number_samples,number_channels]
+audio_signal: audio signal [number_samples, number_channels]
 sample_rate: sample rate in Hz
-background_signal: background signal [number_samples,number_channels]
+background_signal: background signal [number_samples, number_channels]
 ```
 
 Example: Estimate the background and foreground signals, and display their spectrograms
@@ -365,13 +368,16 @@ Example: Estimate the background and foreground signals, and display their spect
 
 ### REPET extended
 
-`background_signal = repet.extended(audio_signal,sample_rate);`
+```
+import repet
+background_signal = repet.extended(audio_signal, sample_rate);
+```
 
 Arguments:
 ```
-audio_signal: audio signal [number_samples,number_channels]
+audio_signal: audio signal [number_samples, number_channels]
 sample_rate: sample rate in Hz
-background_signal: background signal [number_samples,number_channels]
+background_signal: background signal [number_samples, number_channels]
 ```
 
 Example: Estimate the background and foreground signals, and display their spectrograms
@@ -380,13 +386,16 @@ Example: Estimate the background and foreground signals, and display their spect
 
 ### Adaptive REPET
 
-`background_signal = repet.adaptive(audio_signal,sample_rate);`
+```
+import repet
+background_signal = repet.adaptive(audio_signal, sample_rate);
+```
 
 Arguments:
 ```
-audio_signal: audio signal [number_samples,number_channels]
+audio_signal: audio signal [number_samples, number_channels]
 sample_rate: sample rate in Hz
-background_signal: background signal [number_samples,number_channels]
+background_signal: background signal [number_samples, number_channels]
 ```
 
 Example: Estimate the background and foreground signals, and display their spectrograms
@@ -395,13 +404,16 @@ Example: Estimate the background and foreground signals, and display their spect
 
 ### REPET-SIM
 
-`background_signal = repet.sim(audio_signal,sample_rate);`
+```
+import repet
+background_signal = repet.sim(audio_signal, sample_rate);
+```
 
 Arguments:
 ```
-audio_signal: audio signal [number_samples,number_channels]
+audio_signal: audio signal [number_samples, number_channels]
 sample_rate: sample rate in Hz
-background_signal: background signal [number_samples,number_channels]
+background_signal: background signal [number_samples, number_channels]
 ```
 
 Example: Estimate the background and foreground signals, and display their spectrograms
@@ -410,13 +422,16 @@ Example: Estimate the background and foreground signals, and display their spect
 
 ### Online REPET-SIM
 
-`background_signal = repet.simonline(audio_signal,sample_rate);`
+```
+import repet
+background_signal = repet.simonline(audio_signal, sample_rate);
+```
 
 Arguments:
 ```
-audio_signal: audio signal [number_samples,number_channels]
+audio_signal: audio signal [number_samples, number_channels]
 sample_rate: sample rate in Hz
-background_signal: background signal [number_samples,number_channels]
+background_signal: background signal [number_samples, number_channels]
 ```
 
 Example: Estimate the background and foreground signals, and display their spectrograms
