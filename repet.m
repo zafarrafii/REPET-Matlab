@@ -69,7 +69,7 @@ classdef repet
     %   05/09/18
     
     % Defined properties
-    properties (Access = public, Constant = false, Hidden = false)    
+    properties (Access = public, Constant = false, Hidden = false)
         % Window length in seconds for the STFT (audio stationary around 40 
         % milliseconds)
         window_duration = 0.040;
