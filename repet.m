@@ -27,7 +27,7 @@ classdef repet
     % 
     % See also http://zafarrafii.com/#REPET
     % 
-    % References
+    % References:
     %   Zafar Rafii, Antoine Liutkus, and Bryan Pardo. "REPET for 
     %   Background/Foreground Separation in Audio," Blind Source 
     %   Separation, chapter 14, pages 395-411, Springer Berlin Heidelberg, 
@@ -60,7 +60,7 @@ classdef repet
     %   36th International Conference on Acoustics, Speech and Signal 
     %   Processing, Prague, Czech Republic, May 22-27, 2011.
     %   
-    % Author
+    % Author:
     %   Zafar Rafii
     %   zafarrafii@gmail.com
     %   http://zafarrafii.com
