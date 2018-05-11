@@ -66,7 +66,7 @@ classdef repet
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   05/09/18
+    %   05/10/18
     
     % Defined properties
     properties (Access = public, Constant = false, Hidden = false)
@@ -886,7 +886,7 @@ classdef repet
     
     % Other methods
     methods (Access = protected, Hidden = true, Static = true)
-        
+
         % STFT parameters (for constant overlap-add)
         function [window_length,window_function,step_length] = stftparameters(window_duration,sample_rate)
             
@@ -902,7 +902,7 @@ classdef repet
             
         end
         
-        % Short-Time Fourier Transform (STFT) (with zero-padding at the 
+        % Short-time Fourier transform (STFT) (with zero-padding at the 
         % edges)
         function audio_stft = stft(audio_signal,window_function,step_length)
             
@@ -936,7 +936,7 @@ classdef repet
             
         end
         
-        % Inverse Short-Time Fourier Transform (ISTFT)
+        % Inverse short-time Fourier transform (STFT)
         function audio_signal = istft(audio_stft,window_function,step_length)
             
             % Number of time frames
@@ -988,7 +988,7 @@ classdef repet
             % Wiener–Khinchin theorem: PSD(X) = fft(acorr(X))
             autocorrelation_matrix = ifft(data_matrix); 
             
-            % Discarde the symmetric part
+            % Discard the symmetric part
             autocorrelation_matrix = autocorrelation_matrix(1:number_points,:);
             
             % Unbiased autocorrelation (lag 0 to number_points-1)

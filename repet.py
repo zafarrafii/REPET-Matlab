@@ -50,14 +50,15 @@ Author:
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    05/10/18
+    05/11/18
 """
 
-from math import ceil, log2
-from numpy import concatenate, zeros
-from numpy.fft import fft
-from scipy.signal import hamming
+import math
+import numpy as np
+import scipy.signal
 
+
+# Public functions
 def original(audio_signal, sample_rate):
     """
     repet REPET (original)
@@ -99,60 +100,131 @@ def simonline(audio_signal, sample_rate):
 # Private functions
 def _stftparameters(window_duration, sample_rate):
     """STFT parameters (for constant overlap-add)"""
-    # Window length in samples (power of 2 for fast FFT)
-    window_length = int(pow(2, ceil(log2(window_duration*sample_rate))))
 
-    # Window function(even window length and 'periodic' Hamming window for constant overlap - add)
-    window_function = hamming(window_length, False)
+    # Window length in samples (power of 2 for fast FFT)
+    window_length = int(pow(2, math.ceil(math.log2(window_duration*sample_rate))))
+
+    # Window function (even window length and periodic Hamming window for constant overlap-add)
+    window_function = scipy.signal.hamming(window_length, False)
 
     # Step length (half the window length for constant overlap-add)
-    step_length = window_length/2
+    step_length = int(window_length/2)
 
     return window_length, window_function, step_length
 
 
 def _stft(audio_signal, window_function, step_length):
-    """Short-Time Fourier Transform (STFT) (with zero-padding at the edges)"""
+    """Short-time Fourier transform (STFT) (with zero-padding at the edges)"""
 
-    # Number of samples
+    # Number of samples and window length
     number_samples = len(audio_signal)
-
-    # Window length in samples
     window_length = len(window_function)
 
     # Number of time frames
-    number_times = int(ceil((window_length-step_length+number_samples)/step_length))
+    number_times = int(np.ceil((window_length - step_length + number_samples) / step_length))
 
     # Zero-padding at the start and end to center the windows
-    audio_signal = concatenate((zeros(window_length-step_length), audio_signal,
-                                zeros(number_times*step_length-number_samples)))
+    audio_signal = np.pad(audio_signal, (window_length - step_length, number_times * step_length - number_samples),
+                          'constant', constant_values=0)
 
     # Initialize the STFT
-    audio_stft = zeros((window_length, number_times))
+    audio_stft = np.zeros((window_length, number_times))
 
     # Loop over the time frames
-    for time_index in range(number_times):
+    for time_index in range(0, number_times):
 
         # Window the signal
-        sample_index = step_length*time_index
-        audio_stft[:, time_index] = audio_signal[sample_index:window_length+sample_index]*window_function
+        sample_index = step_length * time_index
+        audio_stft[:, time_index] = audio_signal[sample_index:window_length + sample_index] * window_function
 
     # Fourier transform of the frames
-    audio_stft = fft(audio_stft, axis=0)
+    audio_stft = np.fft.fft(audio_stft, axis=0)
 
     return audio_stft
+
+
+def _istft(audio_stft, window_function, step_length):
+    """Inverse short-time Fourier transform (STFT)"""
+
+    # Window length in samples and number of time frames
+    window_length, number_times = np.shape(audio_stft)
+
+    # Number of samples for the signal
+    number_samples = (number_times - 1) * step_length + window_length
+
+    # Initialize the signal
+    audio_signal = np.zeros(number_samples)
+
+    # Inverse Fourier transform of the frames and real part to ensure real values
+    audio_stft = np.real(np.fft.ifft(audio_stft, axis=0))
+
+    # Loop over the time frames
+    for time_index in range(0, number_times):
+
+        # Constant overlap-add (if proper window and step)
+        sample_index = step_length * time_index
+        audio_signal[sample_index:window_length + sample_index] \
+            = audio_signal[sample_index:window_length + sample_index] + audio_stft[:, time_index]
+
+    # Remove the zero-padding at the start and end
+    audio_signal = audio_signal[window_length - step_length:number_samples - (window_length - step_length)]
+
+    # Un-apply window (just in case)
+    audio_signal = audio_signal / sum(window_function[0:window_length:step_length])
+
+    return audio_signal
+
+
+def _acorr(data_matrix):
+    """Autocorrelation using the Wiener–Khinchin theorem"""
+
+    # Number of points in each column
+    number_points = data_matrix.shape[0]
+
+    # Power Spectral Density (PSD): PSD(X) = np.multiply(fft(X), conj(fft(X))) (after zero-padding for proper
+    # autocorrelation)
+    data_matrix = pow(np.abs(np.fft.fft(data_matrix, n=2*number_points, axis=0)), 2)
+
+    # Wiener–Khinchin theorem: PSD(X) = np.fft.fft(repet._acorr(X))
+    autocorrelation_matrix = np.real(np.fft.ifft(data_matrix, axis=0))
+
+    # Discard the symmetric part
+    autocorrelation_matrix = autocorrelation_matrix[0:number_points, :]
+
+    # Unbiased autocorrelation (lag 0 to number_points-1)
+    autocorrelation_matrix = (autocorrelation_matrix.T/np.arange(number_points, 0, -1)).T
+
+    return autocorrelation_matrix
+
+
+def _beatspectrum(audio_spectrogram):
+    """Beat spectrogram using the beat spectrum"""
+
+    # Autocorrelation of the frequency channels
+    beat_spectrum = _acorr(audio_spectrogram.T)
+
+    # Mean over the frequency channels
+    beat_spectrum = np.mean(beat_spectrum, axis=1)
+
+    return beat_spectrum
 
 
 def test():
 
-    from matplotlib.pyplot import imshow
-    from numpy import log10
+    import scipy.io.wavfile
 
-    audio_signal = range(1, 44101)
-    window_function = hamming(2048)
-    step_length = 1024
+    sample_rate, audio_signal = scipy.io.wavfile.read('audio_file.wav')
+    audio_signal = audio_signal / (2.0 ** (audio_signal.itemsize * 8 - 1))
+    audio_signal = np.mean(audio_signal, 1)
+
+    window_duration = 0.04
+    window_length = int(2 ** np.ceil(np.log2(window_duration * sample_rate)))
+    window_function = scipy.signal.hamming(window_length, False)
+    step_length = int(window_length / 2)
 
     audio_stft = _stft(audio_signal, window_function, step_length)
-    imshow(20*log10(abs(audio_stft)), extent=[0, 1, 0, 1])
+    audio_spectrogram = abs(audio_stft[1:int(window_length / 2 + 1), :])
 
-    return audio_stft
+    beat_spectrum = _beatspectrum(audio_spectrogram)
+
+    return beat_spectrum
