@@ -50,12 +50,39 @@ Author:
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    05/11/18
+    06/05/18
 """
 
 import math
 import numpy as np
 import scipy.signal
+
+
+# Public variables
+# Window length in seconds for the STFT (audio stationary around 40 milliseconds)
+window_duration = 0.040
+
+# Cutoff frequency in Hz for the dual high-pass filter of the foreground (vocals are rarely below 100 Hz)
+cutoff_frequency = 100
+
+# Period range in seconds for the beat spectrum (for REPET, REPET extented, and adaptive REPET)
+period_range = np.array([1, 10])
+
+# Segmentation length and step in seconds (for REPET extented and adaptive REPET)
+segment_length = 10
+segment_step = 5
+
+# Filter order for the median filter (for adaptive REPET)
+filter_order = 5
+
+# Minimal threshold for two similar frames in [0,1], minimal distance between two similar frames in seconds, and maximal
+# number of similar frames for one frame (for REPET-SIM and online REPET-SIM)
+similarity_threshold = 0
+similarity_distance = 1
+similarity_number = 100
+
+# Buffer length in seconds (for online REPET-SIM)
+buffer_length = 5
 
 
 # Public functions
@@ -69,8 +96,60 @@ def original(audio_signal, sample_rate):
         sample_rate: sample rate in Hz
         background_signal: background signal [number_samples, number_channels]
 
-    Example:
+    Example: Estimate the background and foreground signals, and display their spectrograms
+        # Import modules
+        import scipy.io.wavfile
+        import z
+
+        # Audio signal (normalized) and sample rate in Hz
+        sample_rate, audio_signal = scipy.io.wavfile.read('audio_file.wav')
+        audio_signal = audio_signal / (2.0**(audio_signal.itemsize*8-1))
+
+        # Estimate the background signal and infer the foreground signal
+        background_signal = repet.original(audio_signal, sample_rate);
+        foreground_signal = audio_signal-background_signal;
+
+        # Write the background and foreground signals (un-normalized)
+        scipy.io.wavfile.write('background_signal.wav', sample_rate, background_signal)
+        scipy.io.wavfile.write('foreground_signal.wav', sample_rate, foreground_signal)
+
+        #
     """
+
+    # Fourier analysis
+    # STFT parameters
+    window_length, window_function, step_length = _stftparameters(window_duration, sample_rate)
+
+    # Number of samples and channels
+    number_samples, number_channels = np.shape(audio_signal)
+
+    # Number of time frames
+    number_times = int(np.ceil((window_length - step_length + number_samples) / step_length))
+
+    # Initialize the STFT
+    audio_stft = np.zeros((window_length, number_times, number_channels), dtype=complex)
+
+    # Loop over the channels
+    for channel_index in range(0, number_channels):
+
+        # STFT of the current channel
+        audio_stft1 = _stft(audio_signal[:, channel_index], window_function, step_length)
+
+        # Concatenate the STFTs
+        audio_stft[:, :, channel_index] = audio_stft1
+
+    # Magnitude spectrogram (with DC component and without mirrored frequencies)
+    audio_spectrogram = abs(audio_stft[0:int(window_length/2)+1, :, :])
+
+    # Repetition/periodicity analysis
+    # Beat spectrum of the mean power spectrograms (squared to emphasize peaks of periodicitiy)
+    beat_spectrum = _beatspectrum(np.mean(np.power(audio_spectrogram, 2), 2))
+
+    # Period range in time frames for the beat spectrum
+    period_range2 = np.round(period_range*sample_rate/step_length)
+
+    # Repeating period in time frames given the period range
+    #repeating_period = periods(beat_spectrum, period_range2)
 
 
 def extended(audio_signal, sample_rate):
@@ -212,19 +291,11 @@ def _beatspectrum(audio_spectrogram):
 def test():
 
     import scipy.io.wavfile
+    import repet
 
     sample_rate, audio_signal = scipy.io.wavfile.read('audio_file.wav')
     audio_signal = audio_signal / (2.0 ** (audio_signal.itemsize * 8 - 1))
-    audio_signal = np.mean(audio_signal, 1)
 
-    window_duration = 0.04
-    window_length = int(2 ** np.ceil(np.log2(window_duration * sample_rate)))
-    window_function = scipy.signal.hamming(window_length, False)
-    step_length = int(window_length / 2)
+    a = original(audio_signal, sample_rate)
 
-    audio_stft = _stft(audio_signal, window_function, step_length)
-    audio_spectrogram = abs(audio_stft[1:int(window_length / 2 + 1), :])
-
-    beat_spectrum = _beatspectrum(audio_spectrogram)
-
-    return beat_spectrum
+    return a

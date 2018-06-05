@@ -66,10 +66,10 @@ classdef repet
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   05/10/18
+    %   06/05/18
     
     % Defined properties
-    properties (Access = public, Constant = false, Hidden = false)
+    properties (Access = private, Constant = true, Hidden = true)
         % Window length in seconds for the STFT (audio stationary around 40 
         % milliseconds)
         window_duration = 0.040;
@@ -885,8 +885,8 @@ classdef repet
     end
     
     % Other methods
-    methods (Access = protected, Hidden = true, Static = true)
-
+    methods (Access = private, Hidden = true, Static = true)
+        
         % STFT parameters (for constant overlap-add)
         function [window_length,window_function,step_length] = stftparameters(window_duration,sample_rate)
             
