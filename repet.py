@@ -50,7 +50,7 @@ Author:
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    06/05/18
+    06/06/18
 """
 
 import math
@@ -68,8 +68,10 @@ cutoff_frequency = 100
 # Period range in seconds for the beat spectrum (for REPET, REPET extented, and adaptive REPET)
 period_range = np.array([1, 10])
 
-# Segmentation length and step in seconds (for REPET extented and adaptive REPET)
+# Segmentation length in seconds (for REPET extented and adaptive REPET)
 segment_length = 10
+
+# Step in seconds (for REPET extented)
 segment_step = 5
 
 # Filter order for the median filter (for adaptive REPET)
@@ -277,7 +279,7 @@ def _acorr(data_matrix):
 
 
 def _beatspectrum(audio_spectrogram):
-    """Beat spectrogram using the beat spectrum"""
+    """Beat spectrum using the autocorrelation"""
 
     # Autocorrelation of the frequency channels
     beat_spectrum = _acorr(audio_spectrogram.T)
@@ -288,14 +290,41 @@ def _beatspectrum(audio_spectrogram):
     return beat_spectrum
 
 
+def _beatspectrogram(audio_spectrogram, segment_length):
+    """Beat spectrogram using the the beat spectrum"""
+
+    # Number of frequency channels and time frames
+    number_frequencies, number_times = np.shape(audio_spectrogram)
+
+    # Zero-padding the audio spectrogram to center the segments
+    audio_spectrogram = np.pad(audio_spectrogram,
+                               ((0, 0), (int(np.ceil((segment_length-1)/2)), int(np.floor((segment_length-1)/2)))),
+                               'constant', constant_values=0)
+
+    # Initialize beat spectrogram
+    beat_spectrogram = np.zeros((segment_length, number_times))
+
+    # Loop over the time frames (including the last one)
+    for time_index in range(0, number_times):
+
+        # Beat spectrum of the centered audio spectrogram segment
+        beat_spectrogram[:, time_index] = _beatspectrum(audio_spectrogram[:, time_index:time_index+segment_length])
+
+    return beat_spectrogram
+
+
 def test():
 
     import scipy.io.wavfile
-    import repet
 
     sample_rate, audio_signal = scipy.io.wavfile.read('audio_file.wav')
     audio_signal = audio_signal / (2.0 ** (audio_signal.itemsize * 8 - 1))
+    audio_signal = np.mean(audio_signal, 1)
 
-    a = original(audio_signal, sample_rate)
+    window_length, window_function, step_length = _stftparameters(window_duration, sample_rate)
+    audio_stft = _stft(audio_signal, window_function, step_length)
+    audio_spectrogram = abs(audio_stft[0:int(window_length / 2) + 1, :])
+    segment_length2 = int(np.round(segment_length*sample_rate/step_length))
+    a = _beatspectrogram(audio_spectrogram, segment_length2)
 
     return a
