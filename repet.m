@@ -66,7 +66,7 @@ classdef repet
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   06/06/18
+    %   06/07/18
     
     % Defined properties
     properties (Access = private, Constant = true, Hidden = true)
@@ -673,7 +673,7 @@ classdef repet
             
             %%% Repetition/similarity analysis
             % Self-similarity of the mean magnitude spectrogram
-            similarity_matrix = repet.similarity(mean(audio_spectrogram,3));
+            similarity_matrix = repet.similaritymatrix(mean(audio_spectrogram,3));
             
             % Similarity distance in time frames
             similarity_distance = round(repet.similarity_distance*sample_rate/step_length);
@@ -1043,7 +1043,7 @@ classdef repet
         
         % Self-similarity matrix using the cosine similarity (faster than
         % pdist2)
-        function similarity_matrix = similarity(data_matrix)
+        function similarity_matrix = similaritymatrix(data_matrix)
             
             % Divide each column by its Euclidean norm
             data_matrix = data_matrix./sqrt(sum(data_matrix.^2,1));
@@ -1056,10 +1056,10 @@ classdef repet
         % Repeating periods from the beat spectra (spectrum or spectrogram)
         function repeating_periods = periods(beat_spectra,period_range)
             
-            % The repeating periods are the indices of the maximum values 
-            % in the beat spectra given the period range (they do not count 
-            % lag 0 and should be shorter than one third of the signal 
-            % length since the median needs at least three segments)
+            % The repeating periods are the indices of the maxima in the 
+            % beat spectra for the period range (they do not count lag 0 
+            % and should be shorter than a third of the length as at least 
+            % three segments are needed for the median)
             [~,repeating_periods] = max(beat_spectra(period_range(1)+1:min(period_range(2),floor(size(beat_spectra,1)/3)),:),[],1);
             
             % Re-adjust the index or indices

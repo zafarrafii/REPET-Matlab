@@ -50,7 +50,7 @@ Author:
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    06/06/18
+    06/07/18
 """
 
 import math
@@ -148,7 +148,8 @@ def original(audio_signal, sample_rate):
     beat_spectrum = _beatspectrum(np.mean(np.power(audio_spectrogram, 2), 2))
 
     # Period range in time frames for the beat spectrum
-    period_range2 = np.round(period_range*sample_rate/step_length)
+    period_range2 = np.round(period_range*sample_rate/step_length).astype(int)
+    period_range2[0] = period_range2[0]-1
 
     # Repeating period in time frames given the period range
     #repeating_period = periods(beat_spectrum, period_range2)
@@ -313,6 +314,36 @@ def _beatspectrogram(audio_spectrogram, segment_length):
     return beat_spectrogram
 
 
+def _similaritymatrix(data_matrix):
+    """Self-similarity matrix using the cosine similarity"""
+
+    # Divide each column by its Euclidean norm
+    data_matrix = data_matrix/np.sqrt(sum(np.power(data_matrix, 2), 0))
+
+    # Multiply each normalized columns with each other
+    similarity_matrix = np.matmul(data_matrix.T, data_matrix)
+
+    return similarity_matrix
+
+
+def _periods(beat_spectra, period_range):
+    """Repeating periods from the beat spectra (spectrum or spectrogram)"""
+
+    # The repeating periods are the indices of the maxima in the beat spectra for the period range (they do not count
+    # lag 0 and should be shorter than a third of the length as at least three segments are needed for the median)
+    if beat_spectra.ndim == 1:
+        repeating_periods = np.argmax(
+            beat_spectra[period_range[0] + 1:min(period_range[1], int(np.floor(beat_spectra.shape[0] / 3)))])
+    else:
+        repeating_periods = np.argmax(
+            beat_spectra[period_range[0] + 1:min(period_range[1], int(np.floor(beat_spectra.shape[0] / 3))), :], axis=0)
+
+    # Re-adjust the index or indices
+    repeating_periods = repeating_periods + period_range[0] + 1
+
+    return repeating_periods
+
+
 def test():
 
     import scipy.io.wavfile
@@ -324,7 +355,13 @@ def test():
     window_length, window_function, step_length = _stftparameters(window_duration, sample_rate)
     audio_stft = _stft(audio_signal, window_function, step_length)
     audio_spectrogram = abs(audio_stft[0:int(window_length / 2) + 1, :])
-    segment_length2 = int(np.round(segment_length*sample_rate/step_length))
-    a = _beatspectrogram(audio_spectrogram, segment_length2)
 
-    return a
+    beat_spectrum = _beatspectrum(np.power(audio_spectrogram, 2))
+
+    period_range2 = np.round(period_range * sample_rate / step_length).astype(int)
+    period_range2[0] = period_range2[0]-1
+
+    a = _periods(beat_spectrum, period_range2)
+    b = _periods(audio_spectrogram, period_range2)
+
+    return audio_spectrogram, beat_spectrum, period_range2, a, b
