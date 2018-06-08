@@ -126,7 +126,7 @@ def original(audio_signal, sample_rate):
     number_samples, number_channels = np.shape(audio_signal)
 
     # Number of time frames
-    number_times = int(np.ceil((window_length - step_length + number_samples) / step_length))
+    number_times = int(np.ceil((window_length-step_length+number_samples)/step_length))
 
     # Initialize the STFT
     audio_stft = np.zeros((window_length, number_times, number_channels), dtype=complex)
@@ -152,7 +152,22 @@ def original(audio_signal, sample_rate):
     period_range2[0] = period_range2[0]-1
 
     # Repeating period in time frames given the period range
-    #repeating_period = periods(beat_spectrum, period_range2)
+    repeating_period = _periods(beat_spectrum, period_range2)
+
+    # Background estimation
+    # Cutoff frequency in frequency channels for the dual high-pass filter of the foreground
+    cutoff_frequency2 = int(np.ceil(cutoff_frequency*(window_length-1)/sample_rate))-1
+
+    # Initialize the background signal
+    background_signal = np.zeros((number_samples, number_channels))
+
+    # Loop over the channels
+    #for channel_index in range(0, number_channels):
+
+        # Repeating mask for the current channel
+        #repeating_mask = _mask(audio_spectrogram[:, :, channel_index], repeating_period)
+
+    return background_signal
 
 
 def extended(audio_signal, sample_rate):
@@ -344,24 +359,51 @@ def _periods(beat_spectra, period_range):
     return repeating_periods
 
 
+def _findpeaks(data_vector, **kwargs):
+    """Find local maxima (like Matlab's findpeaks)"""
+
+
+
+    minpeak_height = kwargs['MinPeakHeight']
+    minpeak_distance = kwargs['MinPeakDistance']
+    number_peaks = kwargs['NPeaks']
+    sort_srt = kwargs['SortStr']
+
+    return kwargs
+
+
+def _indices(similarity_matrix, similarity_threshold, similarity_distance, similarity_number):
+    """Similarity indices from the similarity matrix"""
+
+    #Number of time frames
+    number_times = similarity_matrix.shape[0]
+
+    # Initialize the similarity indices
+    similarity_indices = [None]*number_times
+
+    # Loop over the time frames
+    for time_index in range(0, number_times):
+
+        #Find local maxima using findpeaks
+        scipy.signal.find_peaks_cwt(similarity_matrix[:, time_index], np.arange(1,10), )
+
+        #[~,peak_indices] = findpeaks(similarity_matrix(:,time_index), ...
+        #            'MinPeakHeight',similarity_threshold, ...
+        #           'MinPeakDistance',similarity_distance, ...
+        #            'NPeaks',similarity_number, ...
+        #           'SortStr','descend');
+
+        # Similarity indices for the current time frame
+        similarity_indices[time_index] = peak_indices
+
+    return similarity_indices
+
+
 def test():
 
     import scipy.io.wavfile
 
     sample_rate, audio_signal = scipy.io.wavfile.read('audio_file.wav')
     audio_signal = audio_signal / (2.0 ** (audio_signal.itemsize * 8 - 1))
-    audio_signal = np.mean(audio_signal, 1)
 
-    window_length, window_function, step_length = _stftparameters(window_duration, sample_rate)
-    audio_stft = _stft(audio_signal, window_function, step_length)
-    audio_spectrogram = abs(audio_stft[0:int(window_length / 2) + 1, :])
-
-    beat_spectrum = _beatspectrum(np.power(audio_spectrogram, 2))
-
-    period_range2 = np.round(period_range * sample_rate / step_length).astype(int)
-    period_range2[0] = period_range2[0]-1
-
-    a = _periods(beat_spectrum, period_range2)
-    b = _periods(audio_spectrogram, period_range2)
-
-    return audio_spectrogram, beat_spectrum, period_range2, a, b
+    return original(audio_signal, sample_rate)
