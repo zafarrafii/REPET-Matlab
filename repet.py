@@ -359,21 +359,18 @@ def _periods(beat_spectra, period_range):
     return repeating_periods
 
 
-def _findpeaks(data_vector, **kwargs):
+def _findpeaks(data_vector, number_peaks=np.inf, sort_str='none', minpeak_height=-np.inf, minpeak_distance=0):
     """Find local maxima (like Matlab's findpeaks)"""
 
-    # Keyworded arguments (like in Matlab)
-    minpeak_height = kwargs['MinPeakHeight']
-    minpeak_distance = kwargs['MinPeakDistance']
-    number_peaks = kwargs['NPeaks']
-    sort_srt = kwargs['SortStr']
+    # Copy the input to avoid getting it changed outside of the function
+    data_vector2 = np.copy(data_vector)
 
     # Number of data points
     number_data = len(data_vector)
 
     # Initialize peak values and locations
-    peak_values = []
-    peak_locations = []
+    peak_values = np.empty([0, 1])
+    peak_locations = np.empty([0, 1])
 
     # Loop over the data points (+- the minpeak_distance)
     for data_index in range(minpeak_distance, number_data-minpeak_distance):
@@ -382,38 +379,38 @@ def _findpeaks(data_vector, **kwargs):
         if data_vector[data_index] > minpeak_height:
 
             # If the data point is greater than all the values within minpeak_distance of it
-            if all(data_vector[data_index] >= data_vector[data_index-minpeak_distance:data_index+minpeak_distance]):
-
-                # Save the peak value and location
-                peak_values = peak_values.append(data_vector(data_index))
-                peak_locations = peak_locations.append(data_index)
+            if all(data_vector2[data_index] >= data_vector2[data_index-minpeak_distance:data_index+minpeak_distance]):
+                peak_values = np.append(peak_values, data_vector2[data_index])
+                peak_locations = np.append(peak_locations, data_index)
 
                 # Mark that point as a peak in the data
-                data_vector[data_index] = np.inf
+                data_vector2[data_index] = np.inf
 
     # Minimum number of peaks
     number_peaks = min(number_peaks, len(peak_locations))
 
     # Keep first number_peaks peaks
-    if sort_srt == 'none':
+    if sort_str == 'none':
         peak_values = peak_values[0:number_peaks]
         peak_locations = peak_locations[0:number_peaks]
 
     # Sort the peaks and keep the first number_peaks peaks
-    elif sort_srt == 'ascend':
+    elif sort_str == 'ascend':
         sort_indices = np.argsort(peak_values)
         sort_indices = sort_indices[0:number_peaks]
         peak_values = peak_values[sort_indices]
         peak_locations = peak_locations[sort_indices]
 
     #  Sort the peaks and keep the last number_peaks peaks
-    elif sort_srt == 'descend':
+    elif sort_str == 'descend':
         sort_indices = np.argsort(peak_values)
-        sort_indices = sort_indices[-1:len(sort_indices)-number_peaks-1:-1]
+        sort_indices = sort_indices[::-1]
+        sort_indices = sort_indices[0:number_peaks]
         peak_values = peak_values[sort_indices]
         peak_locations = peak_locations[sort_indices]
 
     return peak_values, peak_locations
+
 
 
 def _indices(similarity_matrix, similarity_threshold, similarity_distance, similarity_number):
