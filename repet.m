@@ -66,13 +66,22 @@ classdef repet
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   06/07/18
+    %   06/13/18
     
     % Defined properties
     properties (Access = private, Constant = true, Hidden = true)
-        % Window length in seconds for the STFT (audio stationary around 40 
-        % milliseconds)
-        window_duration = 0.040;
+        
+        % Window length in samples (audio stationary around 40 ms; power of 
+        % 2 for fast FFT and constant overlap-add)
+        windowlength = @(sample_rate) 2.^nextpow2(0.04*sample_rate);
+        
+        % Window function ('periodic' Hamming window for constant 
+        % overlap-add)
+        windowfunction = @(window_length) hamming(window_length,'periodic');
+        
+        % Step function (half the (even) window length for constant 
+        % overlap-add)
+        steplength = @(window_length) round(window_length/2);
         
         % Cutoff frequency in Hz for the dual high-pass filter of the
         % foreground (vocals are rarely below 100 Hz)
@@ -169,24 +178,26 @@ classdef repet
             %       
             %   See also repet.extended, repet.adaptive, repet.sim, repet.simonline
             
-            %%% Fourier analysis
-            % STFT parameters
-            [window_length,window_function,step_length] = repet.stftparameters(repet.window_duration,sample_rate);
-            
             % Number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
             
+            % Window length, window function, and step length for the STFT
+            window_length = repet.windowlength(sample_rate);
+            window_function = repet.windowfunction(window_length);
+            step_length = repet.steplength(window_length);
+            
+            % Number of time frames
+            number_times = ceil((window_length-step_length+number_samples)/step_length);
+            
             % Initialize the STFT
-            audio_stft = [];
+            audio_stft = zeros(window_length,number_times,number_channels);
             
             % Loop over the channels
             for channel_index = 1:number_channels
                 
                 % STFT of the current channel
-                audio_stft1 = repet.stft(audio_signal(:,channel_index),window_function,step_length);
-                
-                % Concatenate the STFTs
-                audio_stft = cat(3,audio_stft,audio_stft1);
+                audio_stft(:,:,channel_index) ...
+                    = repet.stft(audio_signal(:,channel_index),window_function,step_length);
                 
             end
             
@@ -194,10 +205,9 @@ classdef repet
             % frequencies)
             audio_spectrogram = abs(audio_stft(1:window_length/2+1,:,:));
             
-            %%% Repetition/periodicity analysis
-            % Beat spectrum of the mean power spectrograms (squared to 
-            % emphasize peaks of periodicitiy)
-            beat_spectrum = repet.beatspectrum(mean(audio_spectrogram.^2,3));
+            % Beat spectrum of the spectrograms averaged over the channels 
+            % (squared to emphasize peaks of periodicitiy)
+            beat_spectrum = repet.beatspectrum(mean(audio_spectrogram,3).^2);
             
             % Period range in time frames for the beat spectrum
             period_range = round(repet.period_range*sample_rate/step_length);
@@ -205,9 +215,8 @@ classdef repet
             % Repeating period in time frames given the period range
             repeating_period = repet.periods(beat_spectrum,period_range);
             
-            %%% Background estimation
             % Cutoff frequency in frequency channels for the dual high-pass 
-            % filter of the foreground
+            % filtering of the foreground
             cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sample_rate);
             
             % Initialize the background signal
@@ -222,12 +231,12 @@ classdef repet
                 % High-pass filtering of the dual foreground
                 repeating_mask(2:cutoff_frequency+1,:) = 1;
                 
-                % Mirror the frequency channels (using cat to avoid
-                % warning)
+                % Mirror the frequency channels
                 repeating_mask = cat(1,repeating_mask,flipud(repeating_mask(2:end-1,:)));
                 
                 % Estimated repeating background for the current channel
-                background_signal1 = repet.istft(repeating_mask.*audio_stft(:,:,channel_index),window_function,step_length);
+                background_signal1 ...
+                    = repet.istft(repeating_mask.*audio_stft(:,:,channel_index),window_function,step_length);
                 
                 % Truncate to the original number of samples
                 background_signal(:,channel_index) = background_signal1(1:number_samples);
@@ -296,7 +305,6 @@ classdef repet
             %
             %   See also repet.original, repet.adaptive, repet.sim, repet.simonline
             
-            %%%% Derived parameters
             % Segmentation length, step, and overlap in samples
             segment_length = round(repet.segment_length*sample_rate);
             segment_step = round(repet.segment_step*sample_rate);
@@ -309,6 +317,7 @@ classdef repet
             if number_samples < segment_length+segment_step
                 number_segments = 1;
             else
+                
                 % Number of segments (the last one could be longer)
                 number_segments = 1+floor((number_samples-segment_length)/segment_step);
                 
@@ -317,8 +326,10 @@ classdef repet
                 
             end
             
-            % STFT parameters
-            [window_length,window_function,step_length] = repet.stftparameters(repet.window_duration,sample_rate);
+            % Window length, window function, and step length for the STFT
+            window_length = repet.windowlength(sample_rate);
+            window_function = repet.windowfunction(window_length);
+            step_length = repet.steplength(window_length);
             
             % Period range in time frames for the beat spectrum
             period_range = round(repet.period_range*sample_rate/step_length);
@@ -327,7 +338,6 @@ classdef repet
             % filter of the foreground
             cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sample_rate);
             
-            %%%% Segmentation
             % Initialize background signal
             background_signal = zeros(number_samples,number_channels);
             
@@ -358,18 +368,18 @@ classdef repet
                     
                 end
                 
-                %%% Fourier analysis
-                % Initialize STFT
-                audio_stft = [];
+                % Number of time frames
+                number_times = ceil((window_length-step_length+number_samples)/step_length);
+                    
+                % Initialize the STFT
+                audio_stft = zeros(window_length,number_times,number_channels);
                 
                 % Loop over the channels
                 for channel_index = 1:number_channels
                     
                     % STFT of the current channel
-                    audio_stft1 = repet.stft(audio_segment(:,channel_index),window_function,step_length);
-                    
-                    % Concatenate the STFTs
-                    audio_stft = cat(3,audio_stft,audio_stft1);
+                    audio_stft(:,:,channel_index) ...
+                        = repet.stft(audio_segment(:,channel_index),window_function,step_length);
                     
                 end
                 
@@ -377,15 +387,13 @@ classdef repet
                 % mirrored frequencies)
                 audio_spectrogram = abs(audio_stft(1:window_length/2+1,:,:));
                 
-                %%% Repetition/periodicity analysis
-                % Beat spectrum of the mean power spectrograms (squared to 
-                % emphasize peaks of periodicitiy)
-                beat_spectrum = repet.beatspectrum(mean(audio_spectrogram.^2,3));
+                % Beat spectrum of the spectrograms averaged over the 
+                % channels (squared to emphasize peaks of periodicitiy)
+                beat_spectrum = repet.beatspectrum(mean(audio_spectrogram,3).^2);
                 
                 % Repeating period in time frames given the period range
                 repeating_period = repet.periods(beat_spectrum,period_range);
                 
-                %%% Background estimation
                 % Initialize the background segment
                 background_segment = zeros(segment_length,number_channels);
                 
@@ -402,14 +410,14 @@ classdef repet
                     repeating_mask = cat(1,repeating_mask,flipud(repeating_mask(2:end-1,:)));
                     
                     % Estimated repeating background for the current channel
-                    background_segment1 = repet.istft(repeating_mask.*audio_stft(:,:,channel_index),window_function,step_length);
+                    background_segment1 ...
+                        = repet.istft(repeating_mask.*audio_stft(:,:,channel_index),window_function,step_length);
                     
                     % Truncate to the original number of samples
                     background_segment(:,channel_index) = background_segment1(1:segment_length);
                     
                 end
                 
-                %%%% Combination
                 % Case one segment
                 if number_segments == 1
                     background_signal = background_segment;
@@ -512,24 +520,26 @@ classdef repet
             %
             %   See also repet.original, repet.extended, repet.sim, repet.simonline
             
-            %%% Fourier analysis
-            % STFT parameters
-            [window_length,window_function,step_length] = repet.stftparameters(repet.window_duration,sample_rate);
-            
             % Number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
             
+            % Window length, window function, and step length for the STFT
+            window_length = repet.windowlength(sample_rate);
+            window_function = repet.windowfunction(window_length);
+            step_length = repet.steplength(window_length);
+            
+            % Number of time frames
+            number_times = ceil((window_length-step_length+number_samples)/step_length);
+            
             % Initialize the STFT
-            audio_stft = [];
+            audio_stft = zeros(window_length,number_times,number_channels);
             
             % Loop over the channels
             for channel_index = 1:number_channels
                 
                 % STFT of the current channel
-                audio_stft1 = repet.stft(audio_signal(:,channel_index),window_function,step_length);
-                
-                % Concatenate the STFTs
-                audio_stft = cat(3,audio_stft,audio_stft1);
+                audio_stft(:,:,channel_index) ...
+                    = repet.stft(audio_signal(:,channel_index),window_function,step_length);
                 
             end
             
@@ -537,13 +547,12 @@ classdef repet
             % frequencies)
             audio_spectrogram = abs(audio_stft(1:window_length/2+1,:,:));
             
-            %%% Repetition/periodicity analysis
             % Segment length in time frames for the beat spectrogram
             segment_length = round(repet.segment_length*sample_rate/step_length);
             
-            % Beat spectrogram of the mean power spectrograms (squared to 
-            % emphasize peaks of periodicitiy)
-            beat_spectrogram = repet.beatspectrogram(mean(audio_spectrogram.^2,3),segment_length);
+            % Beat spectrogram of the spectrograms averaged over the 
+            % channels (squared to emphasize peaks of periodicitiy)
+            beat_spectrogram = repet.beatspectrogram(mean(audio_spectrogram,3).^2,segment_length);
             
             % Period range in time frames for the beat spectrogram 
             period_range = round(repet.period_range*sample_rate/step_length);
@@ -551,7 +560,6 @@ classdef repet
             % Repeating period in time frames given the period range
             repeating_periods = repet.periods(beat_spectrogram,period_range);
             
-            %%% Background estimation
             % Cutoff frequency in frequency channels for the dual high-pass 
             % filter of the foreground
             cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sample_rate);
@@ -563,7 +571,8 @@ classdef repet
             for channel_index = 1:number_channels
                 
                 % Repeating mask for the current channel
-                repeating_mask = repet.adaptivemask(audio_spectrogram(:,:,channel_index),repeating_periods,repet.filter_order);
+                repeating_mask ...
+                    = repet.adaptivemask(audio_spectrogram(:,:,channel_index),repeating_periods,repet.filter_order);
                 
                 % High-pass filtering of the dual foreground
                 repeating_mask(2:cutoff_frequency+1,:) = 1;
@@ -646,24 +655,26 @@ classdef repet
             %
             %   See also repet.original, repet.extended, repet.adaptive, repet.simonline
             
-            %%% Fourier analysis
-            % STFT parameters
-            [window_length,window_function,step_length] = repet.stftparameters(repet.window_duration,sample_rate);
-            
             % Number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
             
+            % Window length, window function, and step length for the STFT
+            window_length = repet.windowlength(sample_rate);
+            window_function = repet.windowfunction(window_length);
+            step_length = repet.steplength(window_length);
+            
+            % Number of time frames
+            number_times = ceil((window_length-step_length+number_samples)/step_length);
+            
             % Initialize the STFT
-            audio_stft = [];
+            audio_stft = zeros(window_length,number_times,number_channels);
             
             % Loop over the channels
             for channel_index = 1:number_channels
                 
                 % STFT of the current channel
-                audio_stft1 = repet.stft(audio_signal(:,channel_index),window_function,step_length);
-                
-                % Concatenate the STFTs
-                audio_stft = cat(3,audio_stft,audio_stft1);
+                audio_stft(:,:,channel_index) ...
+                    = repet.stft(audio_signal(:,channel_index),window_function,step_length);
                 
             end
             
@@ -671,17 +682,17 @@ classdef repet
             % frequencies)
             audio_spectrogram = abs(audio_stft(1:window_length/2+1,:,:));
             
-            %%% Repetition/similarity analysis
-            % Self-similarity of the mean magnitude spectrogram
-            similarity_matrix = repet.similaritymatrix(mean(audio_spectrogram,3));
+            % Self-similarity of the spectrograms averaged over the
+            % channels
+            similarity_matrix = repet.selfsimilaritymatrix(mean(audio_spectrogram,3));
             
             % Similarity distance in time frames
             similarity_distance = round(repet.similarity_distance*sample_rate/step_length);
             
             % Similarity indices for all the frames
-            similarity_indices = repet.indices(similarity_matrix,repet.similarity_threshold,similarity_distance,repet.similarity_number);
-
-            %%% Background signal
+            similarity_indices ...
+                = repet.indices(similarity_matrix,repet.similarity_threshold,similarity_distance,repet.similarity_number);
+            
             % Cutoff frequency in frequency channels for the dual high-pass 
             % filter of the foreground
             cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sample_rate);
@@ -772,28 +783,29 @@ classdef repet
             %
             %   See also repet.original, repet.extended, repet.adaptive, repet.sim
             
-            %%% Fourier analysis
-            % STFT parameters
-            [window_length,window_function,step_length] = repet.stftparameters(repet.window_duration,sample_rate);
-            
             % Number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
             
+            % Window length, window function, and step length for the STFT
+            window_length = repet.windowlength(sample_rate);
+            window_function = repet.windowfunction(window_length);
+            step_length = repet.steplength(window_length);
+            
+            % Number of time frames
+            number_times = ceil((window_length-step_length+number_samples)/step_length);
+            
             % Initialize the STFT
-            audio_stft = [];
+            audio_stft = zeros(window_length,number_times,number_channels);
             
             % Loop over the channels
             for channel_index = 1:number_channels
                 
                 % STFT of the current channel
-                audio_stft1 = repet.stft(audio_signal(:,channel_index),window_function,step_length);
-                
-                % Concatenate the STFTs
-                audio_stft = cat(3,audio_stft,audio_stft1);
+                audio_stft(:,:,channel_index) ...
+                    = repet.stft(audio_signal(:,channel_index),window_function,step_length);
                 
             end
             
-            %%% Repetition/similarity analysis
             % Buffer in time frames
             buffer_length = round(repet.buffer_length*sample_rate/step_length);
             
@@ -804,16 +816,13 @@ classdef repet
             % filter of the foreground
             cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sample_rate);
             
-            % Number of time frames
-            number_times = size(audio_stft,2);
-            
             % Initialize background STFT
             background_stft = zeros(window_length,number_times,number_channels);
             
             % Open the wait bar
             wait_bar = waitbar(0,'Online REPET-SIM');
             
-            % Loop over the frames, for all the channels
+            % Loop over the frames
             for time_index = similarity_distance+2:number_times
                 
                 % Magnitude spectrum of the frame being processing
@@ -824,15 +833,11 @@ classdef repet
                 
                 % Cosine similarity between the frame being processed and 
                 % the past frames in the buffer, for both channels
-                similarity_vector = (mean(audio_spectrum,3)/norm(mean(audio_spectrum,3),2))'...
-                    *(mean(audio_buffer,3)./sqrt(sum(mean(audio_buffer,3).^2,1)));
+                similarity_vector = repet.similaritymatrix(mean(audio_spectrum,3),mean(audio_buffer,3));
                 
                 % Find the indices of the similar frames using findpeaks
-                [~,similarity_indices] = findpeaks(similarity_vector, ...
-                    'MinPeakHeight',repet.similarity_threshold, ...
-                    'MinPeakDistance',similarity_distance, ...
-                    'NPeaks',repet.similarity_number, ...
-                    'SortStr','descend');
+                [~,similarity_indices] ...
+                    = repet.localmaxima(similarity_vector,repet.similarity_threshold,similarity_distance,repet.similarity_number);
                 
                 % Loop over the channels
                 for channel_index = 1:number_channels
@@ -887,21 +892,6 @@ classdef repet
     
     % Other methods
     methods (Access = private, Hidden = true, Static = true)
-    
-        % STFT parameters (for constant overlap-add)
-        function [window_length,window_function,step_length] = stftparameters(window_duration,sample_rate)
-            
-            % Window length in samples (power of 2 for fast FFT)
-            window_length = 2.^nextpow2(window_duration*sample_rate);
-            
-            % Window function (even window length and 'periodic' Hamming 
-            % window for constant overlap-add)
-            window_function = hamming(window_length,'periodic');
-            
-            % Step length (half the window length for constant overlap-add)
-            step_length = window_length/2;
-            
-        end
         
         % Short-time Fourier transform (STFT) (with zero-padding at the 
         % edges)
@@ -1043,13 +1033,26 @@ classdef repet
         
         % Self-similarity matrix using the cosine similarity (faster than
         % pdist2)
-        function similarity_matrix = similaritymatrix(data_matrix)
+        function similarity_matrix = selfsimilaritymatrix(data_matrix)
             
             % Divide each column by its Euclidean norm
             data_matrix = data_matrix./sqrt(sum(data_matrix.^2,1));
             
             % Multiply each normalized columns with each other
             similarity_matrix = data_matrix'*data_matrix;
+            
+        end
+        
+        % Similarity matrix using the cosine similarity (faster than 
+        % pdist2)
+        function similarity_matrix = similaritymatrix(data_matrix1,data_matrix2)
+            
+            % Divide each column by its Euclidean norm
+            data_matrix1 = data_matrix1./sqrt(sum(data_matrix1.^2,1));
+            data_matrix2 = data_matrix2./sqrt(sum(data_matrix2.^2,1));
+            
+            % Multiply each normalized columns with each other
+            similarity_matrix = data_matrix1'*data_matrix2;
             
         end
         
@@ -1067,7 +1070,48 @@ classdef repet
             
         end
         
-        % Similarity indices from the similarity matrix using findpeaks
+        % Local maxima (Matlab's findpeaks does not behave exactly like 
+        % wanted)
+        function [maximum_values,maximum_indices] = localmaxima(data_vector,minimum_value,minimum_distance,number_values)
+            
+            % Number of data points
+            number_data = numel(data_vector);
+            
+            % Initialize maximum values and indices
+            maximum_values = [];
+            maximum_indices = [];
+            
+            % Loop over the data points
+            for data_index = 1:number_data
+                
+                % The local maximum should be greater than the maximum 
+                % value
+                if data_vector(data_index) >= minimum_value
+                    
+                    % The local maximum should be strictly greater than the
+                    % neighboring data points within +- minimum distance
+                    if all(data_vector(data_index) > data_vector(max(data_index-minimum_distance,1):data_index-1)) ...
+                            && all(data_vector(data_index) > data_vector(data_index+1:min(data_index+minimum_distance,number_data)))
+
+                        % Save the maximum value and index
+                        maximum_values = cat(1,maximum_values,data_vector(data_index));
+                        maximum_indices = cat(1,maximum_indices,data_index);
+                        
+                    end
+                end
+            end
+            
+            % Sort the maximum values in descending order
+            [maximum_values,sort_indices] = sort(maximum_values,'descend');
+            
+            % Keep only the top maximum values and indices
+            number_values = min(number_values,numel(maximum_values));
+            maximum_values = maximum_values(1:number_values);
+            maximum_indices = maximum_indices(sort_indices(1:number_values));
+            
+        end
+        
+        % Similarity indices from the similarity matrix
         function similarity_indices = indices(similarity_matrix,similarity_threshold,similarity_distance,similarity_number)
             
             % Number of time frames
@@ -1082,12 +1126,8 @@ classdef repet
             % Loop over the time frames
             for time_index = 1:number_times
                 
-                % Find local maxima using findpeaks
-                [~,peak_indices] = findpeaks(similarity_matrix(:,time_index), ...
-                    'MinPeakHeight',similarity_threshold, ...
-                    'MinPeakDistance',similarity_distance, ...
-                    'NPeaks',similarity_number, ...
-                    'SortStr','descend');
+                [~,peak_indices]...
+                    = repet.localmaxima(similarity_matrix(:,time_index),similarity_threshold,similarity_distance,similarity_number);
                 
                 % Similarity indices for the current time frame
                 similarity_indices{time_index} = peak_indices;
