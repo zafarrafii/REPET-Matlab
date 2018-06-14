@@ -50,17 +50,22 @@ Author:
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    06/07/18
+    06/14/18
 """
 
-import math
 import numpy as np
 import scipy.signal
 
 
-# Public variables
-# Window length in seconds for the STFT (audio stationary around 40 milliseconds)
-window_duration = 0.040
+# Public functions/variables
+# Window length in samples (audio stationary around 40 ms; power of 2 for fast FFT and constant overlap-add)
+windowlength = lambda sample_rate: 2**int(np.ceil(np.log2(0.04*sample_rate)))
+
+# Window function (periodic Hamming window for constant overlap-add)
+windowfunction = lambda window_length: scipy.signal.hamming(window_length, False)
+
+# Step length (half the window length for constant overlap-add)
+steplength = lambda window_length: round(window_length/2)
 
 # Cutoff frequency in Hz for the dual high-pass filter of the foreground (vocals are rarely below 100 Hz)
 cutoff_frequency = 100
@@ -118,12 +123,13 @@ def original(audio_signal, sample_rate):
         #
     """
 
-    # Fourier analysis
-    # STFT parameters
-    window_length, window_function, step_length = _stftparameters(window_duration, sample_rate)
-
     # Number of samples and channels
     number_samples, number_channels = np.shape(audio_signal)
+
+    # Window length, window function, and step length for the STFT
+    window_length = windowlength(sample_rate)
+    window_function = windowfunction(window_length)
+    step_length = steplength(window_length)
 
     # Number of time frames
     number_times = int(np.ceil((window_length-step_length+number_samples)/step_length))
@@ -135,26 +141,21 @@ def original(audio_signal, sample_rate):
     for channel_index in range(0, number_channels):
 
         # STFT of the current channel
-        audio_stft1 = _stft(audio_signal[:, channel_index], window_function, step_length)
-
-        # Concatenate the STFTs
-        audio_stft[:, :, channel_index] = audio_stft1
+        audio_stft[:, :, channel_index] = _stft(audio_signal[:, channel_index], window_function, step_length)
 
     # Magnitude spectrogram (with DC component and without mirrored frequencies)
     audio_spectrogram = abs(audio_stft[0:int(window_length/2)+1, :, :])
 
-    # Repetition/periodicity analysis
-    # Beat spectrum of the mean power spectrograms (squared to emphasize peaks of periodicitiy)
-    beat_spectrum = _beatspectrum(np.mean(np.power(audio_spectrogram, 2), 2))
+    # Beat spectrum of the spectrograms averaged over the channels (squared to emphasize peaks of periodicitiy)
+    beat_spectrum = _beatspectrum(np.power(np.mean(audio_spectrogram, 2), 2))
 
     # Period range in time frames for the beat spectrum
-    period_range2 = np.round(period_range*sample_rate/step_length).astype(int)
+    period_range2 = round(period_range*sample_rate/step_length)
     period_range2[0] = period_range2[0]-1
 
     # Repeating period in time frames given the period range
     repeating_period = _periods(beat_spectrum, period_range2)
 
-    # Background estimation
     # Cutoff frequency in frequency channels for the dual high-pass filter of the foreground
     cutoff_frequency2 = int(np.ceil(cutoff_frequency*(window_length-1)/sample_rate))-1
 
@@ -195,21 +196,6 @@ def simonline(audio_signal, sample_rate):
 
 
 # Private functions
-def _stftparameters(window_duration, sample_rate):
-    """STFT parameters (for constant overlap-add)"""
-
-    # Window length in samples (power of 2 for fast FFT)
-    window_length = int(pow(2, math.ceil(math.log2(window_duration*sample_rate))))
-
-    # Window function (even window length and periodic Hamming window for constant overlap-add)
-    window_function = scipy.signal.hamming(window_length, False)
-
-    # Step length (half the window length for constant overlap-add)
-    step_length = int(window_length/2)
-
-    return window_length, window_function, step_length
-
-
 def _stft(audio_signal, window_function, step_length):
     """Short-time Fourier transform (STFT) (with zero-padding at the edges)"""
 
@@ -243,7 +229,7 @@ def _stft(audio_signal, window_function, step_length):
 def _istft(audio_stft, window_function, step_length):
     """Inverse short-time Fourier transform (STFT)"""
 
-    # Window length in samples and number of time frames
+    # Window length and number of time frames
     window_length, number_times = np.shape(audio_stft)
 
     # Number of samples for the signal
@@ -280,7 +266,7 @@ def _acorr(data_matrix):
 
     # Power Spectral Density (PSD): PSD(X) = np.multiply(fft(X), conj(fft(X))) (after zero-padding for proper
     # autocorrelation)
-    data_matrix = pow(np.abs(np.fft.fft(data_matrix, n=2*number_points, axis=0)), 2)
+    data_matrix = np.power(np.abs(np.fft.fft(data_matrix, n=2*number_points, axis=0)), 2)
 
     # Wiener–Khinchin theorem: PSD(X) = np.fft.fft(repet._acorr(X))
     autocorrelation_matrix = np.real(np.fft.ifft(data_matrix, axis=0))
@@ -329,7 +315,7 @@ def _beatspectrogram(audio_spectrogram, segment_length):
     return beat_spectrogram
 
 
-def _similaritymatrix(data_matrix):
+def _selfsimilaritymatrix(data_matrix):
     """Self-similarity matrix using the cosine similarity"""
 
     # Divide each column by its Euclidean norm
@@ -341,11 +327,24 @@ def _similaritymatrix(data_matrix):
     return similarity_matrix
 
 
+def _similaritymatrix(data_matrix1, data_matrix2):
+    """Similarity matrix using the cosine similarity"""
+
+    # Divide each column by its Euclidean norm
+    data_matrix1 = data_matrix1/np.sqrt(sum(np.power(data_matrix1, 2), 0))
+    data_matrix2 = data_matrix2/np.sqrt(sum(np.power(data_matrix2, 2), 0))
+
+    # Multiply each normalized columns with each other
+    similarity_matrix = np.matmul(data_matrix1.T, data_matrix2)
+
+    return similarity_matrix
+
+
 def _periods(beat_spectra, period_range):
     """Repeating periods from the beat spectra (spectrum or spectrogram)"""
 
-    # The repeating periods are the indices of the maxima in the beat spectra for the period range (they do not count
-    # lag 0 and should be shorter than a third of the length as at least three segments are needed for the median)
+    # The repeating periods are the indices of the maxima in the beat spectra for the period range (they do not account
+    # for lag 0 and should be shorter than a third of the length as at least three segments are needed for the median)
     if beat_spectra.ndim == 1:
         repeating_periods = np.argmax(
             beat_spectra[period_range[0] + 1:min(period_range[1], int(np.floor(beat_spectra.shape[0] / 3)))])
@@ -359,58 +358,41 @@ def _periods(beat_spectra, period_range):
     return repeating_periods
 
 
-def _findpeaks(data_vector, number_peaks=np.inf, sort_str='none', minpeak_height=-np.inf, minpeak_distance=0):
-    """Find local maxima (like Matlab's findpeaks)"""
-
-    # Copy the input to avoid getting it changed outside of the function
-    data_vector2 = np.copy(data_vector)
+def _localmaxima(data_vector, minimum_value, minimum_distance, number_values):
+    """Local maxima, values and indices"""
 
     # Number of data points
     number_data = len(data_vector)
 
-    # Initialize peak values and locations
-    peak_values = np.empty([0, 1])
-    peak_locations = np.empty([0, 1])
+    # Initialize maximum values and locations
+    maximum_values = []
+    maximum_indices = []
 
-    # Loop over the data points (+- the minpeak_distance)
-    for data_index in range(minpeak_distance, number_data-minpeak_distance):
+    # Loop over the data points
+    for data_index in range(0, number_data):
 
-        # If the data point is strictly larger than the minpeak_height
-        if data_vector[data_index] > minpeak_height:
+        # The local maximum should be greater than the maximum value
+        if data_vector[data_index] >= minimum_value:
 
-            # If the data point is greater than all the values within minpeak_distance of it
-            if all(data_vector2[data_index] >= data_vector2[data_index-minpeak_distance:data_index+minpeak_distance]):
-                peak_values = np.append(peak_values, data_vector2[data_index])
-                peak_locations = np.append(peak_locations, data_index)
+            # The local maximum should be strictly greater than the neighboring data points within +- minimum distance
+            if all(data_vector[data_index] > data_vector[max(data_index-minimum_distance, 0):data_index-1]) \
+                    and all(data_vector[data_index]
+                            > data_vector[data_index+1:min(data_index+minimum_distance, number_data)]):
 
-                # Mark that point as a peak in the data
-                data_vector2[data_index] = np.inf
+                # Save the maximum value and index
+                maximum_values = np.append(maximum_values, data_vector[data_index])
+                maximum_indices = np.append(maximum_indices, data_index)
 
-    # Minimum number of peaks
-    number_peaks = min(number_peaks, len(peak_locations))
+    # Sort the maximum values in descending order
+    sort_indices = np.argsort(maximum_values)
+    sort_indices = sort_indices[::-1]
 
-    # Keep first number_peaks peaks
-    if sort_str == 'none':
-        peak_values = peak_values[0:number_peaks]
-        peak_locations = peak_locations[0:number_peaks]
+    # Keep only the top maximum values and indices
+    number_values = min(number_values, len(maximum_values))
+    maximum_values = maximum_values[0:number_values]
+    maximum_indices = maximum_indices[sort_indices[0:number_values]].astype(int)
 
-    # Sort the peaks and keep the first number_peaks peaks
-    elif sort_str == 'ascend':
-        sort_indices = np.argsort(peak_values)
-        sort_indices = sort_indices[0:number_peaks]
-        peak_values = peak_values[sort_indices]
-        peak_locations = peak_locations[sort_indices]
-
-    #  Sort the peaks and keep the last number_peaks peaks
-    elif sort_str == 'descend':
-        sort_indices = np.argsort(peak_values)
-        sort_indices = sort_indices[::-1]
-        sort_indices = sort_indices[0:number_peaks]
-        peak_values = peak_values[sort_indices]
-        peak_locations = peak_locations[sort_indices]
-
-    return peak_values, peak_locations
-
+    return maximum_values, maximum_indices
 
 
 def _indices(similarity_matrix, similarity_threshold, similarity_distance, similarity_number):
@@ -425,17 +407,12 @@ def _indices(similarity_matrix, similarity_threshold, similarity_distance, simil
     # Loop over the time frames
     for time_index in range(0, number_times):
 
-        #Find local maxima using findpeaks
-        scipy.signal.find_peaks_cwt(similarity_matrix[:, time_index], np.arange(1,10), )
-
-        #[~,peak_indices] = _findpeaks(similarity_matrix(:,time_index), ...
-        #            'MinPeakHeight',similarity_threshold, ...
-        #           'MinPeakDistance',similarity_distance, ...
-        #            'NPeaks',similarity_number, ...
-        #           'SortStr','descend');
+        # Indices of the local maxima
+        _, maximum_indices = \
+            _localmaxima(similarity_matrix[:, time_index], similarity_threshold, similarity_distance, similarity_number)
 
         # Similarity indices for the current time frame
-        similarity_indices[time_index] = peak_indices
+        similarity_indices[time_index] = maximum_indices
 
     return similarity_indices
 

@@ -66,7 +66,7 @@ classdef repet
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   06/13/18
+    %   06/14/18
     
     % Defined properties
     properties (Access = private, Constant = true, Hidden = true)
@@ -891,16 +891,14 @@ classdef repet
     end
     
     % Other methods
-    methods (Access = private, Hidden = true, Static = true)
-        
+    %methods (Access = private, Hidden = true, Static = true)
+    methods (Access = public, Hidden = true, Static = true)    
         % Short-time Fourier transform (STFT) (with zero-padding at the 
         % edges)
         function audio_stft = stft(audio_signal,window_function,step_length)
             
-            % Number of samples
+            % Number of samples and window length
             number_samples = length(audio_signal);
-            
-            % Window length in samples
             window_length = length(window_function);
             
             % Number of time frames
@@ -930,11 +928,8 @@ classdef repet
         % Inverse short-time Fourier transform (STFT)
         function audio_signal = istft(audio_stft,window_function,step_length)
             
-            % Number of time frames
-            [~,number_times] = size(audio_stft);
-            
-            % Window length in samples
-            window_length = length(window_function);
+            % Window length and number of time frames
+            [window_length,number_times] = size(audio_stft);
             
             % Number of samples for the signal
             number_samples = (number_times-1)*step_length+window_length;
@@ -1060,9 +1055,9 @@ classdef repet
         function repeating_periods = periods(beat_spectra,period_range)
             
             % The repeating periods are the indices of the maxima in the 
-            % beat spectra for the period range (they do not count lag 0 
-            % and should be shorter than a third of the length as at least 
-            % three segments are needed for the median)
+            % beat spectra for the period range (they do not account for 
+            % lag 0 and should be shorter than a third of the length as at 
+            % least three segments are needed for the median)
             [~,repeating_periods] = max(beat_spectra(period_range(1)+1:min(period_range(2),floor(size(beat_spectra,1)/3)),:),[],1);
             
             % Re-adjust the index or indices
@@ -1070,8 +1065,8 @@ classdef repet
             
         end
         
-        % Local maxima (Matlab's findpeaks does not behave exactly like 
-        % wanted)
+        % Local maxima, values and indices (Matlab's findpeaks does not 
+        % behave exactly like wanted)
         function [maximum_values,maximum_indices] = localmaxima(data_vector,minimum_value,minimum_distance,number_values)
             
             % Number of data points
@@ -1126,11 +1121,12 @@ classdef repet
             % Loop over the time frames
             for time_index = 1:number_times
                 
-                [~,peak_indices]...
+                % Indices of the local maxima
+                [~,maximum_indices]...
                     = repet.localmaxima(similarity_matrix(:,time_index),similarity_threshold,similarity_distance,similarity_number);
                 
                 % Similarity indices for the current time frame
-                similarity_indices{time_index} = peak_indices;
+                similarity_indices{time_index} = maximum_indices;
                 
                 % Update wait bar
                 waitbar(time_index/number_times,wait_bar);
