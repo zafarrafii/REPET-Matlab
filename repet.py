@@ -50,7 +50,7 @@ Author:
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    06/14/18
+    06/26/18
 """
 
 import numpy as np
@@ -150,7 +150,7 @@ def original(audio_signal, sample_rate):
     beat_spectrum = _beatspectrum(np.power(np.mean(audio_spectrogram, 2), 2))
 
     # Period range in time frames for the beat spectrum
-    period_range2 = round(period_range*sample_rate/step_length)
+    period_range2 = np.round(period_range*sample_rate/step_length).astype(int)
     period_range2[0] = period_range2[0]-1
 
     # Repeating period in time frames given the period range
@@ -163,10 +163,22 @@ def original(audio_signal, sample_rate):
     background_signal = np.zeros((number_samples, number_channels))
 
     # Loop over the channels
-    #for channel_index in range(0, number_channels):
+    for channel_index in range(0, number_channels):
 
         # Repeating mask for the current channel
-        #repeating_mask = _mask(audio_spectrogram[:, :, channel_index], repeating_period)
+        repeating_mask = _mask(audio_spectrogram[:, :, channel_index], repeating_period)
+
+        # High-pass filtering of the dual foreground
+        repeating_mask[1:cutoff_frequency+1, :] = 1
+
+        # Mirror the frequency channels
+        repeating_mask = np.concatenate(repeating_mask, repeating_mask[-2:0:-1, :])
+
+        # Estimated repeating background for the current channel
+        background_signal1 = _istft(repeating_mask*audio_stft[:, :, channel_index], window_function, step_length)
+
+        # Truncate to the original number of samples
+        background_signal[:, channel_index] = background_signal1[0:number_samples]
 
     return background_signal
 
@@ -364,8 +376,7 @@ def _localmaxima(data_vector, minimum_value, minimum_distance, number_values):
     # Number of data points
     number_data = len(data_vector)
 
-    # Initialize maximum values and locations
-    maximum_values = []
+    # Initialize maximum indices
     maximum_indices = []
 
     # Loop over the data points
@@ -379,11 +390,11 @@ def _localmaxima(data_vector, minimum_value, minimum_distance, number_values):
                     and all(data_vector[data_index]
                             > data_vector[data_index+1:min(data_index+minimum_distance, number_data)]):
 
-                # Save the maximum value and index
-                maximum_values = np.append(maximum_values, data_vector[data_index])
+                # Save the maximum index
                 maximum_indices = np.append(maximum_indices, data_index)
 
     # Sort the maximum values in descending order
+    maximum_values = data_vector[maximum_indices]
     sort_indices = np.argsort(maximum_values)
     sort_indices = sort_indices[::-1]
 
@@ -398,7 +409,7 @@ def _localmaxima(data_vector, minimum_value, minimum_distance, number_values):
 def _indices(similarity_matrix, similarity_threshold, similarity_distance, similarity_number):
     """Similarity indices from the similarity matrix"""
 
-    #Number of time frames
+    # Number of time frames
     number_times = similarity_matrix.shape[0]
 
     # Initialize the similarity indices
@@ -417,6 +428,40 @@ def _indices(similarity_matrix, similarity_threshold, similarity_distance, simil
     return similarity_indices
 
 
+def _mask(audio_spectrogram, repeating_period):
+    """Similarity indices from the similarity matrix"""
+
+    # Number of frequency channels and time frames
+    number_frequencies, number_times = np.shape(audio_spectrogram)
+
+    # Number of repeating segments, including the last partial one
+    number_segments = int(np.ceil(number_times/repeating_period))
+
+    # Pad the audio spectrogram to have an integer number of segments and reshape for the columns to become the segments
+    audio_spectrogram = np.pad(audio_spectrogram, ((0, 0), (0, number_segments*repeating_period-number_times)),
+                               'constant', constant_values=np.nan)
+    audio_spectrogram = np.reshape(audio_spectrogram, (number_frequencies*repeating_period, number_segments))
+
+    # Derive the repeating segment by taking the median over the segments, ignoring the nan parts
+    repeating_segment = np.concatenate((
+        np.median(audio_spectrogram[0:number_frequencies*(number_times-(number_segments-1)*repeating_period),
+                  0:number_segments], 1),
+        np.median(audio_spectrogram[number_frequencies*(number_times-(number_segments-1)*repeating_period):
+                                    number_frequencies*repeating_period, 0:number_segments-1], 1)))
+
+    # Derive the repeating spectrogram by making sure it has less energy than the audio spectrogram
+    repeating_spectrogram = np.minimum(audio_spectrogram, repeating_segment)
+
+    # Derive the repeating mask by normalizing the repeating spectrogram by the audio spectrogram
+    repeating_mask = (repeating_spectrogram+np.finfo(float).eps)/(audio_spectrogram+np.finfo(float).eps)
+
+    # Reshape the repeating mask and truncate to the original number of time frames
+    repeating_mask = np.reshape(repeating_mask, (number_frequencies,number_segments*repeating_period))
+    repeating_mask = repeating_mask[:, 0:number_times]
+
+    return repeating_mask
+
+
 def test():
 
     import scipy.io.wavfile
@@ -424,4 +469,6 @@ def test():
     sample_rate, audio_signal = scipy.io.wavfile.read('audio_file.wav')
     audio_signal = audio_signal / (2.0 ** (audio_signal.itemsize * 8 - 1))
 
-    return original(audio_signal, sample_rate)
+    background_signal = original(audio_signal, sample_rate) #TESTING THIS!!!
+
+    return background_signal

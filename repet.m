@@ -66,7 +66,7 @@ classdef repet
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   06/14/18
+    %   06/26/18
     
     % Defined properties
     properties (Access = private, Constant = true, Hidden = true)
@@ -232,7 +232,7 @@ classdef repet
                 repeating_mask(2:cutoff_frequency+1,:) = 1;
                 
                 % Mirror the frequency channels
-                repeating_mask = cat(1,repeating_mask,flipud(repeating_mask(2:end-1,:)));
+                repeating_mask = cat(1,repeating_mask,repeating_mask(end-1:-1:2,:));
                 
                 % Estimated repeating background for the current channel
                 background_signal1 ...
@@ -891,8 +891,8 @@ classdef repet
     end
     
     % Other methods
-    %methods (Access = private, Hidden = true, Static = true)
-    methods (Access = public, Hidden = true, Static = true)    
+%     methods (Access = private, Hidden = true, Static = true)
+    methods (Access = public, Hidden = true, Static = true)
         % Short-time Fourier transform (STFT) (with zero-padding at the 
         % edges)
         function audio_stft = stft(audio_signal,window_function,step_length)
@@ -1072,8 +1072,7 @@ classdef repet
             % Number of data points
             number_data = numel(data_vector);
             
-            % Initialize maximum values and indices
-            maximum_values = [];
+            % Initialize maximum indices
             maximum_indices = [];
             
             % Loop over the data points
@@ -1088,8 +1087,7 @@ classdef repet
                     if all(data_vector(data_index) > data_vector(max(data_index-minimum_distance,1):data_index-1)) ...
                             && all(data_vector(data_index) > data_vector(data_index+1:min(data_index+minimum_distance,number_data)))
 
-                        % Save the maximum value and index
-                        maximum_values = cat(1,maximum_values,data_vector(data_index));
+                        % Save the maximum index
                         maximum_indices = cat(1,maximum_indices,data_index);
                         
                     end
@@ -1097,6 +1095,7 @@ classdef repet
             end
             
             % Sort the maximum values in descending order
+            maximum_values = data_vector(maximum_indices);
             [maximum_values,sort_indices] = sort(maximum_values,'descend');
             
             % Keep only the top maximum values and indices
@@ -1148,31 +1147,27 @@ classdef repet
             number_segments = ceil(number_times/repeating_period);
             
             % Pad the audio spectrogram to have an integer number of 
-            % segments
+            % segments and reshape for the columns to become the segments
             audio_spectrogram = [audio_spectrogram,nan(number_frequencies,number_segments*repeating_period-number_times)];
-            
-            % Reshape the audio spectrogram for the columns to represent 
-            % the segments
             audio_spectrogram = reshape(audio_spectrogram,[number_frequencies*repeating_period,number_segments]);
             
             % Derive the repeating segment by taking the median over the 
             % segments, ignoring the nan parts
-            repeating_segment = [median(audio_spectrogram(1:number_frequencies*(number_times-(number_segments-1)*repeating_period),1:number_segments),2); ... 
-                median(audio_spectrogram(number_frequencies*(number_times-(number_segments-1)*repeating_period)+1:number_frequencies*repeating_period,1:number_segments-1),2)];
+            timefrequency_index = number_frequencies*(number_times-(number_segments-1)*repeating_period);
+            repeating_segment = [median(audio_spectrogram(1:timefrequency_index,1:number_segments),2); ... 
+                median(audio_spectrogram(timefrequency_index+1:number_frequencies*repeating_period,1:number_segments-1),2)];
             
             % Derive the repeating spectrogram by making sure it has less 
             % energy than the audio spectrogram
-            repeating_spectrogram = bsxfun(@min,audio_spectrogram,repeating_segment);
+            repeating_spectrogram = min(audio_spectrogram,repeating_segment);
             
             % Derive the repeating mask by normalizing the repeating 
             % spectrogram by the audio spectrogram
             repeating_mask = (repeating_spectrogram+eps)./(audio_spectrogram+eps);
             
-            % Reshape the repeating mask
+            % Reshape the repeating mask and truncate to the original
+            % number of time frames
             repeating_mask = reshape(repeating_mask,[number_frequencies,number_segments*repeating_period]);
-            
-            % Truncate the repeating mask to the orignal number of time 
-            % frames
             repeating_mask = repeating_mask(:,1:number_times);
             
         end
