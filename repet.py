@@ -169,10 +169,10 @@ def original(audio_signal, sample_rate):
         repeating_mask = _mask(audio_spectrogram[:, :, channel_index], repeating_period)
 
         # High-pass filtering of the dual foreground
-        repeating_mask[1:cutoff_frequency+1, :] = 1
+        repeating_mask[1:cutoff_frequency2+1, :] = 1
 
         # Mirror the frequency channels
-        repeating_mask = np.concatenate(repeating_mask, repeating_mask[-2:0:-1, :])
+        repeating_mask = np.concatenate((repeating_mask, repeating_mask[-2:0:-1, :]))
 
         # Estimated repeating background for the current channel
         background_signal1 = _istft(repeating_mask*audio_stft[:, :, channel_index], window_function, step_length)
@@ -435,28 +435,28 @@ def _mask(audio_spectrogram, repeating_period):
     number_frequencies, number_times = np.shape(audio_spectrogram)
 
     # Number of repeating segments, including the last partial one
-    number_segments = int(np.ceil(number_times/repeating_period))
+    number_segments = int(np.ceil(number_times/(repeating_period+1)))
 
     # Pad the audio spectrogram to have an integer number of segments and reshape for the columns to become the segments
-    audio_spectrogram = np.pad(audio_spectrogram, ((0, 0), (0, number_segments*repeating_period-number_times)),
+    audio_spectrogram = np.pad(audio_spectrogram, ((0, 0), (0, number_segments*(repeating_period+1)-number_times)),
                                'constant', constant_values=np.nan)
-    audio_spectrogram = np.reshape(audio_spectrogram, (number_frequencies*repeating_period, number_segments))
+    audio_spectrogram = np.reshape(audio_spectrogram, (number_frequencies*(repeating_period+1), number_segments))
 
     # Derive the repeating segment by taking the median over the segments, ignoring the nan parts
     repeating_segment = np.concatenate((
-        np.median(audio_spectrogram[0:number_frequencies*(number_times-(number_segments-1)*repeating_period),
+        np.median(audio_spectrogram[0:number_frequencies*(number_times-(number_segments-1)*(repeating_period+1)),
                   0:number_segments], 1),
-        np.median(audio_spectrogram[number_frequencies*(number_times-(number_segments-1)*repeating_period):
-                                    number_frequencies*repeating_period, 0:number_segments-1], 1)))
+        np.median(audio_spectrogram[number_frequencies*(number_times-(number_segments-1)*(repeating_period+1)):
+                                    number_frequencies*(repeating_period+1), 0:number_segments-1], 1)))
 
     # Derive the repeating spectrogram by making sure it has less energy than the audio spectrogram
-    repeating_spectrogram = np.minimum(audio_spectrogram, repeating_segment)
+    repeating_spectrogram = np.minimum(audio_spectrogram, repeating_segment[:, np.newaxis])
 
     # Derive the repeating mask by normalizing the repeating spectrogram by the audio spectrogram
     repeating_mask = (repeating_spectrogram+np.finfo(float).eps)/(audio_spectrogram+np.finfo(float).eps)
 
     # Reshape the repeating mask and truncate to the original number of time frames
-    repeating_mask = np.reshape(repeating_mask, (number_frequencies,number_segments*repeating_period))
+    repeating_mask = np.reshape(repeating_mask, (number_frequencies,number_segments*(repeating_period+1)))
     repeating_mask = repeating_mask[:, 0:number_times]
 
     return repeating_mask
@@ -469,6 +469,17 @@ def test():
     sample_rate, audio_signal = scipy.io.wavfile.read('audio_file.wav')
     audio_signal = audio_signal / (2.0 ** (audio_signal.itemsize * 8 - 1))
 
-    background_signal = original(audio_signal, sample_rate) #TESTING THIS!!!
+    window_length = windowlength(sample_rate)
+    window_function = windowfunction(window_length)
+    step_length = steplength(window_length)
 
-    return background_signal
+    channel_index = 0
+    audio_stft = _stft(audio_signal[:, channel_index], window_function, step_length)
+    audio_spectrogram = abs(audio_stft[0:int(window_length / 2) + 1, :])
+
+    repeating_period = 285
+    repeating_mask = _mask(audio_spectrogram, repeating_period) #TESTING THIS!!!
+
+    #background_signal = original(audio_signal, sample_rate) #TESTING THIS!!!
+
+    return repeating_mask

@@ -69,8 +69,8 @@ classdef repet
     %   06/26/18
     
     % Defined properties
-    properties (Access = private, Constant = true, Hidden = true)
-        
+%     properties (Access = private, Constant = true, Hidden = true)
+    properties (Access = public, Constant = true, Hidden = true)    
         % Window length in samples (audio stationary around 40 ms; power of 
         % 2 for fast FFT and constant overlap-add)
         windowlength = @(sample_rate) 2.^nextpow2(0.04*sample_rate);
@@ -1150,7 +1150,7 @@ classdef repet
             % segments and reshape for the columns to become the segments
             audio_spectrogram = [audio_spectrogram,nan(number_frequencies,number_segments*repeating_period-number_times)];
             audio_spectrogram = reshape(audio_spectrogram,[number_frequencies*repeating_period,number_segments]);
-            
+            size(audio_spectrogram)
             % Derive the repeating segment by taking the median over the 
             % segments, ignoring the nan parts
             timefrequency_index = number_frequencies*(number_times-(number_segments-1)*repeating_period);
