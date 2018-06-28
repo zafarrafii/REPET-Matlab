@@ -50,7 +50,7 @@ Author:
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    06/26/18
+    06/28/18
 """
 
 import numpy as np
@@ -106,7 +106,7 @@ def original(audio_signal, sample_rate):
     Example: Estimate the background and foreground signals, and display their spectrograms
         # Import modules
         import scipy.io.wavfile
-        import z
+        import repet
 
         # Audio signal (normalized) and sample rate in Hz
         sample_rate, audio_signal = scipy.io.wavfile.read('audio_file.wav')
@@ -120,7 +120,24 @@ def original(audio_signal, sample_rate):
         scipy.io.wavfile.write('background_signal.wav', sample_rate, background_signal)
         scipy.io.wavfile.write('foreground_signal.wav', sample_rate, foreground_signal)
 
-        #
+        # Compute the audio, background, and foreground spectrograms
+        HERE!!!
+
+        # Display the audio, background, and foreground spectrograms (up to 5kHz)
+        plt.rc('font', size=30)
+        plt.subplot(3, 1, 1), plt.plot(audio_signal), plt.autoscale(tight=True), plt.title("Original Signal")
+        plt.xticks(np.arange(sample_rate, len(audio_signal), sample_rate),
+                   np.arange(1, int(np.floor(len(audio_signal) / sample_rate)) + 1))
+        plt.xlabel('Time (s)')
+        plt.subplot(3, 1, 2), plt.plot(center_signal), plt.autoscale(tight=True), plt.title("Center Signal")
+        plt.xticks(np.arange(sample_rate, len(audio_signal), sample_rate),
+                   np.arange(1, int(np.floor(len(audio_signal) / sample_rate)) + 1))
+        plt.xlabel('Time (s)')
+        plt.subplot(3, 1, 3), plt.plot(sides_signal), plt.autoscale(tight=True), plt.title("Sides Signal")
+        plt.xticks(np.arange(sample_rate, len(audio_signal), sample_rate),
+                   np.arange(1, int(np.floor(len(audio_signal) / sample_rate)) + 1))
+        plt.xlabel('Time (s)')
+        plt.show()
     """
 
     # Number of samples and channels
@@ -151,7 +168,6 @@ def original(audio_signal, sample_rate):
 
     # Period range in time frames for the beat spectrum
     period_range2 = np.round(period_range*sample_rate/step_length).astype(int)
-    period_range2[0] = period_range2[0]-1
 
     # Repeating period in time frames given the period range
     repeating_period = _periods(beat_spectrum, period_range2)
@@ -169,7 +185,7 @@ def original(audio_signal, sample_rate):
         repeating_mask = _mask(audio_spectrogram[:, :, channel_index], repeating_period)
 
         # High-pass filtering of the dual foreground
-        repeating_mask[1:cutoff_frequency2+1, :] = 1
+        repeating_mask[1:cutoff_frequency2+2, :] = 1
 
         # Mirror the frequency channels
         repeating_mask = np.concatenate((repeating_mask, repeating_mask[-2:0:-1, :]))
@@ -359,13 +375,13 @@ def _periods(beat_spectra, period_range):
     # for lag 0 and should be shorter than a third of the length as at least three segments are needed for the median)
     if beat_spectra.ndim == 1:
         repeating_periods = np.argmax(
-            beat_spectra[period_range[0] + 1:min(period_range[1], int(np.floor(beat_spectra.shape[0] / 3)))])
+            beat_spectra[period_range[0]:min(period_range[1], int(np.floor(beat_spectra.shape[0]/3)))]) + 1
     else:
         repeating_periods = np.argmax(
-            beat_spectra[period_range[0] + 1:min(period_range[1], int(np.floor(beat_spectra.shape[0] / 3))), :], axis=0)
+            beat_spectra[period_range[0]:min(period_range[1], int(np.floor(beat_spectra.shape[0]/3))), :], axis=0) + 1
 
     # Re-adjust the index or indices
-    repeating_periods = repeating_periods + period_range[0] + 1
+    repeating_periods = repeating_periods + period_range[0]
 
     return repeating_periods
 
@@ -435,28 +451,28 @@ def _mask(audio_spectrogram, repeating_period):
     number_frequencies, number_times = np.shape(audio_spectrogram)
 
     # Number of repeating segments, including the last partial one
-    number_segments = int(np.ceil(number_times/(repeating_period+1)))
+    number_segments = int(np.ceil(number_times/repeating_period))
 
-    # Pad the audio spectrogram to have an integer number of segments and reshape for the columns to become the segments
-    audio_spectrogram = np.pad(audio_spectrogram, ((0, 0), (0, number_segments*(repeating_period+1)-number_times)),
-                               'constant', constant_values=np.nan)
-    audio_spectrogram = np.reshape(audio_spectrogram, (number_frequencies*(repeating_period+1), number_segments))
+    # Pad the audio spectrogram to have an integer number of segments and reshape it to a tensor
+    audio_spectrogram = np.pad(audio_spectrogram, ((0, 0), (0, number_segments*repeating_period-number_times)),
+                               'constant', constant_values=np.inf)
+    audio_spectrogram = np.reshape(audio_spectrogram,
+                                   (number_frequencies, repeating_period, number_segments), order='F')
 
     # Derive the repeating segment by taking the median over the segments, ignoring the nan parts
     repeating_segment = np.concatenate((
-        np.median(audio_spectrogram[0:number_frequencies*(number_times-(number_segments-1)*(repeating_period+1)),
-                  0:number_segments], 1),
-        np.median(audio_spectrogram[number_frequencies*(number_times-(number_segments-1)*(repeating_period+1)):
-                                    number_frequencies*(repeating_period+1), 0:number_segments-1], 1)))
+        np.median(audio_spectrogram[:, 0:number_times-(number_segments-1)*repeating_period, :], 2),
+        np.median(audio_spectrogram[:, number_times-(number_segments-1)*repeating_period:repeating_period,
+                  0:number_segments-1], 2)), 1)
 
     # Derive the repeating spectrogram by making sure it has less energy than the audio spectrogram
-    repeating_spectrogram = np.minimum(audio_spectrogram, repeating_segment[:, np.newaxis])
+    repeating_spectrogram = np.minimum(audio_spectrogram, repeating_segment[:, :, np.newaxis])
 
     # Derive the repeating mask by normalizing the repeating spectrogram by the audio spectrogram
     repeating_mask = (repeating_spectrogram+np.finfo(float).eps)/(audio_spectrogram+np.finfo(float).eps)
 
     # Reshape the repeating mask and truncate to the original number of time frames
-    repeating_mask = np.reshape(repeating_mask, (number_frequencies,number_segments*(repeating_period+1)))
+    repeating_mask = np.reshape(repeating_mask, (number_frequencies, number_segments*repeating_period), order='F')
     repeating_mask = repeating_mask[:, 0:number_times]
 
     return repeating_mask
@@ -469,17 +485,6 @@ def test():
     sample_rate, audio_signal = scipy.io.wavfile.read('audio_file.wav')
     audio_signal = audio_signal / (2.0 ** (audio_signal.itemsize * 8 - 1))
 
-    window_length = windowlength(sample_rate)
-    window_function = windowfunction(window_length)
-    step_length = steplength(window_length)
+    background_signal = original(audio_signal, sample_rate)
 
-    channel_index = 0
-    audio_stft = _stft(audio_signal[:, channel_index], window_function, step_length)
-    audio_spectrogram = abs(audio_stft[0:int(window_length / 2) + 1, :])
-
-    repeating_period = 285
-    repeating_mask = _mask(audio_spectrogram, repeating_period) #TESTING THIS!!!
-
-    #background_signal = original(audio_signal, sample_rate) #TESTING THIS!!!
-
-    return repeating_mask
+    return background_signal

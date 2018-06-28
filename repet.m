@@ -66,11 +66,11 @@ classdef repet
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   06/26/18
+    %   06/28/18
     
     % Defined properties
-%     properties (Access = private, Constant = true, Hidden = true)
-    properties (Access = public, Constant = true, Hidden = true)    
+    properties (Access = private, Constant = true, Hidden = true)
+        
         % Window length in samples (audio stationary around 40 ms; power of 
         % 2 for fast FFT and constant overlap-add)
         windowlength = @(sample_rate) 2.^nextpow2(0.04*sample_rate);
@@ -891,8 +891,8 @@ classdef repet
     end
     
     % Other methods
-%     methods (Access = private, Hidden = true, Static = true)
-    methods (Access = public, Hidden = true, Static = true)
+    methods (Access = private, Hidden = true, Static = true)
+        
         % Short-time Fourier transform (STFT) (with zero-padding at the 
         % edges)
         function audio_stft = stft(audio_signal,window_function,step_length)
@@ -1147,15 +1147,14 @@ classdef repet
             number_segments = ceil(number_times/repeating_period);
             
             % Pad the audio spectrogram to have an integer number of 
-            % segments and reshape for the columns to become the segments
+            % segments and reshape it to a tensor
             audio_spectrogram = [audio_spectrogram,nan(number_frequencies,number_segments*repeating_period-number_times)];
-            audio_spectrogram = reshape(audio_spectrogram,[number_frequencies*repeating_period,number_segments]);
-            size(audio_spectrogram)
+            audio_spectrogram = reshape(audio_spectrogram,[number_frequencies,repeating_period,number_segments]);
+            
             % Derive the repeating segment by taking the median over the 
             % segments, ignoring the nan parts
-            timefrequency_index = number_frequencies*(number_times-(number_segments-1)*repeating_period);
-            repeating_segment = [median(audio_spectrogram(1:timefrequency_index,1:number_segments),2); ... 
-                median(audio_spectrogram(timefrequency_index+1:number_frequencies*repeating_period,1:number_segments-1),2)];
+            repeating_segment = [median(audio_spectrogram(:,1:number_times-(number_segments-1)*repeating_period,:),3), ... 
+                median(audio_spectrogram(:,number_times-(number_segments-1)*repeating_period+1:repeating_period,1:end-1),3)];
             
             % Derive the repeating spectrogram by making sure it has less 
             % energy than the audio spectrogram
