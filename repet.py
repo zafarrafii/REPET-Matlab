@@ -96,6 +96,9 @@ buffer_length = 5
 def original(audio_signal, sample_rate):
     """
     repet REPET (original)
+        The original REPET aims at identifying and extracting the repeating patterns in an audio mixture, by estimating
+        a period of the underlying repeating structure and modeling a segment of the periodically repeating background.
+
         background_signal = repet.original(audio_signal, sample_rate)
 
     Arguments:
@@ -223,8 +226,199 @@ def original(audio_signal, sample_rate):
 
 def extended(audio_signal, sample_rate):
     """
-    extended REPET extended
+    repet REPET extended
+        The original REPET can be easily extended to handle varying repeating structures, by simply applying the method
+        along time, on individual segments or via a sliding window.
+
+        background_signal = repet.extended(audio_signal, sample_rate)
+
+    Arguments:
+        audio_signal: audio signal [number_samples, number_channels]
+        sample_rate: sample rate in Hz
+        background_signal: background signal [number_samples, number_channels]
+
+    Example: Estimate the background and foreground signals, and display their spectrograms
+        # Import modules
+        import scipy.io.wavfile
+        import repet
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        # Audio signal (normalized) and sample rate in Hz
+        sample_rate, audio_signal = scipy.io.wavfile.read('audio_file.wav')
+        audio_signal = audio_signal / (2.0**(audio_signal.itemsize*8-1))
+
+        # Estimate the background signal and infer the foreground signal
+        background_signal = repet.extended(audio_signal, sample_rate);
+        foreground_signal = audio_signal-background_signal;
+
+        # Write the background and foreground signals (un-normalized)
+        scipy.io.wavfile.write('background_signal.wav', sample_rate, background_signal)
+        scipy.io.wavfile.write('foreground_signal.wav', sample_rate, foreground_signal)
+
+        # Compute the audio, background, and foreground spectrograms
+        window_length = repet.windowlength(sample_rate)
+        window_function = repet.windowfunction(window_length)
+        step_length = repet.steplength(window_length)
+        audio_spectrogram = abs(repet._stft(np.mean(audio_signal, 1), window_function, step_length)[0:int(window_length/2)+1, :])
+        background_spectrogram = abs(repet._stft(np.mean(background_signal, 1), window_function, step_length)[0:int(window_length/2)+1, :])
+        foreground_spectrogram = abs(repet._stft(np.mean(foreground_signal, 1), window_function, step_length)[0:int(window_length/2)+1, :])
+
+        # Display the audio, background, and foreground spectrograms (up to 5kHz)
+        plt.rc('font', size=30)
+        plt.subplot(3, 1, 1)
+        plt.imshow(20*np.log10(audio_spectrogram[1:int(window_length/8), :]), aspect='auto', cmap='jet', origin='lower')
+        plt.title('Audio Spectrogram (dB)')
+        plt.xticks(np.round(np.arange(1, np.floor(len(audio_signal)/sample_rate)+1)*sample_rate/step_length),
+                   np.arange(1, int(np.floor(len(audio_signal)/sample_rate))+1))
+        plt.xlabel('Time (s)')
+        plt.yticks(np.round(np.arange(1e3, int(sample_rate/8)+1, 1e3)/sample_rate*window_length),
+                   np.arange(1, int(sample_rate/8*1e3)+1))
+        plt.ylabel('Frequency (kHz)')
+        plt.subplot(3, 1, 2)
+        plt.imshow(20*np.log10(background_spectrogram[1:int(window_length/8), :]), aspect='auto', cmap='jet', origin='lower')
+        plt.title('Background Spectrogram (dB)')
+        plt.xticks(np.round(np.arange(1, np.floor(len(audio_signal)/sample_rate)+1)*sample_rate/step_length),
+                   np.arange(1, int(np.floor(len(audio_signal)/sample_rate))+1))
+        plt.xlabel('Time (s)')
+        plt.yticks(np.round(np.arange(1e3, int(sample_rate/8)+1, 1e3)/sample_rate*window_length),
+                   np.arange(1, int(sample_rate/8*1e3)+1))
+        plt.ylabel('Frequency (kHz)')
+        plt.subplot(3, 1, 3)
+        plt.imshow(20*np.log10(foreground_spectrogram[1:int(window_length/8), :]), aspect='auto', cmap='jet', origin='lower')
+        plt.title('Foreground Spectrogram (dB)')
+        plt.xticks(np.round(np.arange(1, np.floor(len(audio_signal)/sample_rate)+1)*sample_rate/step_length),
+                   np.arange(1, int(np.floor(len(audio_signal)/sample_rate))+1))
+        plt.xlabel('Time (s)')
+        plt.yticks(np.round(np.arange(1e3, int(sample_rate/8)+1, 1e3)/sample_rate*window_length),
+                   np.arange(1, int(sample_rate/8*1e3)+1))
+        plt.ylabel('Frequency (kHz)')
+        plt.show()
     """
+
+    # Number of samples and channels
+    number_samples, number_channels = np.shape(audio_signal)
+
+    # Segmentation length, step, and overlap in samples
+    segment_length2 = round(segment_length*sample_rate)
+    segment_step2 = round(segment_step*sample_rate)
+    segment_overlap2 = segment_length2-segment_step2
+
+    # One segment if the signal is too short
+    if number_samples < segment_length2+segment_step2:
+        number_segments = 1
+    else:
+
+        # Number of segments (the last one could be longer)
+        number_segments = 1+int(np.floor((number_samples-segment_length2)/segment_step2))
+
+        # Triangular window for the overlapping parts
+        segment_window = scipy.signal.triang(2*segment_overlap2)
+
+    # Window length, window function, and step length for the STFT
+    window_length = windowlength(sample_rate)
+    window_function = windowfunction(window_length)
+    step_length = steplength(window_length)
+
+    # Period range in time frames for the beat spectrum
+    period_range2 = np.round(period_range*sample_rate/step_length).astype(int)
+
+    # Cutoff frequency in frequency channels for the dual high-pass filter of the foreground
+    cutoff_frequency2 = int(np.ceil(cutoff_frequency*(window_length-1)/sample_rate))-1
+
+    # Initialize background signal
+    background_signal = np.zeros((number_samples,number_channels))
+
+    # Loop over the segments
+    for segment_index in range(0, number_segments):
+
+        # Case one segment
+        if number_segments == 1:
+            audio_segment = audio_signal
+            segment_length2 = number_samples
+        else:
+
+            # Sample index for the segment
+            sample_index = segment_index*segment_step2
+
+            # Case first segments (same length)
+            if segment_index < number_segments-1:
+                audio_segment = audio_signal[sample_index:sample_index+segment_length2, :]
+
+            # Case last segment (could be longer)
+            elif segment_index == number_segments-1:
+                audio_segment = audio_signal[sample_index:number_samples, :]
+                segment_length2 = len(audio_segment)
+
+        # Number of time frames
+        number_times = int(np.ceil((window_length-step_length+segment_length2)/step_length))
+
+        # Initialize the STFT
+        audio_stft = np.zeros((window_length, number_times, number_channels), dtype=complex)
+
+        # Loop over the channels
+        for channel_index in range(0, number_channels):
+
+            # STFT of the current channel
+            audio_stft[:, :, channel_index] = _stft(audio_segment[:, channel_index], window_function, step_length)
+
+        # Magnitude spectrogram (with DC component and without mirrored frequencies)
+        audio_spectrogram = abs(audio_stft[0:int(window_length/2)+1, :, :])
+
+        # Beat spectrum of the spectrograms averaged over the channels (squared to emphasize peaks of periodicitiy)
+        beat_spectrum = _beatspectrum(np.power(np.mean(audio_spectrogram, 2), 2))
+
+        # Initialize the background signal
+        background_segment = np.zeros((segment_length2, number_channels))
+
+        # Repeating period in time frames given the period range
+        repeating_period = _periods(beat_spectrum, period_range2)
+
+        # Initialize the background segment
+        background_segment = np.zeros((segment_length2, number_channels))
+
+        # Loop over the channels
+        for channel_index in range(0, number_channels):
+
+            # Repeating mask for the current channel
+            repeating_mask = _mask(audio_spectrogram[:, :, channel_index], repeating_period)
+
+            # High-pass filtering of the dual foreground
+            repeating_mask[1:cutoff_frequency2+2, :] = 1
+
+            # Mirror the frequency channels
+            repeating_mask = np.concatenate((repeating_mask, repeating_mask[-2:0:-1, :]))
+
+            # Estimated repeating background for the current channel
+            background_segment1 = _istft(repeating_mask*audio_stft[:, :, channel_index], window_function, step_length)
+
+            # Truncate to the original number of samples
+            background_segment[:, channel_index] = background_segment1[0:segment_length2]
+
+        # Case one segment
+        if number_segments == 1:
+            background_signal = background_segment
+        else:
+
+            # Case first segment
+            if segment_index == 0:
+                background_signal[0:segment_length2, :] = background_signal[0:segment_length2, :] + background_segment
+
+            # Case last segments
+            elif segment_index <= number_segments-1:
+
+                # Half windowing of the overlap part of the background signal on the right
+                background_signal[sample_index:sample_index+segment_overlap2, :] \
+                    = background_signal[sample_index:sample_index+segment_overlap2, :]\
+                      *segment_window[segment_overlap2:2*segment_overlap2, np.newaxis]
+
+                # Half windowing of the overlap part of the background segment on the left
+                background_segment[0:segment_overlap2, :] \
+                    = background_segment[0:segment_overlap2, :]*segment_window[0:segment_overlap2, np.newaxis]
+                background_signal[sample_index:sample_index+segment_length2, :] \
+                    = background_signal[sample_index:sample_index+segment_length2, :] + background_segment
+
+    return background_signal
 
 
 def adaptive(audio_signal, sample_rate):
@@ -507,6 +701,6 @@ def test():
     sample_rate, audio_signal = scipy.io.wavfile.read('audio_file.wav')
     audio_signal = audio_signal / (2.0 ** (audio_signal.itemsize * 8 - 1))
 
-    background_signal = original(audio_signal, sample_rate)
+    background_signal = extended(audio_signal, sample_rate)
 
     return background_signal

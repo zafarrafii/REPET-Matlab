@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2c064c27-6abd-46a9-9723-94fb04eb319a" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/images/adaptive.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/images/extended.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/images/original.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/zrafii.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/zrafii.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/repet.m" beforeDir="false" afterPath="$PROJECT_DIR$/repet.m" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/repet.py" beforeDir="false" afterPath="$PROJECT_DIR$/repet.py" afterDir="false" />
     </list>
@@ -20,8 +19,8 @@
       <file leaf-file-name="repet.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/repet.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="323">
-              <caret line="221" lean-forward="true" selection-start-line="221" selection-end-line="221" />
+            <state relative-caret-position="457">
+              <caret line="244" column="39" lean-forward="true" selection-start-line="244" selection-start-column="39" selection-end-line="244" selection-end-column="39" />
               <folding>
                 <element signature="e#0#3026#1" />
                 <element signature="e#3028#3046#0" expanded="true" />
@@ -38,15 +37,6 @@
                 <element signature="e#17068#17695#0" />
                 <element signature="e#17750#19565#0" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="z.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../Z/z.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="289">
-              <caret line="47" column="8" selection-start-line="47" selection-start-column="8" selection-end-line="47" selection-end-column="39" />
             </state>
           </provider>
         </entry>
@@ -79,8 +69,9 @@
     </option>
   </component>
   <component name="ProjectFrameBounds">
+    <option name="y" value="6" />
     <option name="width" value="1280" />
-    <option name="height" value="1560" />
+    <option name="height" value="1554" />
   </component>
   <component name="ProjectView">
     <navigator proportions="" version="1">
@@ -126,14 +117,13 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="0" width="1280" height="1560" extended-state="0" />
-    <editor active="true" />
+    <frame x="0" y="6" width="1280" height="1554" extended-state="0" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" weight="0.34335443" />
       <window_info anchor="bottom" id="TODO" order="6" weight="0.32890132" />
       <window_info anchor="bottom" id="Event Log" order="7" side_tool="true" weight="0.32996634" />
       <window_info anchor="bottom" id="Version Control" order="7" weight="0.32890132" />
-      <window_info active="true" anchor="bottom" id="Python Console" order="7" visible="true" weight="0.3596921" />
+      <window_info active="true" anchor="bottom" id="Python Console" order="7" visible="true" weight="0.37737176" />
       <window_info anchor="bottom" id="Run" order="2" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="bottom" id="Terminal" order="7" weight="0.32890132" />
@@ -174,7 +164,7 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <option name="time" value="18" />
+      <option name="time" value="20" />
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
@@ -681,15 +671,22 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/../Z/z.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="289">
-          <caret line="47" column="8" selection-start-line="47" selection-start-column="8" selection-end-line="47" selection-end-column="39" />
+        <state relative-caret-position="934">
+          <caret line="58" column="40" selection-start-line="58" selection-start-column="40" selection-end-line="58" selection-end-column="40" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/AppData/Local/Programs/Python/Python36/Lib/site-packages/numpy/core/fromnumeric.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="362">
+          <caret line="1612" column="4" selection-start-line="1612" selection-start-column="4" selection-end-line="1612" selection-end-column="4" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/repet.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="323">
-          <caret line="221" lean-forward="true" selection-start-line="221" selection-end-line="221" />
+        <state relative-caret-position="457">
+          <caret line="244" column="39" lean-forward="true" selection-start-line="244" selection-start-column="39" selection-end-line="244" selection-end-column="39" />
           <folding>
             <element signature="e#0#3026#1" />
             <element signature="e#3028#3046#0" expanded="true" />

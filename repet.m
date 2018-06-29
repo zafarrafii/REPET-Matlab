@@ -305,13 +305,13 @@ classdef repet
             %
             %   See also repet.original, repet.adaptive, repet.sim, repet.simonline
             
+            % Number of samples and channels
+            [number_samples,number_channels] = size(audio_signal);
+            
             % Segmentation length, step, and overlap in samples
             segment_length = round(repet.segment_length*sample_rate);
             segment_step = round(repet.segment_step*sample_rate);
             segment_overlap = segment_length-segment_step;
-            
-            % Number of samples and channels
-            [number_samples,number_channels] = size(audio_signal);
             
             % One segment if the signal is too short
             if number_samples < segment_length+segment_step
@@ -359,7 +359,7 @@ classdef repet
                     % Case first segments (same length)
                     if segment_index < number_segments
                         audio_segment = audio_signal(sample_index+1:sample_index+segment_length,:);
-                    
+                        
                     % Case last segment (could be longer)
                     elseif segment_index == number_segments
                         audio_segment = audio_signal(sample_index+1:number_samples,:);
@@ -369,8 +369,8 @@ classdef repet
                 end
                 
                 % Number of time frames
-                number_times = ceil((window_length-step_length+number_samples)/step_length);
-                    
+                number_times = ceil((window_length-step_length+segment_length)/step_length);
+                
                 % Initialize the STFT
                 audio_stft = zeros(window_length,number_times,number_channels);
                 
@@ -435,7 +435,7 @@ classdef repet
                         background_signal(sample_index+1:sample_index+segment_overlap,:) ...
                             = background_signal(sample_index+1:sample_index+segment_overlap,:).*segment_window(segment_overlap+1:2*segment_overlap);
                         
-                        % Half windowing of the overlap part of the background segment on the left
+                        %   Half windowing of the overlap part of the background segment on the left
                         background_segment(1:segment_overlap,:) ...
                             = background_segment(1:segment_overlap,:).*segment_window(1:segment_overlap);
                         background_signal(sample_index+1:sample_index+segment_length,:) ...
