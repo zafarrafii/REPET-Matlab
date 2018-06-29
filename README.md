@@ -349,7 +349,7 @@ repet Functions:
 - [simonline - Online REPET-SIM](#online-repet-sim-1)
 
 ### REPET (original)
-`background_signal = repet.original(audio_signal, sample_rate);`
+`background_signal = repet.original(audio_signal, sample_rate)`
 
 Arguments:
 ```
@@ -435,7 +435,7 @@ Example: Estimate the background and foreground signals, and display their spect
 ```
 
 ### Adaptive REPET
-`background_signal = repet.adaptive(audio_signal, sample_rate);`
+`background_signal = repet.adaptive(audio_signal, sample_rate)`
 
 Arguments:
 ```
