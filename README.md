@@ -53,11 +53,11 @@ audiowrite('foreground_signal.wav',foreground_signal,sample_rate)
 
 % Compute the audio, background, and foreground spectrograms
 window_length = 2^nextpow2(0.04*sample_rate);
-step_length = window_length/2;
 window_function = hamming(window_length,'periodic');
-audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_length,window_length-step_length));
-background_spectrogram = abs(spectrogram(mean(background_signal,2),window_length,window_length-step_length));
-foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_length,window_length-step_length));
+step_length = window_length/2;
+audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_function,window_length-step_length));
+background_spectrogram = abs(spectrogram(mean(background_signal,2),window_function,window_length-step_length));
+foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_function,window_length-step_length));
 
 % Display the audio, background, and foreground spectrograms (up to 5kHz)
 figure
@@ -85,7 +85,7 @@ set(gca,'FontSize',30)
 colormap(jet)
 ```
 
-<img src="images/original.png" width="1000">
+<img src="images/matlab/original.png" width="1000">
 
 ### REPET extended
 
@@ -147,7 +147,7 @@ set(gca,'FontSize',30)
 colormap(jet)
 ```
 
-<img src="images/extended.png" width="1000">
+<img src="images/matlab/extended.png" width="1000">
 
 ### Adaptive REPET
 
@@ -275,7 +275,7 @@ set(gca,'FontSize',30)
 colormap(jet)
 ```
 
-<img src="images/sim.png" width="1000">
+<img src="images/matlab/sim.png" width="1000">
 
 ### Online REPET-SIM
 
@@ -337,7 +337,7 @@ set(gca,'FontSize',30)
 colormap(jet)
 ```
 
-<img src="images/simonline.png" width="1000">
+<img src="images/matlab/simonline.png" width="1000">
 
 ## repet Python module
 
@@ -367,6 +367,8 @@ background_signal: background signal [number_samples, number_channels]
 Example: Estimate the background and foreground signals, and display their spectrograms
 ```
 ```
+
+<img src="images/python/original.png" width="1000">
 
 ### REPET extended
 
