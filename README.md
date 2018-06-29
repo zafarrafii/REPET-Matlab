@@ -349,11 +349,7 @@ repet Functions:
 - [simonline - Online REPET-SIM](#online-repet-sim-1)
 
 ### REPET (original)
-
-```
-import repet
-background_signal = repet.original(audio_signal, sample_rate);
-```
+`background_signal = repet.original(audio_signal, sample_rate);`
 
 Arguments:
 ```
@@ -425,11 +421,7 @@ plt.show()
 <img src="images/python/original.png" width="1000">
 
 ### REPET extended
-
-```
-import repet
-background_signal = repet.extended(audio_signal, sample_rate);
-```
+`background_signal = repet.extended(audio_signal, sample_rate)`
 
 Arguments:
 ```
@@ -443,11 +435,7 @@ Example: Estimate the background and foreground signals, and display their spect
 ```
 
 ### Adaptive REPET
-
-```
-import repet
-background_signal = repet.adaptive(audio_signal, sample_rate);
-```
+`background_signal = repet.adaptive(audio_signal, sample_rate);`
 
 Arguments:
 ```
@@ -461,11 +449,7 @@ Example: Estimate the background and foreground signals, and display their spect
 ```
 
 ### REPET-SIM
-
-```
-import repet
-background_signal = repet.sim(audio_signal, sample_rate);
-```
+`background_signal = repet.sim(audio_signal, sample_rate)`
 
 Arguments:
 ```
@@ -479,11 +463,7 @@ Example: Estimate the background and foreground signals, and display their spect
 ```
 
 ### Online REPET-SIM
-
-```
-import repet
-background_signal = repet.simonline(audio_signal, sample_rate);
-```
+`background_signal = repet.simonline(audio_signal, sample_rate)`
 
 Arguments:
 ```
