@@ -66,7 +66,7 @@ classdef repet
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   06/28/18
+    %   06/29/18
     
     % Defined properties
     properties (Access = private, Constant = true, Hidden = true)
@@ -145,11 +145,11 @@ classdef repet
             %       
             %       % Compute the audio, background, and foreground spectrograms
             %       window_length = 2^nextpow2(0.04*sample_rate);
-            %       step_length = window_length/2;
             %       window_function = hamming(window_length,'periodic');
-            %       audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_length,window_length-step_length));
-            %       background_spectrogram = abs(spectrogram(mean(background_signal,2),window_length,window_length-step_length));
-            %       foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_length,window_length-step_length));
+            %       step_length = window_length/2;
+            %       audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_function,window_length-step_length));
+            %       background_spectrogram = abs(spectrogram(mean(background_signal,2),window_function,window_length-step_length));
+            %       foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_function,window_length-step_length));
             %       
             %       % Display the audio, background, and foreground spectrograms (up to 5kHz)
             %       figure
