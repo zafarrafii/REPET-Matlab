@@ -118,7 +118,7 @@ classdef repet
     methods (Access = public, Hidden = false, Static = true)
         
         function background_signal = original(audio_signal,sample_rate)
-            % repet REPET (original)
+            % original REPET (original)
             %   The original REPET aims at identifying and extracting the 
             %   repeating patterns in an audio mixture, by estimating a 
             %   period of the underlying repeating structure and modeling a 
@@ -557,7 +557,7 @@ classdef repet
             % Period range in time frames for the beat spectrogram 
             period_range = round(repet.period_range*sample_rate/step_length);
             
-            % Repeating period in time frames given the period range
+            % Repeating periods in time frames given the period range
             repeating_periods = repet.periods(beat_spectrogram,period_range);
             
             % Cutoff frequency in frequency channels for the dual high-pass 
@@ -1171,18 +1171,18 @@ classdef repet
             
         end
         
-        % Repeating mask for the Adaptive REPET
+        % Repeating mask for the adaptive REPET
         function repeating_mask = adaptivemask(audio_spectrogram,repeating_periods,filter_order)
             
             % Number of frequency channels and time frames
-            [number_channels,number_times] = size(audio_spectrogram);
+            [number_frequencies,number_times] = size(audio_spectrogram);
             
             % Indices of the frames for the median filter centered on 0 
             % (e.g., 3 => [-1,0,1], 4 => [-1,0,1,2], etc.)
             frame_indices = (1:filter_order)-ceil(filter_order/2);
             
             % Initialize the repeating spectrogram
-            repeating_spectrogram = zeros(number_channels,number_times);
+            repeating_spectrogram = zeros(number_frequencies,number_times);
             
             % Open wait bar
             wait_bar = waitbar(0,'Adaptive REPET 2/2');

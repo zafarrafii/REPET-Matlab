@@ -226,7 +226,7 @@ def original(audio_signal, sample_rate):
 
 def extended(audio_signal, sample_rate):
     """
-    repet REPET extended
+    extended REPET extended
         The original REPET can be easily extended to handle varying repeating structures, by simply applying the method
         along time, on individual segments or via a sliding window.
 
@@ -424,7 +424,138 @@ def extended(audio_signal, sample_rate):
 def adaptive(audio_signal, sample_rate):
     """
     adaptive Adaptive REPET
+        The original REPET works well when the repeating background is relatively stable (e.g., a verse or the chorus in
+        a song); however, the repeating background can also vary over time (e.g., a verse followed by the chorus in the
+        song). The adaptive REPET is an extension of the original REPET that can handle varying repeating structures, by
+        estimating the time-varying repeating periods and extracting the repeating background locally, without the need
+        for segmentation or windowing.
+
+        background_signal = repet.adaptive(audio_signal, sample_rate)
+
+    Arguments:
+        audio_signal: audio signal [number_samples, number_channels]
+        sample_rate: sample rate in Hz
+        background_signal: background signal [number_samples, number_channels]
+
+    Example: Estimate the background and foreground signals, and display their spectrograms
+        # Import modules
+        import scipy.io.wavfile
+        import repet
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        # Audio signal (normalized) and sample rate in Hz
+        sample_rate, audio_signal = scipy.io.wavfile.read('audio_file.wav')
+        audio_signal = audio_signal / (2.0**(audio_signal.itemsize*8-1))
+
+        # Estimate the background signal and infer the foreground signal
+        background_signal = repet.adaptive(audio_signal, sample_rate);
+        foreground_signal = audio_signal-background_signal;
+
+        # Write the background and foreground signals (un-normalized)
+        scipy.io.wavfile.write('background_signal.wav', sample_rate, background_signal)
+        scipy.io.wavfile.write('foreground_signal.wav', sample_rate, foreground_signal)
+
+        # Compute the audio, background, and foreground spectrograms
+        window_length = repet.windowlength(sample_rate)
+        window_function = repet.windowfunction(window_length)
+        step_length = repet.steplength(window_length)
+        audio_spectrogram = abs(repet._stft(np.mean(audio_signal, 1), window_function, step_length)[0:int(window_length/2)+1, :])
+        background_spectrogram = abs(repet._stft(np.mean(background_signal, 1), window_function, step_length)[0:int(window_length/2)+1, :])
+        foreground_spectrogram = abs(repet._stft(np.mean(foreground_signal, 1), window_function, step_length)[0:int(window_length/2)+1, :])
+
+        # Display the audio, background, and foreground spectrograms (up to 5kHz)
+        plt.rc('font', size=30)
+        plt.subplot(3, 1, 1)
+        plt.imshow(20*np.log10(audio_spectrogram[1:int(window_length/8), :]), aspect='auto', cmap='jet', origin='lower')
+        plt.title('Audio Spectrogram (dB)')
+        plt.xticks(np.round(np.arange(1, np.floor(len(audio_signal)/sample_rate)+1)*sample_rate/step_length),
+                   np.arange(1, int(np.floor(len(audio_signal)/sample_rate))+1))
+        plt.xlabel('Time (s)')
+        plt.yticks(np.round(np.arange(1e3, int(sample_rate/8)+1, 1e3)/sample_rate*window_length),
+                   np.arange(1, int(sample_rate/8*1e3)+1))
+        plt.ylabel('Frequency (kHz)')
+        plt.subplot(3, 1, 2)
+        plt.imshow(20*np.log10(background_spectrogram[1:int(window_length/8), :]), aspect='auto', cmap='jet', origin='lower')
+        plt.title('Background Spectrogram (dB)')
+        plt.xticks(np.round(np.arange(1, np.floor(len(audio_signal)/sample_rate)+1)*sample_rate/step_length),
+                   np.arange(1, int(np.floor(len(audio_signal)/sample_rate))+1))
+        plt.xlabel('Time (s)')
+        plt.yticks(np.round(np.arange(1e3, int(sample_rate/8)+1, 1e3)/sample_rate*window_length),
+                   np.arange(1, int(sample_rate/8*1e3)+1))
+        plt.ylabel('Frequency (kHz)')
+        plt.subplot(3, 1, 3)
+        plt.imshow(20*np.log10(foreground_spectrogram[1:int(window_length/8), :]), aspect='auto', cmap='jet', origin='lower')
+        plt.title('Foreground Spectrogram (dB)')
+        plt.xticks(np.round(np.arange(1, np.floor(len(audio_signal)/sample_rate)+1)*sample_rate/step_length),
+                   np.arange(1, int(np.floor(len(audio_signal)/sample_rate))+1))
+        plt.xlabel('Time (s)')
+        plt.yticks(np.round(np.arange(1e3, int(sample_rate/8)+1, 1e3)/sample_rate*window_length),
+                   np.arange(1, int(sample_rate/8*1e3)+1))
+        plt.ylabel('Frequency (kHz)')
+        plt.show()
     """
+
+    # Number of samples and channels
+    number_samples, number_channels = np.shape(audio_signal)
+
+    # Window length, window function, and step length for the STFT
+    window_length = windowlength(sample_rate)
+    window_function = windowfunction(window_length)
+    step_length = steplength(window_length)
+
+    # Number of time frames
+    number_times = int(np.ceil((window_length-step_length+number_samples)/step_length))
+
+    # Initialize the STFT
+    audio_stft = np.zeros((window_length, number_times, number_channels), dtype=complex)
+
+    # Loop over the channels
+    for channel_index in range(0, number_channels):
+
+        # STFT of the current channel
+        audio_stft[:, :, channel_index] = _stft(audio_signal[:, channel_index], window_function, step_length)
+
+    # Magnitude spectrogram (with DC component and without mirrored frequencies)
+    audio_spectrogram = abs(audio_stft[0:int(window_length/2)+1, :, :])
+
+    # Segment length in time frames for the beat spectrogram
+    segment_length2 = int(round(segment_length*sample_rate/step_length))
+
+    # Beat spectrogram of the spectrograms averaged over the channels (squared to emphasize peaks of periodicitiy)
+    beat_spectrogram = _beatspectrogram(np.power(np.mean(audio_spectrogram, 2), 2), segment_length2)
+
+    # Period range in time frames for the beat spectrogram
+    period_range2 = np.round(period_range*sample_rate/step_length).astype(int)
+
+    # Repeating periods in time frames given the period range
+    repeating_periods = _periods(beat_spectrogram, period_range2)
+
+    # Cutoff frequency in frequency channels for the dual high-pass filter of the foreground
+    cutoff_frequency2 = int(np.ceil(cutoff_frequency*(window_length-1)/sample_rate))-1
+
+    # Initialize the background signal
+    background_signal = np.zeros((number_samples, number_channels))
+
+    # Loop over the channels
+    for channel_index in range(0, number_channels):
+
+        # Repeating mask for the current channel
+        repeating_mask = _adaptivemask(audio_spectrogram[:, :, channel_index], repeating_periods, filter_order)
+
+        # High-pass filtering of the dual foreground
+        repeating_mask[1:cutoff_frequency2+2, :] = 1
+
+        # Mirror the frequency channels
+        repeating_mask = np.concatenate((repeating_mask, repeating_mask[-2:0:-1, :]))
+
+        # Estimated repeating background for the current channel
+        background_signal1 = _istft(repeating_mask*audio_stft[:, :, channel_index], window_function, step_length)
+
+        # Truncate to the original number of samples
+        background_signal[:, channel_index] = background_signal1[0:number_samples]
+
+    return background_signal
 
 
 def sim(audio_signal, sample_rate):
@@ -661,7 +792,7 @@ def _indices(similarity_matrix, similarity_threshold, similarity_distance, simil
 
 
 def _mask(audio_spectrogram, repeating_period):
-    """Similarity indices from the similarity matrix"""
+    """Repeating mask for REPET"""
 
     # Number of frequency channels and time frames
     number_frequencies, number_times = np.shape(audio_spectrogram)
@@ -694,6 +825,40 @@ def _mask(audio_spectrogram, repeating_period):
     return repeating_mask
 
 
+def _adaptivemask(audio_spectrogram, repeating_periods, filter_order):
+    """Repeating mask for the adaptive REPET"""
+
+    # Number of frequency channels and time frames
+    number_frequencies, number_times = np.shape(audio_spectrogram)
+
+    # Indices of the frames for the median filter centered on 0 (e.g., 3 => [-1,0,1], 4 => [-1,0,1,2], etc.)
+    frame_indices = np.arange(1, filter_order)-int(np.ceil(filter_order/2))
+
+    # Initialize the repeating spectrogram
+    repeating_spectrogram = np.zeros((number_frequencies, number_times))
+
+    # Loop over the time frames
+    for time_index in range(0, number_times):
+
+        # Indices of the frames for the median filter
+        time_indices = time_index+frame_indices*repeating_periods[time_index]
+
+        # Discard out-of-range indices
+        time_indices = time_indices[np.logical_and(time_indices >= 0, time_indices < number_times)]
+
+        # Median filter on the current time frame
+        repeating_spectrogram[:, time_index] = np.median(audio_spectrogram[:, time_indices],2)
+
+    # Make sure the energy in the repeating spectrogram is smaller than in the audio spectrogram, for every
+    # time-frequency bin
+    repeating_spectrogram = np.minimum(audio_spectrogram, repeating_spectrogram)
+
+    # Derive the repeating mask by normalizing the repeating spectrogram by the audio spectrogram
+    repeating_mask = (repeating_spectrogram+np.finfo(float).eps)/(audio_spectrogram+np.finfo(float).eps)
+
+    return repeating_mask
+
+
 def test():
 
     import scipy.io.wavfile
@@ -701,6 +866,6 @@ def test():
     sample_rate, audio_signal = scipy.io.wavfile.read('audio_file.wav')
     audio_signal = audio_signal / (2.0 ** (audio_signal.itemsize * 8 - 1))
 
-    background_signal = extended(audio_signal, sample_rate)
+    background_signal = adaptive(audio_signal, sample_rate)
 
     return background_signal
