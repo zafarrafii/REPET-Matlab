@@ -563,32 +563,12 @@ plt.show()
 <img src="images/python/repet_adaptive.png" width="1000">
 
 ### REPET-SIM
-`background_signal = repet.sim(audio_signal, sample_rate)`
 
-Arguments:
-```
-audio_signal: audio signal [number_samples, number_channels]
-sample_rate: sample rate in Hz
-background_signal: background signal [number_samples, number_channels]
-```
-
-Example: Estimate the background and foreground signals, and display their spectrograms
-```
-```
+Working on it...
 
 ### Online REPET-SIM
-`background_signal = repet.simonline(audio_signal, sample_rate)`
 
-Arguments:
-```
-audio_signal: audio signal [number_samples, number_channels]
-sample_rate: sample rate in Hz
-background_signal: background signal [number_samples, number_channels]
-```
-
-Example: Estimate the background and foreground signals, and display their spectrograms
-```
-```
+Working on it...
 
 ## repet_demo_gui Matlab GUI
 
