@@ -91,11 +91,9 @@ classdef repet
         % extented, and adaptive REPET)
         period_range = [1,10];
         
-        % Segmentation length in seconds (for REPET extented and 
+        % Segment length and step in seconds (for REPET extented and 
         % adaptive REPET)
         segment_length = 10;
-        
-        % Step length in seconds (for REPET extented)
         segment_step = 5;
         
         % Filter order for the median filter (for adaptive REPET)
@@ -547,12 +545,14 @@ classdef repet
             % frequencies)
             audio_spectrogram = abs(audio_stft(1:window_length/2+1,:,:));
             
-            % Segment length in time frames for the beat spectrogram
+            % Segment length and step in time frames for the beat 
+            % spectrogram
             segment_length = round(repet.segment_length*sample_rate/step_length);
+            segment_step = round(repet.segment_step*sample_rate/step_length);
             
             % Beat spectrogram of the spectrograms averaged over the 
             % channels (squared to emphasize peaks of periodicitiy)
-            beat_spectrogram = repet.beatspectrogram(mean(audio_spectrogram,3).^2,segment_length);
+            beat_spectrogram = repet.beatspectrogram(mean(audio_spectrogram,3).^2,segment_length,segment_step);
             
             % Period range in time frames for the beat spectrogram 
             period_range = round(repet.period_range*sample_rate/step_length);
@@ -994,7 +994,7 @@ classdef repet
         end
         
         % Beat spectrogram using the beat spectrum
-        function beat_spectrogram = beatspectrogram(audio_spectrogram,segment_length)
+        function beat_spectrogram = beatspectrogram(audio_spectrogram,segment_length,segment_step)
 
             % Number of frequency channels and time frames
             [number_frequencies,number_times] = size(audio_spectrogram);
@@ -1010,11 +1010,15 @@ classdef repet
             wait_bar = waitbar(0,'Adaptive REPET 1/2');
             
             % Loop over the time frames
-            for time_index = 1:number_times
+            for time_index = 1:segment_step:number_times
                 
                 % Beat spectrum of the centered audio spectrogram segment
                 beat_spectrogram(:,time_index) ...
                     = repet.beatspectrum(audio_spectrogram(:,time_index:time_index+segment_length-1));
+                
+                % Copy values in-between
+                beat_spectrogram(:,time_index+1:min(time_index+segment_step-1,number_times)) ... 
+                    = repmat(beat_spectrogram(:,time_index),[1,min(time_index+segment_step-1,number_times)-time_index]);
                 
                 % Update wait bar
                 waitbar(time_index/number_times,wait_bar);
