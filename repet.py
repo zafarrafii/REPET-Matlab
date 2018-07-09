@@ -50,7 +50,7 @@ Author:
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    07/03/18
+    07/09/18
 """
 
 import numpy as np
@@ -560,7 +560,134 @@ def adaptive(audio_signal, sample_rate):
 def sim(audio_signal, sample_rate):
     """
     sim REPET-SIM
+        The REPET methods work well when the repeating background has periodically repeating patterns (e.g., jackhammer
+        noise); however, the repeating patterns can also happen intermittently or without a global or local periodicity
+        (e.g., frogs by a pond). REPET-SIM is a generalization of REPET that can also handle non-periodically repeating
+        structures, by using a similarity matrix to identify the repeating elements.
+
+        background_signal = repet.sim(audio_signal, sample_rate)
+
+    Arguments:
+        audio_signal: audio signal [number_samples, number_channels]
+        sample_rate: sample rate in Hz
+        background_signal: background signal [number_samples, number_channels]
+
+    Example: Estimate the background and foreground signals, and display their spectrograms
+        # Import modules
+        import scipy.io.wavfile
+        import repet
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        # Audio signal (normalized) and sample rate in Hz
+        sample_rate, audio_signal = scipy.io.wavfile.read('audio_file.wav')
+        audio_signal = audio_signal / (2.0**(audio_signal.itemsize*8-1))
+
+        # Estimate the background signal and infer the foreground signal
+        background_signal = repet.sim(audio_signal, sample_rate);
+        foreground_signal = audio_signal-background_signal;
+
+        # Write the background and foreground signals (un-normalized)
+        scipy.io.wavfile.write('background_signal.wav', sample_rate, background_signal)
+        scipy.io.wavfile.write('foreground_signal.wav', sample_rate, foreground_signal)
+
+        # Compute the audio, background, and foreground spectrograms
+        window_length = repet.windowlength(sample_rate)
+        window_function = repet.windowfunction(window_length)
+        step_length = repet.steplength(window_length)
+        audio_spectrogram = abs(repet._stft(np.mean(audio_signal, 1), window_function, step_length)[0:int(window_length/2)+1, :])
+        background_spectrogram = abs(repet._stft(np.mean(background_signal, 1), window_function, step_length)[0:int(window_length/2)+1, :])
+        foreground_spectrogram = abs(repet._stft(np.mean(foreground_signal, 1), window_function, step_length)[0:int(window_length/2)+1, :])
+
+        # Display the audio, background, and foreground spectrograms (up to 5kHz)
+        plt.rc('font', size=30)
+        plt.subplot(3, 1, 1)
+        plt.imshow(20*np.log10(audio_spectrogram[1:int(window_length/8), :]), aspect='auto', cmap='jet', origin='lower')
+        plt.title('Audio Spectrogram (dB)')
+        plt.xticks(np.round(np.arange(1, np.floor(len(audio_signal)/sample_rate)+1)*sample_rate/step_length),
+                   np.arange(1, int(np.floor(len(audio_signal)/sample_rate))+1))
+        plt.xlabel('Time (s)')
+        plt.yticks(np.round(np.arange(1e3, int(sample_rate/8)+1, 1e3)/sample_rate*window_length),
+                   np.arange(1, int(sample_rate/8*1e3)+1))
+        plt.ylabel('Frequency (kHz)')
+        plt.subplot(3, 1, 2)
+        plt.imshow(20*np.log10(background_spectrogram[1:int(window_length/8), :]), aspect='auto', cmap='jet', origin='lower')
+        plt.title('Background Spectrogram (dB)')
+        plt.xticks(np.round(np.arange(1, np.floor(len(audio_signal)/sample_rate)+1)*sample_rate/step_length),
+                   np.arange(1, int(np.floor(len(audio_signal)/sample_rate))+1))
+        plt.xlabel('Time (s)')
+        plt.yticks(np.round(np.arange(1e3, int(sample_rate/8)+1, 1e3)/sample_rate*window_length),
+                   np.arange(1, int(sample_rate/8*1e3)+1))
+        plt.ylabel('Frequency (kHz)')
+        plt.subplot(3, 1, 3)
+        plt.imshow(20*np.log10(foreground_spectrogram[1:int(window_length/8), :]), aspect='auto', cmap='jet', origin='lower')
+        plt.title('Foreground Spectrogram (dB)')
+        plt.xticks(np.round(np.arange(1, np.floor(len(audio_signal)/sample_rate)+1)*sample_rate/step_length),
+                   np.arange(1, int(np.floor(len(audio_signal)/sample_rate))+1))
+        plt.xlabel('Time (s)')
+        plt.yticks(np.round(np.arange(1e3, int(sample_rate/8)+1, 1e3)/sample_rate*window_length),
+                   np.arange(1, int(sample_rate/8*1e3)+1))
+        plt.ylabel('Frequency (kHz)')
+        plt.show()
     """
+
+    # Number of samples and channels
+    number_samples, number_channels = np.shape(audio_signal)
+
+    # Window length, window function, and step length for the STFT
+    window_length = windowlength(sample_rate)
+    window_function = windowfunction(window_length)
+    step_length = steplength(window_length)
+
+    # Number of time frames
+    number_times = int(np.ceil((window_length-step_length+number_samples)/step_length))
+
+    # Initialize the STFT
+    audio_stft = np.zeros((window_length, number_times, number_channels), dtype=complex)
+
+    # Loop over the channels
+    for channel_index in range(0, number_channels):
+
+        # STFT of the current channel
+        audio_stft[:, :, channel_index] = _stft(audio_signal[:, channel_index], window_function, step_length)
+
+    # Magnitude spectrogram (with DC component and without mirrored frequencies)
+    audio_spectrogram = abs(audio_stft[0:int(window_length/2)+1, :, :])
+
+    # Self-similarity of the spectrograms averaged over the channels
+    similarity_matrix = _selfsimilaritymatrix(np.mean(audio_spectrogram, 2))
+
+    # Similarity distance in time frames
+    similarity_distance2 = int(round(similarity_distance*sample_rate/step_length))
+
+    # Similarity indices for all the frames
+    similarity_indices = _indices(similarity_matrix, similarity_threshold, similarity_distance2, similarity_number)
+
+    # Cutoff frequency in frequency channels for the dual high-pass filter of the foreground
+    cutoff_frequency2 = int(np.ceil(cutoff_frequency*(window_length-1)/sample_rate))-1
+
+    # Initialize the background signal
+    background_signal = np.zeros((number_samples, number_channels))
+
+    # Loop over the channels
+    for channel_index in range(0, number_channels):
+
+        # Repeating mask for the current channel
+        repeating_mask = _simmask(audio_spectrogram[:, :, channel_index], similarity_indices)
+
+        # High-pass filtering of the dual foreground
+        repeating_mask[1:cutoff_frequency2+2, :] = 1
+
+        # Mirror the frequency channels
+        repeating_mask = np.concatenate((repeating_mask, repeating_mask[-2:0:-1, :]))
+
+        # Estimated repeating background for the current channel
+        background_signal1 = _istft(repeating_mask*audio_stft[:, :, channel_index], window_function, step_length)
+
+        # Truncate to the original number of samples
+        background_signal[:, channel_index] = background_signal1[0:number_samples]
+
+    return background_signal
 
 
 def simonline(audio_signal, sample_rate):
@@ -743,7 +870,7 @@ def _localmaxima(data_vector, minimum_value, minimum_distance, number_values):
     number_data = len(data_vector)
 
     # Initialize maximum indices
-    maximum_indices = []
+    maximum_indices = np.array([], dtype=int)
 
     # Loop over the data points
     for data_index in range(0, number_data):
@@ -752,17 +879,16 @@ def _localmaxima(data_vector, minimum_value, minimum_distance, number_values):
         if data_vector[data_index] >= minimum_value:
 
             # The local maximum should be strictly greater than the neighboring data points within +- minimum distance
-            if all(data_vector[data_index] > data_vector[max(data_index-minimum_distance, 0):data_index-1]) \
+            if all(data_vector[data_index] > data_vector[max(data_index-minimum_distance, 0):data_index]) \
                     and all(data_vector[data_index]
-                            > data_vector[data_index+1:min(data_index+minimum_distance, number_data)]):
+                            > data_vector[data_index+1:min(data_index+minimum_distance+1, number_data)]):
 
                 # Save the maximum index
                 maximum_indices = np.append(maximum_indices, data_index)
 
     # Sort the maximum values in descending order
     maximum_values = data_vector[maximum_indices]
-    sort_indices = np.argsort(maximum_values)
-    sort_indices = sort_indices[::-1]
+    sort_indices = np.argsort(maximum_values)[::-1]
 
     # Keep only the top maximum values and indices
     number_values = min(number_values, len(maximum_values))
@@ -862,6 +988,34 @@ def _adaptivemask(audio_spectrogram, repeating_periods, filter_order):
     return repeating_mask
 
 
+def _simmask(audio_spectrogram, similarity_indices):
+    """Repeating mask for the REPET-SIM"""
+
+    # Number of frequency channels and time frames
+    number_frequencies, number_times = np.shape(audio_spectrogram)
+
+    # Initialize the repeating spectrogram
+    repeating_spectrogram = np.zeros((number_frequencies, number_times))
+
+    # Loop over the time frames
+    for time_index in range(0, number_times):
+
+        # Indices of the frames for the median filter
+        time_indices = similarity_indices[time_index]
+
+        # Median filter on the current time frame
+        repeating_spectrogram[:, time_index] = np.median(audio_spectrogram[:, time_indices], 1)
+
+    # Make sure the energy in the repeating spectrogram is smaller than in the audio spectrogram, for every
+    # time-frequency bin
+    repeating_spectrogram = np.minimum(audio_spectrogram, repeating_spectrogram)
+
+    # Derive the repeating mask by normalizing the repeating spectrogram by the audio spectrogram
+    repeating_mask = (repeating_spectrogram+np.finfo(float).eps)/(audio_spectrogram+np.finfo(float).eps)
+
+    return repeating_mask
+
+
 def test():
 
     import scipy.io.wavfile
@@ -869,6 +1023,6 @@ def test():
     sample_rate, audio_signal = scipy.io.wavfile.read('audio_file.wav')
     audio_signal = audio_signal / (2.0 ** (audio_signal.itemsize * 8 - 1))
 
-    background_signal = adaptive(audio_signal, sample_rate)
+    background_signal = sim(audio_signal, sample_rate)
 
     return background_signal
