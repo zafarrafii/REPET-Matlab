@@ -66,7 +66,7 @@ classdef repet
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   07/10/18
+    %   07/11/18
     
     % Defined properties
     properties (Access = private, Constant = true, Hidden = true)
@@ -729,7 +729,8 @@ classdef repet
             %   enhancement. The online REPET-SIM simply processes the time 
             %   frames of the mixture one after the other given a buffer 
             %   that temporally stores past frames.
-            %   background_signal = repet.sim(audio_signal,sample_rate);
+            %   
+            %   background_signal = repet.simonline(audio_signal,sample_rate);
             %   
             %   Arguments:
             %       audio_signal: audio signal [number_samples,number_channels]
@@ -868,7 +869,7 @@ classdef repet
                 % Cosine similarity between the spectrum of the current 
                 % frame and the past frames, for all the channels
                 similarity_vector ...
-                    = repet.similaritymatrix(mean(buffer_spectrogram(:,current_index,:),3),mean(buffer_spectrogram,3));
+                    = repet.similaritymatrix(mean(buffer_spectrogram,3),mean(buffer_spectrogram(:,current_index,:),3));
                 
                 % Indices of the similar frames
                 [~,similarity_indices] ...
@@ -890,7 +891,7 @@ classdef repet
                     % foreground 
                     repeating_mask(2:cutoff_frequency+1,:) = 1;
                     
-                    % Mirror the frequencies
+                    % Mirror the frequency channels
                     repeating_mask = cat(1,repeating_mask,repeating_mask(end-1:-1:2));
                     
                     % Apply the mask to the FT of the current segment
@@ -1120,7 +1121,7 @@ classdef repet
                     % neighboring data points within +- minimum distance
                     if all(data_vector(data_index) > data_vector(max(data_index-minimum_distance,1):data_index-1)) ...
                             && all(data_vector(data_index) > data_vector(data_index+1:min(data_index+minimum_distance,number_data)))
-
+                        
                         % Save the maximum index
                         maximum_indices = cat(1,maximum_indices,data_index);
                         
