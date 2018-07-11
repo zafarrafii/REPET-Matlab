@@ -634,7 +634,7 @@ plt.show()
 <img src="images/python/repet_sim.png" width="1000">
 
 ### Online REPET-SIM
-`background_signal = repet_simonline(audio_signal, sample_rate)`
+`background_signal = repet.simonline(audio_signal, sample_rate)`
 
 Arguments:
 ```
@@ -655,7 +655,7 @@ sample_rate, audio_signal = scipy.io.wavfile.read('audio_file.wav')
 audio_signal = audio_signal / (2.0**(audio_signal.itemsize*8-1))
 
 # Estimate the background signal and infer the foreground signal
-background_signal = repet_simonline(audio_signal, sample_rate);
+background_signal = repet.simonline(audio_signal, sample_rate);
 foreground_signal = audio_signal-background_signal;
 
 # Write the background and foreground signals (un-normalized)
