@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2c064c27-6abd-46a9-9723-94fb04eb319a" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/repet.m" beforeDir="false" afterPath="$PROJECT_DIR$/repet.m" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/repet.py" beforeDir="false" afterPath="$PROJECT_DIR$/repet.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/background_signal.wav" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/foreground_signal.wav" beforeDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -18,7 +17,7 @@
       <file leaf-file-name="repet.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/repet.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="614">
+            <state relative-caret-position="161">
               <caret line="692" column="41" selection-start-line="692" selection-start-column="41" selection-end-line="692" selection-end-column="41" />
               <folding>
                 <element signature="e#0#3026#1" />
@@ -74,7 +73,7 @@
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds" extendedState="1">
+  <component name="ProjectFrameBounds">
     <option name="width" value="1280" />
     <option name="height" value="1560" />
   </component>
@@ -123,7 +122,6 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1280" height="1560" extended-state="0" />
-    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" weight="0.34335443" />
       <window_info anchor="bottom" id="TODO" order="6" weight="0.32890132" />
@@ -874,7 +872,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/repet.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="614">
+        <state relative-caret-position="161">
           <caret line="692" column="41" selection-start-line="692" selection-start-column="41" selection-end-line="692" selection-end-column="41" />
           <folding>
             <element signature="e#0#3026#1" />
