@@ -1,63 +1,85 @@
-%   REpeating Pattern Extraction Technique (REPET): original REPET GUI demo
+function repet_gui
+% repet_gui REpeating Pattern Extraction Technique (REPET) Graphical User Interface (GUI)
+%   REPET is a simple method for separating the repeating background (e.g., 
+%   the accompaniment) from the non-repeating foreground (e.g., the lead) 
+%   in an audio mixture.
 %
-%   REPET is a simple method for separating the repeating background (e.g., the accompaniment)
-%   from the non-repeating foreground (e.g., the melody) in an audio mixture. 
+%   repet_gui
+%       Select tool (toolbar left):                                         Select/deselect on wave axes (left/right mouse click)
+%       Zoom tool (toolbar center):                                         Zoom in/out on any axes (left/right mouse click)
+%       Pan tool (toolbar right):                                           Pan left and right on any axes
 %
-%   Usage:
-%       repet_demo_gui
+%       Load mixture button (top-left quarter, top-left):                   Load mixture file (WAVE files only)
+%       Play mixture button (top-left quarter, top-left):                   Play/stop mixture audio
+%       Mixture wave axes (top-left quarter, top):                          Display mixture wave
+%       REPET button (top-left quarter, top-right):                         Process mixture selection using REPET
+%       Mixture spectrogram axes (top-left quarter, bottom):                Display spectrogram of mixture selection
 %
-%       - Select tool (toolbar left):                                       Select/deselect on wave axes (left/right mouse click)
-%       - Zoom tool (toolbar middle):                                       Zoom in/out on axes (left/right mouse click)
-%       - Pan tool (toolbar right):                                         Pan left and right on axes
+%       Beat spectrum axes (bottom-left, quarter top):                      Display beat spectrum of mixture selection
+%       Period slider/edit (bottom-left, quarter top):                      Modify repeating period (in seconds)
+%       Hardness slider/edit (bottom-left, quarter center):                 Modify masking hardness (in [0,1])
+%           Turns soft time-frequency mask into binary time-frequency mask
+%           The closer to 0, the softer the mask, the less separation artifacts (0 = original soft mask)
+%           The closer to 1, the harder the mask, the less source interference (1 = full binary mask)
+%       Threshold slider/edit (bottom-left quarter, bottom):                Modify masking threshold (in [0,1])
+%           Defines pivot value around which the energy will be spread apart (when hardness > 0)
+%           The closer to 0, the more energy for the background, the less interference in the foreground
+%           The closer to 1, the less energy for the background, the less interference from the foreground
 %
-%       - Load mixture button (top-left quarter top left):                  Load mixture file (WAVE files only)
-%       - Play mixture button (top-left quarter top left):                  Play/stop mixture audio
-%       - Mixture wave axes (top-left quarter top):                         Display mixture wave
-%       - REPET button (top-left quarter top right):                        Process mixture selection using REPET algorithm
-%       - Mixture spectrogram axes (top-left quarter bottom):               Display spectrogram of mixture selection
+%       Save background button (top-right quarter, top-left):               Save background estimate of mixture selection in WAVE file
+%       Play background button (top-right quarter, top-left):               Play/stop background audio of mixture selection
+%       Background wave axes (top-right quarter, top):                      Display background wave of mixture selection
+%       Background spectrogram axes (top-right quarter, bottom):            Display background spectrogram of mixture selection
 %
-%       - Beat spectrum axes (bottom-left quarter top):                     Display beat spectrum of mixture selection
-%       - Period slider/edit (bottom-left quarter top):                     Modify repeating period (in seconds)
+%       Save foreground button (bottom-right quarter, top-left):           Save foreground estimate of mixture selection in WAVE file
+%       Play foreground button (bottom-right quarter top-left):             Play/stop foreground audio of mixture selection
+%       Foreground wave axes (bottom-right quarter, top):                  Display foreground wave of mixture selection
+%       Foreground spectrogram axes (bottom-right quarter, bottom):        Display foreground spectrogram of mixture selection
 %
-%       - Hardness slider/edit (bottom-left quarter middle):                Modify masking hardness (in [0,1])
-%           - transforms soft time-frequency mask into binary time-frequency mask
-%           - the closer to 0, the softer the mask, the less separation artifacts (0 = original soft mask)
-%           - the closer to 1, the harder the mask, the less source interference (1 = full binary mask)
-%       - Threshold slider/edit (bottom-left quarter bottom):               Modify masking threshold (in [0,1])
-%           - defines pivot value around which the energy will be spread apart (when hardness > 0)
-%           - the closer to 0, the more energy for the repeating background, the less interference in the non-repeating foreground
-%           - the closer to 1, the less energy for the repeating background, the less interference from the non-repeating foreground
-%
-%       - Save background button (top-right quarter top left):              Save background estimate of mixture selection in WAVE file
-%       - Play background button (top-right quarter top left):              Play/stop background audio of mixture selection
-%       - Background wave axes (top-right quarter top):                 	Display background wave of mixture selection
-%       - Background spectrogram axes (top-right quarter bottom):           Display background spectrogram of mixture selection
-%
-%       - Save foreground button (bottom-right quarter top left):           Save foreground estimate of mixture selection in WAVE file
-%       - Play foreground button (bottom-right quarter top left):           Play/stop foreground audio of mixture selection
-%       - Foreground wave axes (bottom-right quarter top):                  Display foreground wave of mixture selection
-%       - Foreground spectrogram axes (bottom-right quarter bottom):        Display foreground spectrogram of mixture selection
-%
-%   See also http://music.eecs.northwestern.edu/research.php?project=repet
+%   See also http://zafarrafii.com/#REPET
+% 
+%   References:
+%       Zafar Rafii, Antoine Liutkus, and Bryan Pardo. "REPET for 
+%       Background/Foreground Separation in Audio," Blind Source 
+%       Separation, chapter 14, pages 395-411, Springer Berlin Heidelberg, 
+%       2014.
+%       
+%       Zafar Rafii and Bryan Pardo. "Online REPET-SIM for Real-time Speech 
+%       Enhancement," 38th International Conference on Acoustics, Speech 
+%       and Signal Processing, Vancouver, BC, Canada, May 26-31, 2013.
+%       
+%       Zafar Rafii and Bryan Pardo. "Audio Separation System and Method," 
+%       US 20130064379 A1, March 2013.
+%   
+%       Zafar Rafii and Bryan Pardo. "REpeating Pattern Extraction 
+%       Technique (REPET): A Simple Method for Music/Voice Separation," 
+%       IEEE Transactions on Audio, Speech, and Language Processing, volume 
+%       21, number 1, pages 71-82, January, 2013.
+%       
+%       Zafar Rafii and Bryan Pardo. "Music/Voice Separation using the 
+%       Similarity Matrix," 13th International Society on Music Information 
+%       Retrieval, Porto, Portugal, October 8-12, 2012.
+%       
+%       Antoine Liutkus, Zafar Rafii, Roland Badeau, Bryan Pardo, and Gaël 
+%       Richard. "Adaptive Filtering for Music/Voice Separation Exploiting 
+%       the Repeating Musical Structure," 37th International Conference on 
+%       Acoustics, Speech and Signal Processing, Kyoto, Japan, March 25-30, 
+%       2012.
+%       
+%       Zafar Rafii and Bryan Pardo. "A Simple Music/Voice Separation 
+%       Method based on the Extraction of the Repeating Musical Structure," 
+%       36th International Conference on Acoustics, Speech and Signal 
+%       Processing, Prague, Czech Republic, May 22-27, 2011.
+%   
+%   Author:
+%       Zafar Rafii
+%       zafarrafii@gmail.com
+%       http://zafarrafii.com
+%       https://github.com/zafarrafii
+%       https://www.linkedin.com/in/zafarrafii/
+%       07/12/18
 
-%   Author: Zafar Rafii (zafarrafii@u.northwestern.edu)
-%   Update: September 2013
-%   Copyright: Zafar Rafii and Bryan Pardo, Northwestern University
-%   Reference(s):
-%       [1] Zafar Rafii and Bryan Pardo. "Audio Separation System and Method," 
-%           US20130064379 A1, US 13/612,413, March 14, 2013.
-%       [2] Zafar Rafii and Bryan Pardo. 
-%           "REpeating Pattern Extraction Technique (REPET): A Simple Method for Music/Voice Separation," 
-%           IEEE Transactions on Audio, Speech, and Language Processing, 
-%           Volume 21, Issue 1, pp. 71-82, January, 2013.
-%       [3] Zafar Rafii and Bryan Pardo. 
-%           "A Simple Music/Voice Separation Method based on the Extraction of the Repeating Musical Structure," 
-%           36th International Conference on Acoustics, Speech and Signal Processing,
-%           Prague, Czech Republic, May 22-27, 2011.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function repet_demo_gui
 
 % Create figure object with toolbar and save the handles in a structure h:
 
@@ -68,7 +90,7 @@ h.figure = figure( ...
     'Color',figure_color, ...
     'DockControls','off', ...                                               % Do not display controls used to dock figure
     'MenuBar','none', ...                                                   % Disable figure menu bar
-    'Name','REPET demo', ...                                                % Figure window title
+    'Name','REPET GUI', ...                                                 % Figure window title
     'NumberTitle','off', ...                                                % Do not display figure window title number (by default 'on' with programming GUI)
     'Position',figure_position, ...                                         % Centered position
     'Renderer','zbuffer', ...                                               % Rendering method ('zbuffer' is faster and more accurate than 'painters'; 'opengl' is even faster but it behaves weird)
@@ -484,9 +506,9 @@ if ~strcmp(fileext,'.wav')                                                  % Re
 end
 
 file = fullfile(filepath,[filename,fileext]);                               % File with path and extension
-[x,fs,nbits] = wavread(file);
-h.mixture_audio = x;                                                        % Mixture audio (fs and nbits will be automatically saved in audioplayer)
-h.mixture_audioplayer = audioplayer(x,fs,nbits);                            % Mixture audioplayer
+[x,fs] = audioread(file);
+h.mixture_audio = x;                                                        % Mixture audio (fs will be automatically saved in audioplayer)
+h.mixture_audioplayer = audioplayer(x,fs);                                  % Mixture audioplayer
 
 if length(filename) > 20                                                    % Shorten file name if more than 20 characters
     filename = [filename(1:20),'~'];
@@ -1035,7 +1057,6 @@ end
 h.repeating_audio = y;                                                      % Save the repeating audio
 
 fs = get(h.mixture_audioplayer,'SampleRate');
-nbits = get(h.mixture_audioplayer,'BitsPerSample');
 
 % Plot background wave and spectrogram, and enable audio:
 
@@ -1064,7 +1085,7 @@ title('Spectrogram (dB)');
 xlabel('time (s)');
 ylabel('frequency (kHz)');
 
-h.background_audioplayer = audioplayer(y,fs,nbits);
+h.background_audioplayer = audioplayer(y,fs);
 play_audio(h.background_audioplayer,h.play_background_pushbutton,h.background_wave_axes,ind(1))
 set(h.save_background_pushbutton, ...
     'Enable','on')
@@ -1096,7 +1117,7 @@ title('Spectrogram (dB)');
 xlabel('time (s)');
 ylabel('frequency (kHz)');
 
-h.foreground_audioplayer = audioplayer(x-y,fs,nbits);
+h.foreground_audioplayer = audioplayer(x-y,fs);
 play_audio(h.foreground_audioplayer,h.play_foreground_pushbutton,h.foreground_wave_axes,ind(1))
 set(h.save_foreground_pushbutton, ...
     'Enable','on')
@@ -1142,9 +1163,8 @@ end
 
 y = h.repeating_audio;
 fs = get(h.mixture_audioplayer,'SampleRate');
-nbits = get(h.mixture_audioplayer,'BitsPerSample');
 file = fullfile(filepath,filename);
-wavwrite(y,fs,nbits,file);
+audiowrite(file,y,fs);
 
 disable_enable_figure
 
@@ -1200,9 +1220,8 @@ x = h.mixture_audio;
 x = x(ind(1):ind(2),:);
 y = h.repeating_audio;
 fs = get(h.mixture_audioplayer,'SampleRate');
-nbits = get(h.mixture_audioplayer,'BitsPerSample');
 file = fullfile(filepath,filename);                                         % File with path and extension
-wavwrite(x-y,fs,nbits,file);
+audiowrite(file,x-y,fs);
 
 disable_enable_figure
 

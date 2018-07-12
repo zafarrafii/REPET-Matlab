@@ -27,7 +27,7 @@ References:
     Zafar Rafii and Bryan Pardo. "Online REPET-SIM for Real-time Speech Enhancement," 38th International Conference on
     Acoustics, Speech and Signal Processing, Vancouver, BC, Canada, May 26-31, 2013.
 
-    Zafar Rafii and Bryan Pardo. "Audio Separation System and Method," US20130064379 A1, US 13/612,413, March 14, 2013.
+    Zafar Rafii and Bryan Pardo. "Audio Separation System and Method," US 20130064379 A1, March 2013.
 
     Zafar Rafii and Bryan Pardo. "REpeating Pattern Extraction Technique (REPET): A Simple Method for Music/Voice
     Separation," IEEE Transactions on Audio, Speech, and Language Processing, volume 21, number 1, pages 71-82,
@@ -50,7 +50,7 @@ Author:
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    07/11/18
+    07/12/18
 """
 
 import numpy as np

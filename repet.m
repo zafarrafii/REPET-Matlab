@@ -38,7 +38,7 @@ classdef repet
     %   and Signal Processing, Vancouver, BC, Canada, May 26-31, 2013.
     %   
     %   Zafar Rafii and Bryan Pardo. "Audio Separation System and Method," 
-    %   US20130064379 A1, US 13/612,413, March 14, 2013.
+    %   US 20130064379 A1, March 2013.
     %   
     %   Zafar Rafii and Bryan Pardo. "REpeating Pattern Extraction 
     %   Technique (REPET): A Simple Method for Music/Voice Separation," 
@@ -66,7 +66,7 @@ classdef repet
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   07/11/18
+    %   07/12/18
     
     % Defined properties
     properties (Access = private, Constant = true, Hidden = true)
