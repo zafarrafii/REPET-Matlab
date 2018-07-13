@@ -1,10 +1,8 @@
 function repet_gui
-% repet_gui REpeating Pattern Extraction Technique (REPET) Graphical User Interface (GUI)
-%   REPET is a simple method for separating the repeating background (e.g., 
-%   the accompaniment) from the non-repeating foreground (e.g., the lead) 
-%   in an audio mixture.
+% REPET_GUI REpeating Pattern Extraction Technique (REPET) Graphical User
+% Interface (GUI).
 %
-%   repet_gui
+%   REPET_GUI
 %       Select tool (toolbar left):                                         Select/deselect on wave axes (left/right mouse click)
 %       Zoom tool (toolbar center):                                         Zoom in/out on any axes (left/right mouse click)
 %       Pan tool (toolbar right):                                           Pan left and right on any axes
@@ -44,10 +42,6 @@ function repet_gui
 %       Separation, chapter 14, pages 395-411, Springer Berlin Heidelberg, 
 %       2014.
 %       
-%       Zafar Rafii and Bryan Pardo. "Online REPET-SIM for Real-time Speech 
-%       Enhancement," 38th International Conference on Acoustics, Speech 
-%       and Signal Processing, Vancouver, BC, Canada, May 26-31, 2013.
-%       
 %       Zafar Rafii and Bryan Pardo. "Audio Separation System and Method," 
 %       US 20130064379 A1, March 2013.
 %   
@@ -55,16 +49,6 @@ function repet_gui
 %       Technique (REPET): A Simple Method for Music/Voice Separation," 
 %       IEEE Transactions on Audio, Speech, and Language Processing, volume 
 %       21, number 1, pages 71-82, January, 2013.
-%       
-%       Zafar Rafii and Bryan Pardo. "Music/Voice Separation using the 
-%       Similarity Matrix," 13th International Society on Music Information 
-%       Retrieval, Porto, Portugal, October 8-12, 2012.
-%       
-%       Antoine Liutkus, Zafar Rafii, Roland Badeau, Bryan Pardo, and Gaël 
-%       Richard. "Adaptive Filtering for Music/Voice Separation Exploiting 
-%       the Repeating Musical Structure," 37th International Conference on 
-%       Acoustics, Speech and Signal Processing, Kyoto, Japan, March 25-30, 
-%       2012.
 %       
 %       Zafar Rafii and Bryan Pardo. "A Simple Music/Voice Separation 
 %       Method based on the Extraction of the Repeating Musical Structure," 
@@ -77,9 +61,109 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       07/12/18
+%       07/13/18
+
+% Create figure window
+% - Make the figure invisible while it is being created
+% - Use normalized units
+% - Make the figure a fourth of the screen and center it
+% - Hide the menu bar
+% - Do not include the number in the figure title
+% - Do not display the dock button
+f = figure( ...
+    'Visible','off', ...
+    'Units','normalized', ...
+    'Position',[0.25,0.25,0.5,0.5], ...
+    'Name','REPET GUI', ...
+    'MenuBar','none', ...
+    'NumberTitle','off', ...
+    'DockControls','off' ...
+    );
+
+% Create toolbar on figure
+uitoolbar;
+
+% Create pointer toggle button on toolbar
+uitoggletool( ...
+    'CData',iconread('tool_pointer.png'), ...
+    'TooltipString','Selection tool', ...
+    'Enable','on');
+
+% Create zoom toggle button on toolbar
+uitoggletool( ...
+    'CData',iconread('tool_zoom_in.png'), ...
+    'TooltipString','Selection tool', ...
+    'Enable','off');
+
+% Create hand toggle button on toolbar
+uitoggletool( ...
+    'CData',iconread('tool_hand.png'), ...
+    'TooltipString','Selection tool', ...
+    'Enable','off');
+
+% Create load push button (only one initially enabled)
+uicontrol( ...
+    'Style','pushbutton', ...
+    'CData',iconread('file_open.png'), ...
+    'TooltipString','Load mixture', ...
+    'Units','normalized', ...
+    'Position',[0.00,0.95,0.05,0.05], ...
+    'Enable','on');
+
+% Create play push button
+uicontrol( ...
+    'Style','pushbutton', ...
+    'CData',play_icon, ...
+    'TooltipString','Play mixture', ...
+    'Units','normalized', ...
+    'Position',[0.00,0.85,0.05,0.05], ...
+    'Enable','on');
+
+% Make the figure visible
+f.Visible = 'on';
+
+end
+
+% Read icon from Matlab, with transparency
+function image_data = iconread(icon_name)
+
+% Read icon image from Matlab ([16x16x3] 16-bit PNG) and also return its 
+% transparency ([16x16] AND mask)
+[image_data,~,image_transparency] ...
+    = imread(fullfile(matlabroot,'toolbox','matlab','icons',icon_name),'PNG');
+
+% Convert the image and its transparency to double precision (in [0,1])
+image_data = im2double(image_data);
+image_transparency = im2double(image_transparency);
+
+% Convert the 0's to NaN's in the transparency and apply it to the image
+image_transparency(image_transparency==0) = NaN;
+image_data = image_data.*image_transparency;
+
+end
+
+% Create play icon, with transparency
+function image_data = play_icon
+
+% Create the upper half of a black triangle, with NaN's everywhere else
+image_data = kron(triu(nan(8,8)),ones(1,2));
+
+% Create the whole black triangle in 3D
+image_data = repmat([image_data;image_data(end:-1:1,:)],[1,1,3]);
 
 
+end
+
+% Create stop icon, with transparency
+function image_data = stop_icon
+
+% Create a black square in 3D
+image_data = zeros(16,16,3);
+
+end
+
+
+function repet_demo_gui
 
 % Create figure object with toolbar and save the handles in a structure h:
 
@@ -314,7 +398,7 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function i = play_icon
+function i = play_icon2
 
 s = 11;                                                                     % Odd size (width and height)
 j = triu(ones((s-1)/2,(s+1)/2),1);                                          % Upper triangular '1' / lower triangular '0'
@@ -329,7 +413,7 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function i = stop_icon
+function i = stop_icon2
 
 i = zeros(11,11,3);                                                         % Black stop icon
 
