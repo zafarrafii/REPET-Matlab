@@ -191,7 +191,7 @@ end
 % Create stop icon, with transparency
 function image_data = stop_icon
 
-% Create a black square in 3D
+% Create a black square in 3d
 image_data = zeros(16,16,3);
 
 end
@@ -199,46 +199,27 @@ end
 % Create repet icon, with transparency
 function image_data = repet_icon
 
-% Create ...
+% Create RE and PET in 3d
 image_data = nan(16,16,1);
 
-% i = 5;
-% image_data(i+(1:5),2) = 0;
-% image_data(i+[1,3],3) = 0;
-% image_data(i+[2,4,5],4) = 0;
-% 
-% image_data(i+(1:5),5) = 0;
-% image_data(i+[1,3,5],6) = 0;
-% image_data(i+[1,3,5],7) = 0;
-% 
-% image_data(i+(1:5),8) = 0;
-% image_data(i+[1,3],9) = 0;
-% image_data(i+2,10) = 0;
-% 
-% image_data(i+(1:5),11) = 0;
-% image_data(i+[1,3,5],12) = 0;
-% image_data(i+[1,3,5],13) = 0;
-% 
-% image_data(i+1,14) = 0;
-% image_data(i+(1:5),15) = 0;
-% image_data(i+1,16) = 0;
+image_data(2:8,2:3) = 0;
+image_data([2,3,5,6],4) = 0;
+image_data([3:5,7:8],5) = 0;
 
+image_data(2:8,7:8) = 0;
+image_data([2,3,5,7,8],9) = 0;
+image_data([2,3,7,8],10) = 0;
 
-image_data(1:8,1:2) = 0;
-image_data([1,2,4,5],3) = 0;
-image_data([1,4],4) = 0;
-image_data([2:3,5:8],4:5) = 0;
+image_data(10:16,2:3) = 0;
+image_data([10,11,13,14],4) = 0;
+image_data(11:13,5) = 0;
 
-image_data(1:8,6:7) = 0;
-image_data([1,2,4,6,7],8:10) = 0;
+image_data(10:16,7:8) = 0;
+image_data([10,11,13,15,16],9) = 0;
+image_data([10,11,15,16],10) = 0;
 
-image_data(9:16,1:2) = 0;
-image_data([9,10,12,13],3) = 0;
-image_data([9,12],4) = 0;
-image_data(10:11,4:5) = 0;
-
-image_data(9:16,6:7) = 0;
-image_data([9,10,12,15,16],8:10) = 0;
+image_data(10:11,12:15) = 0;
+image_data(12:16,13:14) = 0;
 
 image_data = repmat(image_data,[1,1,3]);
 
