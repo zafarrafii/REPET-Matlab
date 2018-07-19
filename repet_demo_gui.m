@@ -1,7 +1,7 @@
-function repet_gui
-% REPET_GUI REpeating Pattern Extraction Technique (REPET) Graphical User Interface (GUI).
+function repet_demo_gui
+% REPET_GUI_DEMO REpeating Pattern Extraction Technique (REPET) Graphical User Interface (GUI).
 %
-%   REPET_GUI
+%   REPET_GUI_DEMO
 %       Select tool (toolbar left):                                         Select/deselect on wave axes (left/right mouse click)
 %       Zoom tool (toolbar center):                                         Zoom in/out on any axes (left/right mouse click)
 %       Pan tool (toolbar right):                                           Pan left and right on any axes
@@ -61,192 +61,6 @@ function repet_gui
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
 %       07/19/18
-
-% Create figure window
-% - Make the figure invisible while it is being created
-% - Make the figure a fourth of the screen and center it
-% - Hide the menu bar
-% - Do not include the number in the figure title
-% - Do not display the figure dock button
-screen_size = get(0,'ScreenSize');
-figure_size = screen_size(3:4)/2;
-f = figure( ...
-    'Visible','off', ...
-    'Position',[screen_size(3:4)/4+1,figure_size], ...
-    'Name','REPET GUI', ...
-    'MenuBar','none', ...
-    'NumberTitle','off', ...
-    'DockControls','off' ...
-    );
-
-% Create toolbar on figure
-uitoolbar;
-
-% Create open (audio) toggle button on toolbar (initially enabled)
-uitoggletool( ...
-    'CData',iconread('file_open.png'), ...
-    'TooltipString','Open audio', ...
-    'Enable','on');
-
-% Create play (audio) toggle button on toolbar
-uitoggletool( ...
-    'CData',play_icon, ...
-    'TooltipString','Play audio', ...
-    'Enable','on');
-
-% Create repet toggle button on toolbar
-uitoggletool( ...
-    'Separator','On', ...
-    'CData',repet_icon, ...
-    'TooltipString','REPET', ...
-    'Enable','on');
-
-% Create save (background) toggle button on toolbar
-uitoggletool( ...
-    'Separator','On', ...
-    'CData',iconread('file_save.png'), ...
-    'TooltipString','Save background', ...
-    'Enable','off');
-
-% Create play (background) toggle button on toolbar
-uitoggletool( ...
-    'CData',play_icon, ...
-    'TooltipString','Play background', ...
-    'Enable','off');
-
-% Create save (foreground) toggle button on toolbar
-uitoggletool( ...
-    'Separator','On', ...
-    'CData',iconread('file_save.png'), ...
-    'TooltipString','Save foreground', ...
-    'Enable','off');
-
-% Create play (foreground) toggle button on toolbar
-uitoggletool( ...
-    'CData',play_icon, ...
-    'TooltipString','Play foreground', ...
-    'Enable','off');
-
-% Create pointer toggle button on toolbar
-uitoggletool( ...
-    'Separator','On', ...
-    'CData',iconread('tool_pointer.png'), ...
-    'TooltipString','Select', ...
-    'Enable','off');
-
-% Create zoom toggle button on toolbar
-uitoggletool( ...
-    'CData',iconread('tool_zoom_in.png'), ...
-    'TooltipString','Zoom', ...
-    'Enable','off');
-
-% Create hand toggle button on toolbar
-uitoggletool( ...
-    'CData',iconread('tool_hand.png'), ...
-    'TooltipString','Pan', ...
-    'Enable','off');
-
-axes( ...
-    'Units','normalized', ...
-    'Box','on', ...
-    'Position',[0,0,0.5,0.5], ...
-    'XTick',[], ...
-    'YTick',[]);
-
-
-% Make the figure visible
-f.Visible = 'on';
-
-end
-
-% Read icon from Matlab, with transparency
-function image_data = iconread(icon_name)
-
-% Read icon image from Matlab ([16x16x3] 16-bit PNG) and also return its 
-% transparency ([16x16] AND mask)
-[image_data,~,image_transparency] ...
-    = imread(fullfile(matlabroot,'toolbox','matlab','icons',icon_name),'PNG');
-
-% Convert the image and its transparency to double precision (in [0,1])
-image_data = im2double(image_data);
-image_transparency = im2double(image_transparency);
-
-% Convert the 0's to NaN's in the transparency and apply it to the image
-image_transparency(image_transparency==0) = NaN;
-image_data = image_data.*image_transparency;
-
-end
-
-% Create play icon, with transparency
-function image_data = play_icon
-
-% Create the upper half of a black triangle, with NaN's everywhere else
-image_data = [nan(8,1),kron(triu(nan(8,7)),ones(1,2)),nan(8,1)];
-
-% Create the whole black triangle in 3D
-image_data = repmat([image_data;image_data(end:-1:1,:)],[1,1,3]);
-
-end
-
-% Create stop icon, with transparency
-function image_data = stop_icon
-
-% Create a black square in 3D
-image_data = zeros(16,16,3);
-
-end
-
-% Create repet icon, with transparency
-function image_data = repet_icon
-
-% Create ...
-image_data = nan(16,16,1);
-
-% i = 5;
-% image_data(i+(1:5),2) = 0;
-% image_data(i+[1,3],3) = 0;
-% image_data(i+[2,4,5],4) = 0;
-% 
-% image_data(i+(1:5),5) = 0;
-% image_data(i+[1,3,5],6) = 0;
-% image_data(i+[1,3,5],7) = 0;
-% 
-% image_data(i+(1:5),8) = 0;
-% image_data(i+[1,3],9) = 0;
-% image_data(i+2,10) = 0;
-% 
-% image_data(i+(1:5),11) = 0;
-% image_data(i+[1,3,5],12) = 0;
-% image_data(i+[1,3,5],13) = 0;
-% 
-% image_data(i+1,14) = 0;
-% image_data(i+(1:5),15) = 0;
-% image_data(i+1,16) = 0;
-
-
-image_data(1:8,1:2) = 0;
-image_data([1,2,4,5],3) = 0;
-image_data([1,4],4) = 0;
-image_data([2:3,5:8],4:5) = 0;
-
-image_data(1:8,6:7) = 0;
-image_data([1,2,4,6,7],8:10) = 0;
-
-image_data(9:16,1:2) = 0;
-image_data([9,10,12,13],3) = 0;
-image_data([9,12],4) = 0;
-image_data(10:11,4:5) = 0;
-
-image_data(9:16,6:7) = 0;
-image_data([9,10,12,15,16],8:10) = 0;
-
-image_data = repmat(image_data,[1,1,3]);
-
-end
-
-
-
-function repet_demo_gui
 
 % Create figure object with toolbar and save the handles in a structure h:
 
@@ -421,6 +235,89 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+function i = pointer_icon
+
+[i,~,a] = imread(fullfile(matlabroot,'toolbox','matlab','icons','tool_pointer.png'),'PNG'); % Use the pointer icon from MATLAB (i is the [16x16x3] 16-bit PNG image and a is the [16x16] AND mask for the transparency)
+i = im2double(i);                                                           % Convert the image to double precision, rescaling the data between 0 and 1
+a = im2double(a);                                                           % Convert the mask to double precision (0 = transparent pixels, 1 = non-transparent pixels)
+a(a==0) = NaN;                                                              % Convert 0 to NaN (= transparency for pushbutton's cdata)
+i = i.*repmat(a,[1,1,3]);                                                   % Mask the 3 layers of the image
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function i = zoom_icon
+
+[i,~,a] = imread(fullfile(matlabroot,'toolbox','matlab','icons','tool_zoom_in.png'),'PNG');	% Use the zoom icon from MATLAB
+i = im2double(i);
+a = im2double(a);
+a(a==0) = NaN;
+i = i.*repmat(a,[1,1,3]);
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function i = hand_icon
+
+[i,~,a] = imread(fullfile(matlabroot,'toolbox','matlab','icons','tool_hand.png'),'PNG');	% Use the hand icon from MATLAB
+i = im2double(i);
+a = im2double(a);
+a(a==0) = NaN;
+i = i.*repmat(a,[1,1,3]);
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function i = load_icon
+
+[i,~,a] = imread(fullfile(matlabroot,'toolbox','matlab','icons','file_open.png'),'PNG');    % Use the load icon from MATLAB
+i = im2double(i);
+a = im2double(a);
+a(a==0) = NaN;
+i = i.*repmat(a,[1,1,3]);
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function i = save_icon
+
+[i,~,a] = imread(fullfile(matlabroot,'toolbox','matlab','icons','file_save.png'),'PNG');    % Use the save icon from MATLAB
+i = im2double(i);
+a = im2double(a);
+a(a==0) = NaN;
+i = i.*repmat(a,[1,1,3]);
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function i = play_icon
+
+s = 11;                                                                     % Odd size (width and height)
+j = triu(ones((s-1)/2,(s+1)/2),1);                                          % Upper triangular '1' / lower triangular '0'
+j(j==1) = NaN;                                                              % 0 = black pixels and NaN = transparent pixels
+j = [j;zeros(1,(s+1)/2);flipud(j)];                                         % [s,(s+1)/2] black play icon on a transparent background
+i = nan(11,11);                                                             % [s,s-1] stretched play icon
+i(:,1:2:end) = j(:,1:end);
+i(:,2:2:end) = j(:,2:end);
+i = repmat(i,[1,1,3]);                                                      % Play icon image
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function i = stop_icon
+
+i = zeros(11,11,3);                                                         % Black stop icon
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function htoggletool = create_initial_toggletool(htoolbar,toggletool_cdata,toggletool_tooltipstring,toggletool_clickedcallback)
 
