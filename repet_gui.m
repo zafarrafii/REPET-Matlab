@@ -60,23 +60,19 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       07/23/18
+%       07/24/18
 
-% Create figure window and store in a handles structure
-% - Make the figure invisible while it is being created
-% - Make the figure a fourth of the screen and center it
-% - Hide the menu bar
-% - Do not include the number in the figure title
-% - Do not display the figure dock button
+% Make the figure a fourth of the screen
 screen_size = get(0,'ScreenSize');
 figure_size = screen_size(3:4)/2;
+
+% Create figure window
 figure_handle = figure( ...
     'Visible','off', ...
     'Position',[screen_size(3:4)/4+1,figure_size], ...
     'Name','REPET GUI', ...
-    'MenuBar','none', ...
     'NumberTitle','off', ...
-    'DockControls','off');
+    'MenuBar','none');
 
 % Create structure of handles
 handles_structure = guihandles(figure_handle); 
@@ -93,11 +89,27 @@ handles_structure.openaudio_toggle = uitoggletool( ...
 handles_structure.playaudio_toggle = uitoggletool( ...
     'CData',playicon, ...
     'TooltipString','Play audio', ...
-    'Enable','off');
+    'Enable','off', ...
+    'ClickedCallback',@playaudiocallback);
 handles_structure.repet_toggle = uitoggletool( ...
     'Separator','On', ...
     'CData',repeticon, ...
     'TooltipString','REPET', ...
+    'Enable','off');
+
+% Create pointer, zoom, and hand toggle button on toolbar
+handles_structure.select_toggle = uitoggletool( ...
+    'Separator','On', ...
+    'CData',iconread('tool_pointer.png'), ...
+    'TooltipString','Select', ...
+    'Enable','off');
+handles_structure.zoom_toggle = uitoggletool( ...
+    'CData',iconread('tool_zoom_in.png'), ...
+    'TooltipString','Zoom', ...
+    'Enable','off');
+handles_structure.pan_toggle = uitoggletool( ...
+    'CData',iconread('tool_hand.png'), ...
+    'TooltipString','Pan', ...
     'Enable','off');
 
 % Create save and play background toggle button on toolbar
@@ -120,21 +132,6 @@ handles_structure.saveforeground_toggle = uitoggletool( ...
 handles_structure.playforeground_toggle = uitoggletool( ...
     'CData',playicon, ...
     'TooltipString','Play foreground', ...
-    'Enable','off');
-
-% Create pointer, zoom, and hand toggle button on toolbar
-handles_structure.select_toggle = uitoggletool( ...
-    'Separator','On', ...
-    'CData',iconread('tool_pointer.png'), ...
-    'TooltipString','Select', ...
-    'Enable','off');
-handles_structure.zoom_toggle = uitoggletool( ...
-    'CData',iconread('tool_zoom_in.png'), ...
-    'TooltipString','Zoom', ...
-    'Enable','off');
-handles_structure.pan_toggle = uitoggletool( ...
-    'CData',iconread('tool_hand.png'), ...
-    'TooltipString','Pan', ...
     'Enable','off');
 
 % Create signal, spectrogram, and beat spectrum axes
@@ -201,23 +198,21 @@ function image_data = iconread(icon_name)
 [image_data,~,image_transparency] ...
     = imread(fullfile(matlabroot,'toolbox','matlab','icons',icon_name),'PNG');
 
-% Convert the image and its transparency to double precision (in [0,1])
+% Convert the image to double precision (in [0,1])
 image_data = im2double(image_data);
-image_transparency = im2double(image_transparency);
 
-% Convert the 0's to NaN's in the transparency and apply it to the image
-image_transparency(image_transparency==0) = NaN;
-image_data = image_data.*image_transparency;
+% Convert the 0's to NaN's in the image using the transparency
+image_data(image_transparency==0) = NaN;
 
 end
 
 % Create play icon, with transparency
 function image_data = playicon
 
-% Create the upper half of a black triangle, with NaN's everywhere else
-image_data = [nan(8,1),kron(triu(nan(8,7)),ones(1,2)),nan(8,1)];
+% Create the upper-half of a black triangle, with NaN's everywhere else
+image_data = [nan(2,16);[nan(6,3),kron(triu(nan(6,5)),ones(1,2)),nan(6,3)]];
 
-% Create the whole black triangle in 3D
+% Create the whole black triangle in 3d
 image_data = repmat([image_data;image_data(end:-1:1,:)],[1,1,3]);
 
 end
@@ -225,15 +220,20 @@ end
 % Create stop icon, with transparency
 function image_data = stopicon
 
-% Create a black square in 3d
-image_data = zeros(16,16,3);
+% Create a black square, with NaN's everywhere else
+image_data = nan(16,16);
+image_data(4:13,4:13) = 0;
+
+% Make the black square in 3d
+image_data = repmat(image_data,[1,1,3]);
+
 
 end
 
 % Create repet icon, with transparency
 function image_data = repeticon
 
-% Create RE and PET in 3d
+% Create R, E, P, E, and T in 3d
 image_data = nan(16,16,1);
 
 image_data(2:8,2:3) = 0;
@@ -259,17 +259,21 @@ image_data = repmat(image_data,[1,1,3]);
 
 end
 
-
+% Callback function for the open audio toggle button
 function openaudiocallback(~,~)
 
 % Retrieve the structure of handles
 handles_structure = guidata(gcbo);
 
-% Change back the state to off
+% Change back the state of the toggle button to off
 handles_structure.openaudio_toggle.State = 'off';
 
 % Open file selection dialog box
-[audio_name,audio_path] = uigetfile({'*.wav','*.mp3'});
+[audio_name,audio_path] = uigetfile({'*.wav';'*.mp3'}, ...
+    'Select WAVE or MP3 File to Open');
+if isequal(audio_name,0)
+    return
+end
 
 % Build full name
 audio_file = fullfile(audio_path,audio_name);
@@ -277,27 +281,47 @@ audio_file = fullfile(audio_path,audio_name);
 % Read audio file and return sample rate in Hz
 [audio_signal,sample_rate] = audioread(audio_file);
 
-% 
+% Number of samples
 number_samples = length(audio_signal);
 
-plot((1:number_samples)/sample_rate,audio_signal, ...
-    'Parent',handles_structure.audiosignal_axes);
+% Plot the audio
+plot(handles_structure.audiosignal_axes,(1:number_samples)/sample_rate,audio_signal);
+title(handles_structure.audiosignal_axes,audio_name,'Interpreter','None')
+xlabel(handles_structure.audiosignal_axes,'time (s)')
 
-% axes(h.mixture_wave_axes);
-% plot((1:L)/fs,x);                                                           % Plot in seconds
-% set(h.mixture_wave_axes, ...
-%     'XGrid','on', ...
-%     'XLim',[1,L]/fs, ...
-%     'YLim',[-1,1], ...
-%     'YTickLabel',[])
-% title(filename,'Interpreter','none')                                        % No interpreter to avoid underscore = subscript
-% xlabel('time (s)')
-% setAxesZoomMotion(zoom,h.mixture_wave_axes,'horizontal');                   % Constrained horizontal zoom
+% Update the axes properties
+handles_structure.audiosignal_axes.XLim = [1,number_samples]/sample_rate;
+handles_structure.audiosignal_axes.YLim = [-1,1];
+handles_structure.audiosignal_axes.XGrid = 'on';
+
+% Update the other toggle buttons
+handles_structure.playaudio_toggle.Enable = 'on';
+handles_structure.repet_toggle.Enable = 'on';
+handles_structure.repet_toggle.Enable = 'on';
+handles_structure.select_toggle.Enable = 'on';
+handles_structure.zoom_toggle.Enable = 'on';
+handles_structure.pan_toggle.Enable = 'on';
 
 % Update the structur of handles
 guidata(gcbo,handles_structure)
     
 end
+
+% Callback function for the play audio toggle button
+function playaudiocallback(~,~)
+
+% Retrieve the structure of handles
+handles_structure = guidata(gcbo);
+
+% Change back the state of the toggle button to off
+handles_structure.playaudio_toggle.State = 'off';
+handles_structure.playaudio_toggle.CData = stopicon;
+
+% Update the structur of handles
+guidata(gcbo,handles_structure)
+
+end
+
 
 
 function repet_demo_gui
