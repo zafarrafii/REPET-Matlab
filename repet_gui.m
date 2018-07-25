@@ -60,7 +60,7 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       07/24/18
+%       07/25/18
 
 % Make the figure a fourth of the screen
 screen_size = get(0,'ScreenSize');
@@ -80,7 +80,7 @@ handles_structure = guihandles(figure_handle);
 % Create toolbar on figure
 uitoolbar;
 
-% Create open, play, and repet toggle button on toolbar
+% Create open and play toggle button on toolbar
 handles_structure.openaudio_toggle = uitoggletool( ...
     'CData',iconread('file_open.png'), ...
     'TooltipString','Open audio', ...
@@ -91,11 +91,6 @@ handles_structure.playaudio_toggle = uitoggletool( ...
     'TooltipString','Play audio', ...
     'Enable','off', ...
     'ClickedCallback',@playaudiocallback);
-handles_structure.repet_toggle = uitoggletool( ...
-    'Separator','On', ...
-    'CData',repeticon, ...
-    'TooltipString','REPET', ...
-    'Enable','off');
 
 % Create pointer, zoom, and hand toggle button on toolbar
 handles_structure.select_toggle = uitoggletool( ...
@@ -112,6 +107,13 @@ handles_structure.pan_toggle = uitoggletool( ...
     'TooltipString','Pan', ...
     'Enable','off');
 
+% Create repet toggle button on toolbar
+handles_structure.repet_toggle = uitoggletool( ...
+    'Separator','On', ...
+    'CData',repeticon, ...
+    'TooltipString','REPET', ...
+    'Enable','off');
+
 % Create save and play background toggle button on toolbar
 handles_structure.savebackground_toggle = uitoggletool( ...
     'Separator','On', ...
@@ -119,7 +121,7 @@ handles_structure.savebackground_toggle = uitoggletool( ...
     'TooltipString','Save background', ...
     'Enable','off');
 handles_structure.playbackground_toggle = uitoggletool( ...
-    'CData',stopicon, ...
+    'CData',playicon, ...
     'TooltipString','Play background', ...
     'Enable','off');
 
@@ -141,7 +143,7 @@ handles_structure.audiosignal_axes = axes( ...
     'Position',[0.025,0.85,0.45,0.1], ...
     'XTick',[], ...
     'YTick',[]);
-handles_structure.audiosspectrogram_axes = axes( ...
+handles_structure.audiospectrogram_axes = axes( ...
     'Units','normalized', ...
     'Box','on', ...
     'Position',[0.025,0.55,0.45,0.2], ...
@@ -280,27 +282,81 @@ audio_file = fullfile(audio_path,audio_name);
 
 % Read audio file and return sample rate in Hz
 [audio_signal,sample_rate] = audioread(audio_file);
+audio_signal = audio_signal(1:sample_rate,:);
+% Number of samples and channels
+[number_samples,number_channels] = size(audio_signal);
 
-% Number of samples
-number_samples = length(audio_signal);
+% Window length in samples (audio stationary around 40 ms; power of 2 for 
+% fast FFT and constant overlap-add)
+window_length = 2.^nextpow2(0.04*sample_rate);
 
-% Plot the audio
+% Window function ('periodic' Hamming window for constant overlap-add)
+window_function = hamming(window_length,'periodic');
+
+% Step function (half the (even) window length for constant overlap-add)
+step_length = window_length/2;
+
+% Number of time frames
+number_times = ceil((window_length-step_length+number_samples)/step_length);
+
+% Initialize the STFT
+audio_stft = zeros(window_length,number_times,number_channels);
+
+% Loop over the channels
+for channel_index = 1:number_channels
+    
+    % STFT of the current channel
+    audio_stft(:,:,channel_index) ...
+        = stft(audio_signal(:,channel_index),window_function,step_length);
+    
+end
+
+% Magnitude spectrogram (with DC component and without mirrored
+% frequencies)
+audio_spectrogram = abs(audio_stft(1:window_length/2+1,:,:));
+
+% Plot the audio signal
 plot(handles_structure.audiosignal_axes,(1:number_samples)/sample_rate,audio_signal);
-title(handles_structure.audiosignal_axes,audio_name,'Interpreter','None')
-xlabel(handles_structure.audiosignal_axes,'time (s)')
 
 % Update the axes properties
 handles_structure.audiosignal_axes.XLim = [1,number_samples]/sample_rate;
 handles_structure.audiosignal_axes.YLim = [-1,1];
 handles_structure.audiosignal_axes.XGrid = 'on';
+handles_structure.audiosignal_axes.Title.String = audio_name;
+handles_structure.audiosignal_axes.Title.Interpreter = 'None';
+handles_structure.audiosignal_axes.XLabel.String = 'time (s)';
 
-% Update the other toggle buttons
+% Display the audio spectrogram
+audio_spectrogram = mean(audio_spectrogram,3);
+% color_limits = db([min(audio_spectrogram(:)),max(audio_spectrogram(:))]);
+imagesc(handles_structure.audiospectrogram_axes,db(audio_spectrogram))
+
+% Update the axes properties
+handles_structure.audiospectrogram_axes.Colormap = jet;
+handles_structure.audiospectrogram_axes.YDir = 'normal';
+handles_structure.audiospectrogram_axes.XGrid = 'on';
+handles_structure.audiospectrogram_axes.Title.String = 'Audio spectrogram';
+handles_structure.audiospectrogram_axes.XTick = round((1:floor(number_samples/sample_rate))*sample_rate/step_length);
+handles_structure.audiospectrogram_axes.XTickLabel = 1:floor(number_samples/sample_rate);
+handles_structure.audiospectrogram_axes.XLabel.String = 'time (s)';
+handles_structure.audiospectrogram_axes.YTick = round((1e3:1e3:sample_rate/2)/sample_rate*window_length);
+handles_structure.audiospectrogram_axes.YTickLabel = 1:sample_rate/2*1e-3;
+handles_structure.audiospectrogram_axes.YLabel.String = 'frequency (kHz)';
+
+% Update the toggle buttons
 handles_structure.playaudio_toggle.Enable = 'on';
-handles_structure.repet_toggle.Enable = 'on';
-handles_structure.repet_toggle.Enable = 'on';
 handles_structure.select_toggle.Enable = 'on';
 handles_structure.zoom_toggle.Enable = 'on';
 handles_structure.pan_toggle.Enable = 'on';
+handles_structure.repet_toggle.Enable = 'on';
+
+% Create object for playing audio
+handles_structure.audio_player = audioplayer(audio_signal,sample_rate);
+
+
+set(handles_structure.audio_player, ...
+    'StartFcn',@audioplayer_startfcn, ...
+    'StopFcn',@audioplayer_stopfcn)
 
 % Update the structur of handles
 guidata(gcbo,handles_structure)
@@ -315,60 +371,124 @@ handles_structure = guidata(gcbo);
 
 % Change back the state of the toggle button to off
 handles_structure.playaudio_toggle.State = 'off';
-handles_structure.playaudio_toggle.CData = stopicon;
 
-% Update the structur of handles
+% If playback is in progress
+if isplaying(handles_structure.audio_player)
+    
+    % Stop playback
+    stop(handles_structure.audio_player)
+    
+else
+    
+    % Play audio from audioplayer object
+    play(handles_structure.audio_player)
+    
+end
+
+% Update the structure of handles
 guidata(gcbo,handles_structure)
 
 end
 
 
+function audioplayer_startfcn(~,~)
+
+% Retrieve the structure of handles
+handles_structure = guidata(gcbo);
+
+% Update the toggle button icon
+handles_structure.playaudio_toggle.CData = stopicon;
+
+% Update the structure of handles
+guidata(gcbo,handles_structure)
+
+end
+
+function audioplayer_stopfcn(~,~)
+        
+% Retrieve the structure of handles
+handles_structure = guidata(gcbo);
+
+% Update the toggle button icon
+handles_structure.playaudio_toggle.CData = playicon;
+
+% Update the structure of handles
+guidata(gcbo,handles_structure)
+
+end
+
+
+% Short-time Fourier transform (STFT) (with zero-padding at the edges)
+function audio_stft = stft(audio_signal,window_function,step_length)
+
+% Number of samples and window length
+number_samples = length(audio_signal);
+window_length = length(window_function);
+
+% Number of time frames
+number_times = ceil((window_length-step_length+number_samples)/step_length);
+
+% Zero-padding at the start and end to center the windows
+audio_signal = [zeros(window_length-step_length,1);audio_signal; ...
+    zeros(number_times*step_length-number_samples,1)];
+
+% Initialize the STFT
+audio_stft = zeros(window_length,number_times);
+
+% Loop over the time frames
+for time_index = 1:number_times
+    
+    % Window the signal
+    sample_index = step_length*(time_index-1);
+    audio_stft(:,time_index) = audio_signal(1+sample_index:window_length+sample_index).*window_function;
+    
+end
+
+% Fourier transform of the frames
+audio_stft = fft(audio_stft);
+
+end
+
+% Inverse STFT
+function audio_signal = istft(audio_stft,window_function,step_length)
+
+% Window length and number of time frames
+[window_length,number_times] = size(audio_stft);
+
+% Number of samples for the signal
+number_samples = (number_times-1)*step_length+window_length;
+
+% Initialize the signal
+audio_signal = zeros(number_samples,1);
+
+% Inverse Fourier transform of the frames and real part to
+% ensure real values
+audio_stft = real(ifft(audio_stft));
+
+% Loop over the time frames
+for time_index = 1:number_times
+    
+    % Inverse Fourier transform of the signal (normalized
+    % overlap-add if proper window and step)
+    sample_index = step_length*(time_index-1);
+    audio_signal(1+sample_index:window_length+sample_index) ...
+        = audio_signal(1+sample_index:window_length+sample_index)+audio_stft(:,time_index);
+    
+end
+
+% Remove the zero-padding at the start and the end
+audio_signal = audio_signal(window_length-step_length+1:number_samples-(window_length-step_length));
+
+% Un-window the signal (just in case)
+audio_signal = audio_signal/sum(window_function(1:step_length:window_length));
+
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function repet_demo_gui
-
-% Create figure object with toolbar and save the handles in a structure h:
-
-figure_color = [240,240,240]/255;                                           % Grey94 RGB
-screen_size = get(0,'ScreenSize');                                          % Screen size [1,1,width,height]
-figure_position = [round(screen_size(3)/2-500/2),round(screen_size(4)/2-500/2),500,500];    % [left,bottom,width,height]
-h.figure = figure( ...
-    'Color',figure_color, ...
-    'DockControls','off', ...                                               % Do not display controls used to dock figure
-    'MenuBar','none', ...                                                   % Disable figure menu bar
-    'Name','REPET GUI', ...                                                 % Figure window title
-    'NumberTitle','off', ...                                                % Do not display figure window title number (by default 'on' with programming GUI)
-    'Position',figure_position, ...                                         % Centered position
-    'Renderer','zbuffer', ...                                               % Rendering method ('zbuffer' is faster and more accurate than 'painters'; 'opengl' is even faster but it behaves weird)
-    'Resize','off', ...                                                     % Disable window resizing
-    'CloseRequestFcn',@figure_closerequestfcn);                             % Call figure_closerequestfcn when figure closes
-
-toolbar = uitoolbar(h.figure);                                              % Create a toolbar at the top of the figure window
-h.select_toggletool = create_initial_toggletool( ...                        % Create an initial select toggle button on toolbar
-    toolbar,pointer_icon,'Selection tool',@select_toggletool_clickedcallback);
-h.zoom_toggletool = create_initial_toggletool( ...                          % Create an initial zoom toggle button on toolbar
-    toolbar,zoom_icon,'Zoom tool',@zoom_toggletool_clickedcallback);
-h.pan_toggletool = create_initial_toggletool( ...                           % Create an initial pan toggle button on toolbar
-    toolbar,hand_icon,'Pan tool',@pan_toggletool_clickedcallback);
-
-% Create objects related with the mixture and save their handles in h:
-
-load_mixture_pushbutton_position = [10,460,30,30];
-h.load_mixture_pushbutton = create_initial_pushbutton( ...
-    load_icon,load_mixture_pushbutton_position,'Load mixture',@load_mixture_pushbutton_callback);   % Create initial push button (see below)
-set(h.load_mixture_pushbutton, ...
-    'Enable','on')                                                          % Load is the only object initially enabled
-play_mixture_pushbutton_position = [10,420,30,30];                          % Left position aligned with load_mixture_pushbutton
-h.play_mixture_pushbutton = create_initial_pushbutton( ...
-    play_icon,play_mixture_pushbutton_position,'Play mixture',@play_mixture_pushbutton_callback);
-repet_mixture_pushbutton_position = [210,430,50,50];                        % Additional gap for the bottom position
-h.repet_mixture_pushbutton = uicontrol( ...                                 % Repet push button (does not use create_initial_pushbutton)
-    'Enable','off', ...
-    'FontWeight','bold', ...
-    'Position',repet_mixture_pushbutton_position, ...
-    'String','REPET',...
-    'Style','pushbutton',...
-    'TooltipString','Process mixture', ...
-    'Callback',@repet_mixture_pushbutton_callback);
 
 mixture_wave_axes_position = [50,430,150,50];                               % Additional gap for the bottom position
 h.mixture_wave_axes = create_initial_axes( ...
@@ -480,66 +600,6 @@ delete(gcf)                                                                 % De
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function disable_enable_figure                                              % Commented because of compatibility problems
-
-% javaframe = get(handle(gcf),'JavaFrame');                                   % Hidden property of the figure
-% figurepanelcontainer = get(javaframe,'FigurePanelContainer');               % Figure's content area (not including menu bar and toolbar)
-% switch figurepanelcontainer.isEnabled                                       % Check if the content area is disabled or not
-%     case 0
-%         figurepanelcontainer.setEnabled(true)                               % Enable the content area if disabled
-%         javaframe.fFigureClient.setCursor(java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR))  % Set the cursor watch to the default pointer
-%     case 1
-%         javaframe.fFigureClient.setCursor(java.awt.Cursor(java.awt.Cursor.WAIT_CURSOR))     % Set the cursor default pointer to watch
-%         figurepanelcontainer.setEnabled(false)                              % Disable the content area if enabled
-% end
-
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-function htoggletool = create_initial_toggletool(htoolbar,toggletool_cdata,toggletool_tooltipstring,toggletool_clickedcallback)
-
-htoggletool = uitoggletool(htoolbar, ...
-    'CData',toggletool_cdata, ...
-    'Enable','off', ...
-    'TooltipString',toggletool_tooltipstring, ...
-    'ClickedCallback',toggletool_clickedcallback);
-
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function hpushbutton = create_initial_pushbutton(pushbutton_cdata,pushbutton_position,pushbutton_tooltipstring,pushbutton_callback)
-
-hpushbutton =  uicontrol( ...
-    'CData',pushbutton_cdata, ...
-    'Enable','off', ...
-    'Position',pushbutton_position, ...
-    'Style','pushbutton', ...
-    'TooltipString',pushbutton_tooltipstring, ...
-    'Callback',pushbutton_callback);
-
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function haxes = create_initial_axes(axes_position)
-
-figure_color = [240,240,240]/255;
-
-haxes = axes( ...
-    'Units','pixels', ...                                                   % Set units before position!
-    'Box','on', ...
-    'Color',figure_color, ...                                               % Initially same color as figure
-    'Position',axes_position, ...
-    'XTick',[], ...                                                         % Initially no ticks
-    'YTick',[]);                                                            % Initialize ButtonDownFcn only when plotting or it will be reset
-
-end
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function hslider = create_initial_slider(slider_position,slider_tooltipstring,slider_callback)
@@ -1780,37 +1840,6 @@ f = get(haxes,'Parent');
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function X = stft(x,win,stp)
-
-t = length(x);                                                              % Number of samples
-N = length(win);                                                            % Analysis window length
-m = ceil((N-stp+t)/stp);                                                    % Number of frames with zero-padding
-x = [zeros(N-stp,1);x;zeros(m*stp-t,1)];                                    % Zero-padding for constant overlap-add
-X = zeros(N,m);
-for j = 1:m                                                                 % Loop over the frames
-    X(:,j) = fft(x((1:N)+stp*(j-1)).*win);                                  % Windowing and fft
-end
-
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function x = istft(X,win,stp)
-
-[N,m] = size(X);                                                            % Number of frequency bins and time frames
-l = (m-1)*stp+N;                                                            % Length with zero-padding
-x = zeros(l,1);
-for j = 1:m                                                                 % Loop over the frames
-    x((1:N)+stp*(j-1)) = x((1:N)+stp*(j-1))+real(ifft(X(:,j)));             % Un-windowing and ifft (assuming constant overlap-add)
-end
-x(l-(N-stp)+1:l) = [];                                                      % Remove zero-padding at the beginning
-x(1:N-stp) = [];                                                            % Remove zero-padding at the end
-x = x/sum(win(1:stp:N));                                                    % Normalize constant overlap-add using win
-
-end
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function C = acorr(X)
