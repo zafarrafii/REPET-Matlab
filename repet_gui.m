@@ -60,16 +60,15 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       07/27/18
+%       07/31/18
 
-% Make the figure a fourth of the screen
+% Get screen size
 screen_size = get(0,'ScreenSize');
-figure_size = screen_size(3:4)/2;
 
 % Create figure window
 figure_handle = figure( ...
     'Visible','off', ...
-    'Position',[screen_size(3:4)/4+1,figure_size], ...
+    'Position',[screen_size(3:4)/4+1,screen_size(3:4)/2], ...
     'Name','REPET GUI', ...
     'NumberTitle','off', ...
     'MenuBar','none');
@@ -137,19 +136,19 @@ playforeground_toggle = uitoggletool( ...
 audiosignal_axes = axes( ...
     'Units','normalized', ...
     'Box','on', ...
-    'Position',[0.025,0.85,0.45,0.1], ...
+    'Position',[0.04,0.93,0.45,0.05], ...
     'XTick',[], ...
     'YTick',[]);
 audiospectrogram_axes = axes( ...
     'Units','normalized', ...
     'Box','on', ...
-    'Position',[0.025,0.55,0.45,0.2], ...
+    'Position',[0.04,0.56,0.45,0.30], ...
     'XTick',[], ...
     'YTick',[]);
 beatspectrum_axes = axes( ...
     'Units','normalized', ...
     'Box','on', ...
-    'Position',[0.025,0.35,0.45,0.1], ...
+    'Position',[0.04,0.38,0.45,0.10], ...
     'XTick',[], ...
     'YTick',[]);
 
@@ -157,13 +156,13 @@ beatspectrum_axes = axes( ...
 backgroundsignal_axes = axes( ...
     'Units','normalized', ...
     'Box','on', ...
-    'Position',[0.525,0.85,0.45,0.1], ...
+    'Position',[0.54,0.93,0.45,0.05], ...
     'XTick',[], ...
     'YTick',[]);
 backgroundspectrogram_axes = axes( ...
     'Units','normalized', ...
     'Box','on', ...
-    'Position',[0.525,0.55,0.45,0.2], ...
+    'Position',[0.54,0.56,0.45,0.30], ...
     'XTick',[], ...
     'YTick',[]);
 
@@ -171,13 +170,13 @@ backgroundspectrogram_axes = axes( ...
 foregroundsignal_axes = axes( ...
     'Units','normalized', ...
     'Box','on', ...
-    'Position',[0.525,0.35,0.45,0.1], ...
+    'Position',[0.54,0.43,0.45,0.05], ...
     'XTick',[], ...
     'YTick',[]);
 foregroundspectrogram_axes = axes( ...
     'Units','normalized', ...
     'Box','on', ...
-    'Position',[0.525,0.05,0.45,0.2], ...
+    'Position',[0.54,0.06,0.45,0.30], ...
     'XTick',[], ...
     'YTick',[]);
 
@@ -308,7 +307,7 @@ figure_handle.Visible = 'on';
 
         % Plot the audio signal
         plot(audiosignal_axes,(1:number_samples)/sample_rate,audio_signal);
-
+        
         % Update the axes properties
         audiosignal_axes.XLim = [1,number_samples]/sample_rate;
         audiosignal_axes.YLim = [-1,1];
@@ -318,19 +317,84 @@ figure_handle.Visible = 'on';
         audiosignal_axes.XLabel.String = 'time (s)';
         
         % Display the audio spectrogram
-        imagesc(audiospectrogram_axes,db(mean(audio_spectrogram,3)))
+        imagesc(audiospectrogram_axes, ...
+            [1,number_times]/number_times*number_samples/sample_rate, ...
+            [1,window_length/2]/window_length*sample_rate, ...
+            db(mean(audio_spectrogram(2:end,:),3)))
         
         % Update the axes properties
         audiospectrogram_axes.Colormap = jet;
         audiospectrogram_axes.YDir = 'normal';
         audiospectrogram_axes.XGrid = 'on';
         audiospectrogram_axes.Title.String = 'Audio spectrogram';
-        audiospectrogram_axes.XTick = ceil(((1:floor(number_samples/sample_rate))*sample_rate+window_length-step_length)/step_length);
-        audiospectrogram_axes.XTickLabel = 1:floor(number_samples/sample_rate);
         audiospectrogram_axes.XLabel.String = 'time (s)';
-        audiospectrogram_axes.YTick = round((1e3:1e3:sample_rate/2)/sample_rate*window_length);
-        audiospectrogram_axes.YTickLabel = 1:sample_rate/2*1e-3;
-        audiospectrogram_axes.YLabel.String = 'frequency (kHz)';
+        audiospectrogram_axes.YLabel.String = 'frequency (Hz)';
+        
+        
+        
+%         %%% FOR TESTS:
+%         % Plot the audio signal
+%         plot(beatspectrum_axes,(1:number_samples)/sample_rate,audio_signal);
+%         
+%         % Update the axes properties
+%         beatspectrum_axes.XLim = [1,number_samples]/sample_rate;
+%         beatspectrum_axes.YLim = [-1,1];
+%         beatspectrum_axes.XGrid = 'on';
+%         beatspectrum_axes.Title.String = audio_name;
+%         beatspectrum_axes.Title.Interpreter = 'None';
+%         beatspectrum_axes.XLabel.String = 'time (s)';
+%         
+%         % Plot the audio signal
+%         plot(backgroundsignal_axes,(1:number_samples)/sample_rate,audio_signal);
+%         
+%         % Update the axes properties
+%         backgroundsignal_axes.XLim = [1,number_samples]/sample_rate;
+%         backgroundsignal_axes.YLim = [-1,1];
+%         backgroundsignal_axes.XGrid = 'on';
+%         backgroundsignal_axes.Title.String = audio_name;
+%         backgroundsignal_axes.Title.Interpreter = 'None';
+%         backgroundsignal_axes.XLabel.String = 'time (s)';
+%         
+%         % Display the audio spectrogram
+%         imagesc(backgroundspectrogram_axes, ...
+%             [1,number_times]/number_times*number_samples/sample_rate, ...
+%             [1,window_length/2]/window_length*sample_rate, ...
+%             db(mean(audio_spectrogram(2:end,:),3)))
+%         
+%         % Update the axes properties
+%         backgroundspectrogram_axes.Colormap = jet;
+%         backgroundspectrogram_axes.YDir = 'normal';
+%         backgroundspectrogram_axes.XGrid = 'on';
+%         backgroundspectrogram_axes.Title.String = 'Audio spectrogram';
+%         backgroundspectrogram_axes.XLabel.String = 'time (s)';
+%         backgroundspectrogram_axes.YLabel.String = 'frequency (Hz)';
+%         
+%         % Plot the audio signal
+%         plot(foregroundsignal_axes,(1:number_samples)/sample_rate,audio_signal);
+%         
+%         % Update the axes properties
+%         foregroundsignal_axes.XLim = [1,number_samples]/sample_rate;
+%         foregroundsignal_axes.YLim = [-1,1];
+%         foregroundsignal_axes.XGrid = 'on';
+%         foregroundsignal_axes.Title.String = audio_name;
+%         foregroundsignal_axes.Title.Interpreter = 'None';
+%         foregroundsignal_axes.XLabel.String = 'time (s)';
+%         
+%         % Display the audio spectrogram
+%         imagesc(foregroundspectrogram_axes, ...
+%             [1,number_times]/number_times*number_samples/sample_rate, ...
+%             [1,window_length/2]/window_length*sample_rate, ...
+%             db(mean(audio_spectrogram(2:end,:),3)))
+%         
+%         % Update the axes properties
+%         foregroundspectrogram_axes.Colormap = jet;
+%         foregroundspectrogram_axes.YDir = 'normal';
+%         foregroundspectrogram_axes.XGrid = 'on';
+%         foregroundspectrogram_axes.Title.String = 'Audio spectrogram';
+%         foregroundspectrogram_axes.XLabel.String = 'time (s)';
+%         foregroundspectrogram_axes.YLabel.String = 'frequency (Hz)';
+        
+        
         
         % Update the toggle buttons
         playaudio_toggle.Enable = 'on';
@@ -342,10 +406,9 @@ figure_handle.Visible = 'on';
         % Create object for playing audio
         audio_player = audioplayer(audio_signal,sample_rate);
         
-        set(audio_player, ...
-            'StartFcn',@audioplayer_startfcn, ...
-            'StopFcn',@audioplayer_stopfcn, ...
-            'TimerFcn',@audioplayer_timerfcn)
+        audio_player.StartFcn = @audioplayer_startfcn;
+        audio_player.StopFcn = @audioplayer_stopfcn;
+        audio_player.TimerFcn = @audioplayer_timerfcn;
         
     end
 
@@ -369,24 +432,29 @@ figure_handle.Visible = 'on';
         end
         
     end
-
+    
+    % Function to execute one time when playback starts
     function audioplayer_startfcn(~,~)
         
         % Update the toggle button icon
         playaudio_toggle.CData = stopicon;
         
     end
-
+    
+    % Function to execute one time when playback stops
     function audioplayer_stopfcn(~,~)
 
         % Update the toggle button icon
         playaudio_toggle.CData = playicon;
-
-    end
-
-    function audioplayer_timerfcn(~,~)
         
-        rand
+    end
+    
+    % Function to execute repeatedly during playback
+    function audioplayer_timerfcn(object_handle,~)
+        
+        current_sample = object_handle.CurrentSample;
+        
+        
         
     end
 
