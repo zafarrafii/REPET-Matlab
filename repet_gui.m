@@ -60,7 +60,7 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       08/01/18
+%       08/02/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -182,10 +182,10 @@ mixturespectrogram_axes = axes( ...
 % Make the figure visible
 figure_handle.Visible = 'on';
 
-    % Callback function for the open audio toggle button
+    % Clicked callback function for the open mixture toggle button
     function openmixturecallback(~,~)
         
-        % Change back the state of the toggle button to off
+        % Change toggle button state to off
         openmixture_toggle.State = 'off';
         
         % Open file selection dialog box
@@ -261,8 +261,12 @@ figure_handle.Visible = 'on';
         % Create object for playing audio
         mixture_player = audioplayer(mixture_signal,sample_rate);
         
-        % Add clicked callback to the play mixture toggle button
+        % Add clicked callback function to the play mixture toggle button
         playmixture_toggle.ClickedCallback = {@playaudiocallback,mixture_player};
+        
+        % Add an audio line on the mixture signal axes using the mixture 
+        % player
+        audioline(mixture_player,mixturesignal_axes);
         
         % Enable the play mixture, select, zoom, pan, and repet toggle 
         % buttons
@@ -375,58 +379,72 @@ audio_stft = fft(audio_stft);
 
 end
 
-% Tool clicked callback
+% Clicked callback function for the play mixture, background, and 
+% foreground toggle buttons
 function playaudiocallback(object_handle,~,audio_player)
 
-% Change back the state of the toggle button to off
+% Change the toggle button state to off
 object_handle.State = 'off';
 
-% Add callback functions to the audio player object
-audio_player.StartFcn = @audioplayer_startfcn;
-audio_player.StopFcn = @audioplayer_stopfcn;
-audio_player.TimerFcn = @audioplayer_timerfcn;
-
-% If playback is in progress
+% If the playback is in progress
 if isplaying(audio_player)
     
-    % Stop playback
+    % Change the toggle button icon to a play icon
+    object_handle.CData = playicon;
+    
+    % Stop the audio
     stop(audio_player)
     
 else
     
-    % Play audio from audioplayer object
+    % Change the toggle button icon to a stop icon
+    object_handle.CData = stopicon;
+    
+    % Play the audio
     play(audio_player)
     
 end
 
+end
+
+% Create, update, and delete an audio line on a signal axes using an audio 
+% player
+function audioline(audio_player,signal_axes)
+
+% Add callback functions to the audio player
+audio_player.StartFcn = @audioplayer_startfcn;
+audio_player.StopFcn = @audioplayer_stopfcn;
+audio_player.TimerFcn = @audioplayer_timerfcn;
+
+% Initialize the audio line
+audio_line = [];
+
     % Function to execute one time when playback starts
     function audioplayer_startfcn(~,~)
         
-        % Update the toggle button icon
-        object_handle.CData = stopicon;
+        % Create an audio line
+        audio_line = line(signal_axes,[0,0],[-1,1]);
         
     end
     
     % Function to execute one time when playback stops
     function audioplayer_stopfcn(~,~)
         
-        % Update the toggle button icon
-        object_handle.CData = playicon;
+        % Delete the audio line
+        delete(audio_line)
         
     end
     
     % Function to execute repeatedly during playback
     function audioplayer_timerfcn(~,~)
         
-        % Current sample that the audio output device is playing
+        % Current sample and sample rate in Hz from the audio player
         current_sample = audio_player.CurrentSample;
-        
-        % Sampling frequency in Hz
         sample_rate = audio_player.SampleRate;
         
-%         set(audio_line,'XData',current_sample*[1,1]/sample_rate)
+        % Update the audio line
+        set(audio_line,'XData',[1,1]*current_sample/sample_rate)
         
     end
 
 end
-
