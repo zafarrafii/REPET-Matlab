@@ -60,13 +60,13 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       08/02/18
+%       08/03/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
 
 % Create figure window
-figure_handle = figure( ...
+figure_object = figure( ...
     'Visible','off', ...
     'Position',[screen_size(3:4)/4+1,screen_size(3:4)/2], ...
     'Name','REPET GUI', ...
@@ -74,59 +74,59 @@ figure_handle = figure( ...
     'MenuBar','none');
 
 % Create toolbar on figure
-uitoolbar;
+toolbar_object = uitoolbar(figure_object);
 
 % Create open and play toggle button on toolbar
-openmixture_toggle = uitoggletool( ...
+openmixture_toggle = uitoggletool(toolbar_object, ...
     'CData',iconread('file_open.png'), ...
     'TooltipString','Open mixture', ...
     'Enable','on', ...
-    'ClickedCallback',@openmixturecallback);
-playmixture_toggle = uitoggletool( ...
+    'ClickedCallback',@openmixtureclickedcallback);
+playmixture_toggle = uitoggletool(toolbar_object, ...
     'CData',playicon, ...
     'TooltipString','Play mixture', ...
     'Enable','off');
 
 % Create pointer, zoom, and hand toggle button on toolbar
-select_toggle = uitoggletool( ...
+select_toggle = uitoggletool(toolbar_object, ...
     'Separator','On', ...
     'CData',iconread('tool_pointer.png'), ...
     'TooltipString','Select', ...
     'Enable','off');
-zoom_toggle = uitoggletool( ...
+zoom_toggle = uitoggletool(toolbar_object, ...
     'CData',iconread('tool_zoom_in.png'), ...
     'TooltipString','Zoom', ...
     'Enable','off');
-pan_toggle = uitoggletool( ...
+pan_toggle = uitoggletool(toolbar_object, ...
     'CData',iconread('tool_hand.png'), ...
     'TooltipString','Pan', ...
     'Enable','off');
 
 % Create repet toggle button on toolbar
-repet_toggle = uitoggletool( ...
+repet_toggle = uitoggletool(toolbar_object, ...
     'Separator','On', ...
     'CData',repeticon, ...
     'TooltipString','REPET', ...
     'Enable','off');
 
 % % Create save and play background toggle button on toolbar
-% savebackground_toggle = uitoggletool( ...
+% savebackground_toggle = uitoggletool(toolbar_object, ...
 %     'Separator','On', ...
 %     'CData',iconread('file_save.png'), ...
 %     'TooltipString','Save background', ...
 %     'Enable','off');
-% playbackground_toggle = uitoggletool( ...
+% playbackground_toggle = uitoggletool(toolbar_object, ...
 %     'CData',playicon, ...
 %     'TooltipString','Play background', ...
 %     'Enable','off');
 % 
 % % Create save and play foreground toggle button on toolbar
-% saveforeground_toggle = uitoggletool( ...
+% saveforeground_toggle = uitoggletool(toolbar_object, ...
 %     'Separator','On', ...
 %     'CData',iconread('file_save.png'), ...
 %     'TooltipString','Save foreground', ...
 %     'Enable','off');
-% playforeground_toggle = uitoggletool( ...
+% playforeground_toggle = uitoggletool(toolbar_object, ...
 %     'CData',playicon, ...
 %     'TooltipString','Play foreground', ...
 %     'Enable','off');
@@ -180,10 +180,10 @@ mixturespectrogram_axes = axes( ...
 %     'YTick',[]);
 
 % Make the figure visible
-figure_handle.Visible = 'on';
-
+figure_object.Visible = 'on';
+    
     % Clicked callback function for the open mixture toggle button
-    function openmixturecallback(~,~)
+    function openmixtureclickedcallback(~,~)
         
         % Change toggle button state to off
         openmixture_toggle.State = 'off';
@@ -261,12 +261,22 @@ figure_handle.Visible = 'on';
         % Create object for playing audio
         mixture_player = audioplayer(mixture_signal,sample_rate);
         
-        % Add clicked callback function to the play mixture toggle button
-        playmixture_toggle.ClickedCallback = {@playaudiocallback,mixture_player};
+        % Add close request callback function for the figure
+        figure_object.CloseRequestFcn = {@figurecloserequestfcn,mixture_player};
         
         % Add an audio line on the mixture signal axes using the mixture 
         % player
-        audioline(mixture_player,mixturesignal_axes);
+        playaudioline(mixture_player,playmixture_toggle,mixturesignal_axes);
+        
+        % Add clicked callback function to the play mixture toggle button
+        playmixture_toggle.ClickedCallback = {@playaudioclickedcallback,mixture_player};
+        
+        % ...
+        select_toggle.ClickedCallback = @selectclickedcallback;
+        zoom_toggle.ClickedCallback = @zoomclickedcallback;
+        pan_toggle.ClickedCallback = @panclickedcallback;
+        
+        selectaudioline(mixturesignal_axes)
         
         % Enable the play mixture, select, zoom, pan, and repet toggle 
         % buttons
@@ -275,6 +285,36 @@ figure_handle.Visible = 'on';
         zoom_toggle.Enable = 'on';
         pan_toggle.Enable = 'on';
         repet_toggle.Enable = 'on';
+        
+        % Change the select toggle button states to on
+        select_toggle.State = 'on';
+        
+    end
+
+    % Clicked callback function for the select toggle button
+    function selectclickedcallback(~,~)
+        
+        % Change the zoom and pan toggle button states to off
+        zoom_toggle.State = 'off';
+        pan_toggle.State = 'off';
+        
+    end
+
+    % Clicked callback function for the zoom toggle button
+    function zoomclickedcallback(~,~)
+        
+        % Change the select and pan toggle button states to off
+        select_toggle.State = 'off';
+        pan_toggle.State = 'off';
+        
+    end
+
+    % Clicked callback function for the pan toggle button
+    function panclickedcallback(~,~)
+        
+        % Change the select and zoom toggle button states to off
+        select_toggle.State = 'off';
+        zoom_toggle.State = 'off';
         
     end
 
@@ -379,9 +419,73 @@ audio_stft = fft(audio_stft);
 
 end
 
+% Close request callback function for the figure
+function figurecloserequestfcn(~,~,mixture_player)
+
+% If the playback is in progress
+if isplaying(mixture_player)
+    
+    % Stop the audio
+    stop(mixture_player)
+    
+end
+
+% Delete the current figure
+delete(gcf)
+
+end
+
+% Create, update, and delete an audio line on a audio signal axes using an 
+% audio player
+function playaudioline(audio_player,playaudio_toggle,audiosignal_axes)
+
+% Add callback functions to the audio player
+audio_player.StartFcn = @audioplayerstartfcn;
+audio_player.StopFcn = @audioplayerstopfcn;
+audio_player.TimerFcn = @audioplayertimerfcn;
+
+% Initialize the audio line
+audio_line = [];
+
+    % Function to execute one time when playback starts
+    function audioplayerstartfcn(~,~)
+        
+        % Change the play audio toggle button icon to a stop icon
+        playaudio_toggle.CData = stopicon;
+        
+        % Create an audio line on the audio signal axes
+        audio_line = line(audiosignal_axes,[0,0],[-1,1]);
+        
+    end
+    
+    % Function to execute one time when playback stops
+    function audioplayerstopfcn(~,~)
+        
+        % Change the play audio toggle button icon to a play icon
+        playaudio_toggle.CData = playicon;
+        
+        % Delete the audio line
+        delete(audio_line)
+        
+    end
+    
+    % Function to execute repeatedly during playback
+    function audioplayertimerfcn(~,~)
+        
+        % Current sample and sample rate in Hz from the audio player
+        current_sample = audio_player.CurrentSample;
+        sample_rate = audio_player.SampleRate;
+        
+        % Update the audio line
+        set(audio_line,'XData',[1,1]*current_sample/sample_rate)
+        
+    end
+
+end
+
 % Clicked callback function for the play mixture, background, and 
 % foreground toggle buttons
-function playaudiocallback(object_handle,~,audio_player)
+function playaudioclickedcallback(object_handle,~,audio_player)
 
 % Change the toggle button state to off
 object_handle.State = 'off';
@@ -389,16 +493,10 @@ object_handle.State = 'off';
 % If the playback is in progress
 if isplaying(audio_player)
     
-    % Change the toggle button icon to a play icon
-    object_handle.CData = playicon;
-    
     % Stop the audio
     stop(audio_player)
     
 else
-    
-    % Change the toggle button icon to a stop icon
-    object_handle.CData = stopicon;
     
     % Play the audio
     play(audio_player)
@@ -407,43 +505,27 @@ end
 
 end
 
-% Create, update, and delete an audio line on a signal axes using an audio 
-% player
-function audioline(audio_player,signal_axes)
+% ...
+function selectaudioline(audiosignal_axes)
 
-% Add callback functions to the audio player
-audio_player.StartFcn = @audioplayer_startfcn;
-audio_player.StopFcn = @audioplayer_stopfcn;
-audio_player.TimerFcn = @audioplayer_timerfcn;
-
-% Initialize the audio line
-audio_line = [];
-
-    % Function to execute one time when playback starts
-    function audioplayer_startfcn(~,~)
-        
-        % Create an audio line
-        audio_line = line(signal_axes,[0,0],[-1,1]);
-        
+% Add callback function to the audio signal axes
+audiosignal_axes.ButtonDownFcn = @audiosignalaxesbuttondownfcn;
+    
+    % Make the axes children not respond to mouse clicks so that the axes
+    % itself can be reached
+    children_objects = audiosignal_axes.Children;
+    for object_index = 1:numel(children_objects)
+        children_objects(object_index).HitTest = 'off';
     end
     
-    % Function to execute one time when playback stops
-    function audioplayer_stopfcn(~,~)
+    % Mouse-click callback
+    function audiosignalaxesbuttondownfcn(~,~)
         
-        % Delete the audio line
-        delete(audio_line)
+        % Location of mouse pointer
+        current_point = audiosignal_axes.CurrentPoint;
         
-    end
-    
-    % Function to execute repeatedly during playback
-    function audioplayer_timerfcn(~,~)
-        
-        % Current sample and sample rate in Hz from the audio player
-        current_sample = audio_player.CurrentSample;
-        sample_rate = audio_player.SampleRate;
-        
-        % Update the audio line
-        set(audio_line,'XData',[1,1]*current_sample/sample_rate)
+        % Create an audio line on the audio signal axes
+        line(audiosignal_axes,[current_point(1),current_point(1)],[-1,1]);
         
     end
 
