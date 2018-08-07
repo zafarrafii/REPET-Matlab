@@ -238,7 +238,7 @@ figure_object.Visible = 'on';
         % Plot the mixture signal
         plot(mixturesignal_axes,(1:number_samples)/sample_rate,mixture_signal);
         
-        % Update the mixture signal axes properties
+        % Update the signal axes properties
         mixturesignal_axes.XLim = [1,number_samples]/sample_rate;
         mixturesignal_axes.YLim = [-1,1];
         mixturesignal_axes.XGrid = 'on';
@@ -246,14 +246,13 @@ figure_object.Visible = 'on';
         mixturesignal_axes.Title.Interpreter = 'None';
         mixturesignal_axes.XLabel.String = 'Time (s)';
         
-        % Display the mixture spectrogram (in dB, averaged over the 
-        % channels)
+        % Display the audio spectrogram (in dB, averaged over the channels)
         imagesc(mixturespectrogram_axes, ...
             [1,number_times]/number_times*number_samples/sample_rate, ...
             [1,window_length/2]/window_length*sample_rate, ...
             db(mean(mixture_spectrogram(2:end,:),3)))
         
-        % Update the mixture spectrogram axes properties
+        % Update the spectrogram axes properties
         mixturespectrogram_axes.Colormap = jet;
         mixturespectrogram_axes.YDir = 'normal';
         mixturespectrogram_axes.XGrid = 'on';
@@ -264,7 +263,7 @@ figure_object.Visible = 'on';
         % Create object for playing audio
         mixture_player = audioplayer(mixture_signal,sample_rate);
         
-        % Store the sample range in the user data of the audio player
+        % Store the sample range in the user data of the audio object
         mixture_player.UserData = [1,number_samples];
         
         % Add close request callback function to the figure object
@@ -453,7 +452,7 @@ function playaudioclickedcallback(object_handle,~,audio_player)
 % Change the toggle button state to off
 object_handle.State = 'off';
 
-% If the playback of the audio player is in progress
+% If the playback of the audio object is in progress
 if isplaying(audio_player)
     
     % Stop the playback
@@ -461,7 +460,7 @@ if isplaying(audio_player)
     
 else
     
-    % Get the sample range from the user data of the audio player
+    % Get the sample range from the user data of the audio obje
     sample_range = audio_player.UserData;
     
     % Play the audio given the sample range
@@ -519,7 +518,7 @@ audio_line = [];
 end
 
 % Set a select audio line on a audio signal axes using an audio player
-function selectaudioline(audiosignal_axes,audio_player)
+function selectaudioline(audiosignal_axes,mixture_player)
 
 % Add callback function to the audio signal axes
 audiosignal_axes.ButtonDownFcn = @audiosignalaxesbuttondownfcn;
@@ -544,10 +543,10 @@ audio_line = [];
         selection_type = figure_object.SelectionType;
         
         % Sample rate in Hz
-        sample_rate = audio_player.SampleRate;
+        sample_rate = mixture_player.SampleRate;
         
         % Number of samples
-        number_samples = audio_player.TotalSamples;
+        number_samples = mixture_player.TotalSamples;
         
         % If click left mouse button
         if strcmp(selection_type,'normal')
@@ -555,7 +554,7 @@ audio_line = [];
             % Delete the audio line
             delete(audio_line)
             
-            % Location of the mouse pointer
+            % Location of mouse pointer
             current_point = audiosignal_axes.CurrentPoint;
             
             % X-point (make sure it is in the X-axis limits)
@@ -569,9 +568,8 @@ audio_line = [];
             % Create an audio line on the audio signal axes
             audio_line = line(audiosignal_axes,[x_point,x_point],[-1,1]);
             
-            % Update start and stop samples in the user data of the audio 
-            % player
-            audio_player.UserData = [floor(x_point*sample_rate)+1,number_samples];
+            % Store start and stop samples
+            mixture_player.UserData = [floor(x_point*sample_rate)+1,number_samples];
             
         % If click right mouse button
         elseif strcmp(selection_type,'alt')
@@ -579,9 +577,8 @@ audio_line = [];
             % Delete the audio line
             delete(audio_line)
             
-            % Update start and stop samples in the user data of the audio 
-            % player
-            audio_player.UserData = [1,number_samples];
+            % Store start and stop samples
+            mixture_player.UserData = [1,number_samples];
             
         end
             
