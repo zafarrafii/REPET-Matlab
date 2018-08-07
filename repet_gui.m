@@ -521,7 +521,7 @@ end
 % Set a select audio line on a audio signal axes using an audio player
 function selectaudioline(audiosignal_axes,audio_player)
 
-% Add callback function to the audio signal axes
+% Add mouse-click callback function to the audio signal axes
 audiosignal_axes.ButtonDownFcn = @audiosignalaxesbuttondownfcn;
     
 % Make the axes children not respond to mouse clicks so that the axes
@@ -531,22 +531,33 @@ for object_index = 1:numel(children_objects)
     children_objects(object_index).HitTest = 'off';
 end
 
+% Current figure handle
+figure_object = gcf;
+
 % Initialize the audio line
 audio_line = [];
     
-    % Mouse-click callback
+    % Mouse-click callback function for the audio signal axes
     function audiosignalaxesbuttondownfcn(~,~)
         
-        % Current figure handle
-        figure_object = gcf;
+        % Location of the mouse pointer
+        current_point = audiosignal_axes.CurrentPoint;
+        
+        % Minimum and maximum x and y-axis limits
+        x_lim = audiosignal_axes.XLim;
+        y_lim = audiosignal_axes.YLim;
+        
+        % Return if the current point out of axis limits
+        if current_point(1,1) < x_lim(1) || current_point(1,1) > x_lim(2) || ...
+                current_point(1,2) < y_lim(1) || current_point(1,2) > y_lim(2)
+            return
+        end
         
         % Mouse selection type
         selection_type = figure_object.SelectionType;
         
-        % Sample rate in Hz
+        % Sample rate in Hz and number of samples from the audio player
         sample_rate = audio_player.SampleRate;
-        
-        % Number of samples
         number_samples = audio_player.TotalSamples;
         
         % If click left mouse button
@@ -555,23 +566,15 @@ audio_line = [];
             % Delete the audio line
             delete(audio_line)
             
-            % Location of the mouse pointer
-            current_point = audiosignal_axes.CurrentPoint;
-            
-            % X-point (make sure it is in the X-axis limits)
-            x_point = current_point(1);
-            if x_point < 0
-                x_point = 0;
-            elseif x_point > audiosignal_axes.XLim(2)
-                x_point = audiosignal_axes.XLim(2);
-            end
-            
             % Create an audio line on the audio signal axes
-            audio_line = line(audiosignal_axes,[x_point,x_point],[-1,1]);
+            audio_line = line(audiosignal_axes,[current_point(1,1),current_point(1,1)],[-1,1]);
+            
+            % Add mouse-click callback function to the audio line
+            audio_line.ButtonDownFcn = @audiolinebuttondownfcn;
             
             % Update start and stop samples in the user data of the audio 
             % player
-            audio_player.UserData = [floor(x_point*sample_rate)+1,number_samples];
+            audio_player.UserData = [floor(current_point(1,1)*sample_rate)+1,number_samples];
             
         % If click right mouse button
         elseif strcmp(selection_type,'alt')
@@ -583,6 +586,54 @@ audio_line = [];
             % player
             audio_player.UserData = [1,number_samples];
             
+        end
+        
+        % Mouse-click callback function for the audio line
+        function audiolinebuttondownfcn(~,~)
+            
+            % Mouse selection type
+            selection_type = figure_object.SelectionType;
+            
+            % If click left mouse button
+            if strcmp(selection_type,'normal')
+                
+                % Add window button motion and up callback functions to 
+                % the figure
+                figure_object.WindowButtonMotionFcn = @figurewindowbuttonmotionfcn;
+                figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
+                
+            % If click right mouse button
+            elseif strcmp(selection_type,'alt')
+                
+                % Delete the audio line
+                delete(audio_line)
+                
+                % Update start and stop samples in the user data of the 
+                % audio player
+                audio_player.UserData = [1,number_samples];
+                
+            end
+            
+            % Window button motion callback function for the figure
+            function figurewindowbuttonmotionfcn(~,~)
+                
+                % Location of the mouse pointer
+                current_point = audiosignal_axes.CurrentPoint;
+                
+                % Update the audio line
+                set(audio_line,'XData',[1,1]*current_point(1,1));
+                
+                %HERE!!!
+                
+            end
+            
+            % Window button up callback function for the figure
+            function figurewindowbuttonupfcn(~,~)
+                
+%                 0
+                
+            end
+                
         end
             
     end
