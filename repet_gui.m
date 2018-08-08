@@ -1,37 +1,37 @@
 function repet_gui
-% REPET_GUI REpeating Pattern Extraction Technique (REPET) Graphical User Interface (GUI).
+% REPET_GUI REpeating Pattern Extraction Technique (REPET) graphical user interface (GUI).
 %
-%   REPET_GUI
-%       Select tool (toolbar left):                                         Select/deselect on wave axes (left/right mouse click)
-%       Zoom tool (toolbar center):                                         Zoom in/out on any axes (left/right mouse click)
-%       Pan tool (toolbar right):                                           Pan left and right on any axes
-%
-%       Load mixture button (top-left quarter, top-left):                   Load mixture file (WAVE files only)
-%       Play mixture button (top-left quarter, top-left):                   Play/stop mixture audio
-%       Mixture wave axes (top-left quarter, top):                          Display mixture wave
-%       REPET button (top-left quarter, top-right):                         Process mixture selection using REPET
-%       Mixture spectrogram axes (top-left quarter, bottom):                Display spectrogram of mixture selection
-%
-%       Beat spectrum axes (bottom-left, quarter top):                      Display beat spectrum of mixture selection
-%       Period slider/edit (bottom-left, quarter top):                      Modify repeating period (in seconds)
-%       Hardness slider/edit (bottom-left, quarter center):                 Modify masking hardness (in [0,1])
+%   Toolbar:
+%       Open Mixture:       Open mixture file (.wav or .mp3)
+%       Play Mixture:       Play/stop selected mixture audio
+%       Select:             Select/deselect on signal axes (left/right mouse click)
+%       Zoom:               Zoom in/out on any axes (left/right mouse click)
+%       Pan:                Pan left and right on any axes
+%       REPET:              Process selected mixture using REPET
+%       Save Background:    Save background estimate of selected mixture in WAVE file
+%       Play Background:    Play/stop background audio of selected mixture
+%       Save Foreground:    Save foreground estimate of selected mixture in WAVE file
+%       Play Foreground:    Play/stop foreground audio of selected mixture
+%   Mixture axes:
+%       Mixture signal axes:        Display mixture signal
+%       Mixture spectrogram axes:   Display mixture spectrogram
+%       Beat spectrum axes:         Display beat spectrum of selected mixture
+%       
+%       Period slider/edit:     Modify repeating period (in seconds)
+%       Hardness slider/edit:   Modify masking hardness (in [0,1])
 %           Turns soft time-frequency mask into binary time-frequency mask
 %           The closer to 0, the softer the mask, the less separation artifacts (0 = original soft mask)
 %           The closer to 1, the harder the mask, the less source interference (1 = full binary mask)
-%       Threshold slider/edit (bottom-left quarter, bottom):                Modify masking threshold (in [0,1])
+%       Threshold slider/edit:  Modify masking threshold (in [0,1])
 %           Defines pivot value around which the energy will be spread apart (when hardness > 0)
 %           The closer to 0, the more energy for the background, the less interference in the foreground
 %           The closer to 1, the less energy for the background, the less interference from the foreground
 %
-%       Save background button (top-right quarter, top-left):               Save background estimate of mixture selection in WAVE file
-%       Play background button (top-right quarter, top-left):               Play/stop background audio of mixture selection
-%       Background wave axes (top-right quarter, top):                      Display background wave of mixture selection
-%       Background spectrogram axes (top-right quarter, bottom):            Display background spectrogram of mixture selection
-%
-%       Save foreground button (bottom-right quarter, top-left):            Save foreground estimate of mixture selection in WAVE file
-%       Play foreground button (bottom-right quarter top-left):             Play/stop foreground audio of mixture selection
-%       Foreground wave axes (bottom-right quarter, top):                   Display foreground wave of mixture selection
-%       Foreground spectrogram axes (bottom-right quarter, bottom):         Display foreground spectrogram of mixture selection
+%   Background and foreground axes:
+%       Background signal axes:         Display background signal of selected mixture
+%       Background spectrogram axes:    Display background spectrogram of selected mixture
+%       Foreground signal axes:         Display foreground signal of selected mixture
+%       Foreground spectrogram axes:    Display foreground spectrogram of selected mixture
 %
 %   See also http://zafarrafii.com/#REPET
 % 
@@ -60,7 +60,7 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       08/07/18
+%       08/08/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -134,50 +134,51 @@ repet_toggle = uitoggletool(toolbar_object, ...
 % Create mixture signal, mixture spectrogram, and beat spectrum axes
 mixturesignal_axes = axes( ...
     'Units','normalized', ...
-    'Box','on', ...
     'Position',[0.04,0.93,0.45,0.05], ...
     'XTick',[], ...
-    'YTick',[]);
+    'YTick',[], ...
+    'Box','on');
 mixturespectrogram_axes = axes( ...
     'Units','normalized', ...
-    'Box','on', ...
     'Position',[0.04,0.56,0.45,0.30], ...
     'XTick',[], ...
-    'YTick',[]);
+    'YTick',[], ...
+    'Box','on');
 % beatspectrum_axes = axes( ...
 %     'Units','normalized', ...
-%     'Box','on', ...
 %     'Position',[0.04,0.38,0.45,0.10], ...
 %     'XTick',[], ...
-%     'YTick',[]);
+%     'YTick',[], ...
+%     'Box','on');
 
 % % Create background signal and spectrogram axes
 % backgroundsignal_axes = axes( ...
 %     'Units','normalized', ...
-%     'Box','on', ...
 %     'Position',[0.54,0.93,0.45,0.05], ...
 %     'XTick',[], ...
-%     'YTick',[]);
+%     'YTick',[], ...
+%     'Box','on', ...
+%     'Layer','top');
 % backgroundspectrogram_axes = axes( ...
 %     'Units','normalized', ...
-%     'Box','on', ...
 %     'Position',[0.54,0.56,0.45,0.30], ...
 %     'XTick',[], ...
-%     'YTick',[]);
+%     'YTick',[], ...
+%     'Box','on');
 % 
 % % Create foreground wave and spectrogram axes
 % foregroundsignal_axes = axes( ...
 %     'Units','normalized', ...
-%     'Box','on', ...
 %     'Position',[0.54,0.43,0.45,0.05], ...
 %     'XTick',[], ...
-%     'YTick',[]);
+%     'YTick',[], ...
+%     'Box','on');
 % foregroundspectrogram_axes = axes( ...
 %     'Units','normalized', ...
-%     'Box','on', ...
 %     'Position',[0.54,0.06,0.45,0.30], ...
 %     'XTick',[], ...
-%     'YTick',[]);
+%     'YTick',[], ...
+%     'Box','on');
 
 % Make the figure visible
 figure_object.Visible = 'on';
@@ -245,6 +246,7 @@ figure_object.Visible = 'on';
         mixturesignal_axes.Title.String = mixture_name;
         mixturesignal_axes.Title.Interpreter = 'None';
         mixturesignal_axes.XLabel.String = 'Time (s)';
+        mixturesignal_axes.Layer = 'top';
         
         % Display the mixture spectrogram (in dB, averaged over the 
         % channels)
@@ -512,7 +514,7 @@ audio_line = [];
         sample_rate = audio_player.SampleRate;
         
         % Update the audio line
-        set(audio_line,'XData',[1,1]*current_sample/sample_rate)
+        audio_line.XData = current_sample/sample_rate*[1,1];
         
     end
 
@@ -521,21 +523,19 @@ end
 % Set a select audio line on a audio signal axes using an audio player
 function selectaudioline(audiosignal_axes,audio_player)
 
-% Add mouse-click callback function to the audio signal axes
-audiosignal_axes.ButtonDownFcn = @audiosignalaxesbuttondownfcn;
-    
-% Make the axes children not respond to mouse clicks so that the axes
+% Make the axes children not respond to mouse clicks so that the axes 
 % itself can be reached
 children_objects = audiosignal_axes.Children;
 for object_index = 1:numel(children_objects)
     children_objects(object_index).HitTest = 'off';
 end
 
-% Current figure handle
-figure_object = gcf;
+% Add mouse-click callback function to the audio signal axes
+audiosignal_axes.ButtonDownFcn = @audiosignalaxesbuttondownfcn;
 
-% Initialize the audio line
+% Initialize the audio line and audio patch
 audio_line = [];
+audio_patch = [];
     
     % Mouse-click callback function for the audio signal axes
     function audiosignalaxesbuttondownfcn(~,~)
@@ -553,6 +553,9 @@ audio_line = [];
             return
         end
         
+        % Current figure handle
+        figure_object = gcf;
+        
         % Mouse selection type
         selection_type = figure_object.SelectionType;
         
@@ -563,14 +566,25 @@ audio_line = [];
         % If click left mouse button
         if strcmp(selection_type,'normal')
             
-            % Delete the audio line
+            % Delete the audio line and the audio patch
             delete(audio_line)
+            delete(audio_patch)
             
             % Create an audio line on the audio signal axes
             audio_line = line(audiosignal_axes,[current_point(1,1),current_point(1,1)],[-1,1]);
             
             % Add mouse-click callback function to the audio line
             audio_line.ButtonDownFcn = @audiolinebuttondownfcn;
+            
+            % Create an audio patch under the audio signal axes
+            audio_patch = patch(current_point(1)*[1,1,1,1], ...
+                [-1,-1,1,1],0.75*[1,1,1],'LineStyle','none');
+            uistack(audio_patch,'bottom')
+            
+            % Add window button motion and up callback functions to the 
+            % figure
+            figure_object.WindowButtonMotionFcn = @figurewindowbuttonmotionfcn;
+            figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
             
             % Update start and stop samples in the user data of the audio 
             % player
@@ -579,8 +593,9 @@ audio_line = [];
         % If click right mouse button
         elseif strcmp(selection_type,'alt')
             
-            % Delete the audio line
+            % Delete the audio line and the audio patch
             delete(audio_line)
+            delete(audio_patch)
             
             % Update start and stop samples in the user data of the audio 
             % player
@@ -602,6 +617,14 @@ audio_line = [];
                 figure_object.WindowButtonMotionFcn = @figurewindowbuttonmotionfcn;
                 figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
                 
+                % Create an audio patch under the audio signal
+                audio_patch = patch(current_point(1)*[1,1,1,1], ...
+                    [-1,-1,1,1],0.75*[1,1,1],'LineStyle','none');
+                uistack(audio_patch,'bottom')
+                
+                % Display tick marks and grid line over the audio patch
+                audiosignal_axes.Layer = 'top';
+                
             % If click right mouse button
             elseif strcmp(selection_type,'alt')
                 
@@ -613,29 +636,35 @@ audio_line = [];
                 audio_player.UserData = [1,number_samples];
                 
             end
-            
-            % Window button motion callback function for the figure
-            function figurewindowbuttonmotionfcn(~,~)
-                
-                % Location of the mouse pointer
-                current_point = audiosignal_axes.CurrentPoint;
-                
-                % Update the audio line
-                set(audio_line,'XData',[1,1]*current_point(1,1));
-                
-                %HERE!!!
-                
-            end
-            
-            % Window button up callback function for the figure
-            function figurewindowbuttonupfcn(~,~)
-                
-%                 0
-                
-            end
-                
+               
         end
+        
+        % Window button motion callback function for the figure
+        function figurewindowbuttonmotionfcn(~,~)
             
+            % Delete audio line
+            delete(audio_line)
+            
+            % Location of the mouse pointer
+            current_point = audiosignal_axes.CurrentPoint;
+            
+            % Update the audio patch
+            audio_patch.XData(2:3) = current_point(1,1)*[1,1];
+            
+        end
+        
+        % Window button up callback function for the figure
+        function figurewindowbuttonupfcn(~,~)
+            
+            % Remove the window button motion callback functions on
+            % the figure
+            figure_object.WindowButtonMotionFcn = '';
+            
+            % ...
+            %                 audio_player.UserData = [1,number_samples];
+            
+        end
+        
     end
 
 end
