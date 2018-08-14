@@ -2,16 +2,16 @@ function repet_gui
 % REPET_GUI REpeating Pattern Extraction Technique (REPET) graphical user interface (GUI).
 %
 %   Toolbar:
-%       Open Mixture:       Open mixture file (.wav or .mp3)
-%       Play Mixture:       Play/stop selected mixture audio
-%       Select:             Select/deselect on signal axes (left/right mouse click)
-%       Zoom:               Zoom in/out on any axes (left/right mouse click)
-%       Pan:                Pan left and right on any axes
-%       REPET:              Process selected mixture using REPET
-%       Save Background:    Save background estimate of selected mixture in WAVE file
-%       Play Background:    Play/stop background audio of selected mixture
-%       Save Foreground:    Save foreground estimate of selected mixture in WAVE file
-%       Play Foreground:    Play/stop foreground audio of selected mixture
+%       Open Mixture:               Open mixture file (.wav or .mp3)
+%       Play Mixture:               Play/stop selected mixture audio
+%       Select:                     Select/deselect on signal axes (left/right mouse click)
+%       Zoom:                       Zoom in/out on any axes (left/right mouse click)
+%       Pan:                        Pan left and right on any axes
+%       REPET:                      Process selected mixture using REPET
+%       Save Background:            Save background estimate of selected mixture in WAVE file
+%       Play Background:            Play/stop background audio of selected mixture
+%       Save Foreground:            Save foreground estimate of selected mixture in WAVE file
+%       Play Foreground:            Play/stop foreground audio of selected mixture
 %   Mixture axes:
 %       Mixture signal axes:        Display mixture signal
 %       Mixture spectrogram axes:   Display mixture spectrogram
@@ -60,7 +60,7 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       08/10/18
+%       08/14/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -205,8 +205,8 @@ figure_object.Visible = 'on';
         % Number of samples and channels
         [number_samples,number_channels] = size(mixture_signal);
 
-        % Window length in samples (audio stationary around 40 ms, and 
-        % power of 2 for fast FFT and constant overlap-add)
+        % Window length in samples (audio stationary around 40 ms and power 
+        % of 2 for fast FFT and constant overlap-add)
         window_length = 2.^nextpow2(0.04*sample_rate);
 
         % Window function ('periodic' Hamming window for constant 
@@ -236,8 +236,9 @@ figure_object.Visible = 'on';
         % frequencies)
         mixture_spectrogram = abs(mixture_stft(1:window_length/2+1,:,:));
 
-        % Plot the mixture signal and make it unable to capture mouse clicks
-        plot(mixturesignal_axes,(1:number_samples)/sample_rate,mixture_signal, ...
+        % Plot the mixture signal and make it unable to capture mouse
+        % clicks
+        plot(mixturesignal_axes,1/sample_rate:1/sample_rate:number_samples/sample_rate,mixture_signal, ...
             'PickableParts','none');
         
         % Update the mixture signal axes properties
@@ -276,13 +277,13 @@ figure_object.Visible = 'on';
         % Add clicked callback function to the play mixture toggle button
         playmixture_toggle.ClickedCallback = {@playaudioclickedcallback,mixture_player};
         
-        % Set a play audio line on the mixture signal axes using the 
+        % Set a play audio tool on the mixture signal axes using the 
         % mixture player
-        playaudioline(mixturesignal_axes,mixture_player,playmixture_toggle);
+        playaudiotool(mixturesignal_axes,mixture_player,playmixture_toggle);
         
-        % Set a select audio line on the mixture signal axes using the 
+        % Set a select audio tool on the mixture signal axes using the 
         % mixture player
-        selectaudioline(mixturesignal_axes,mixture_player)
+        selectaudiotool(mixturesignal_axes,mixture_player)
         
         
         % ...
@@ -474,8 +475,8 @@ end
 
 end
 
-% Set a play audio line on a audio signal axes using an audio player
-function playaudioline(audiosignal_axes,audio_player,playaudio_toggle)
+% Set a play audio tool on a audio signal axes using an audio player
+function playaudiotool(audiosignal_axes,audio_player,playaudio_toggle)
 
 % Add callback functions to the audio player
 audio_player.StartFcn = @audioplayerstartfcn;
@@ -516,13 +517,13 @@ audio_line = [];
     % Function to execute repeatedly during playback
     function audioplayertimerfcn(~,~)
         
-        % Current sample and sample range in samples from the audio player
+        % Current sample and sample range from the audio player
         current_sample = audio_player.CurrentSample;
         sample_range = audio_player.UserData;
         
         % Make sure the current sample is greater than the start sample (to
-        % prevent the audio line from appearing at the start at the end)
-        if current_sample>sample_range(1)
+        % prevent the audio line from showing up at the start at the end)
+        if current_sample > sample_range(1)
         
             % Update the audio line
             audio_line.XData = current_sample/sample_rate*[1,1];
@@ -533,17 +534,17 @@ audio_line = [];
 
 end
 
-% Set a select audio line on a audio signal axes using an audio player
-function selectaudioline(audiosignal_axes,audio_player)
+% Set a select audio tool on a audio signal axes using an audio player
+function selectaudiotool(audiosignal_axes,audio_player)
 
 % Add mouse-click callback function to the audio signal axes
 audiosignal_axes.ButtonDownFcn = @audiosignalaxesbuttondownfcn;
 
 % Initialize the audio line and the audio patch with its two audio lines
 audio_line = [];
+audio_patch = [];
 audio_line1 = [];
 audio_line2 = [];
-audio_patch = [];
 
     % Mouse-click callback function for the audio signal axes
     function audiosignalaxesbuttondownfcn(~,~)
@@ -555,7 +556,7 @@ audio_patch = [];
         x_lim = audiosignal_axes.XLim;
         y_lim = audiosignal_axes.YLim;
         
-        % Return if the current point out of axis limits
+        % If the current point is out of the axis limits, return
         if current_point(1,1) < x_lim(1) || current_point(1,1) > x_lim(2) || ...
                 current_point(1,2) < y_lim(1) || current_point(1,2) > y_lim(2)
             return
@@ -567,18 +568,19 @@ audio_patch = [];
         % Mouse selection type
         selection_type = figure_object.SelectionType;
         
-        % Sample rate in Hz and number of samples from the audio player
+        % Sample rate and number of samples from the audio player
         sample_rate = audio_player.SampleRate;
         number_samples = audio_player.TotalSamples;
         
         % If click left mouse button
         if strcmp(selection_type,'normal')
             
-            % Delete the audio line and the audio patch with its two audio
-            % lines, if they are not empty
+            % If not empty, delete the audio line
             if ~isempty(audio_line)
                 delete(audio_line)
             end
+            
+            % If not empty, delete the audio patch and its two audio lines
             if ~isempty(audio_patch)
                 delete(audio_line1)
                 delete(audio_line2)
@@ -603,11 +605,11 @@ audio_patch = [];
             audio_line2 = line(audiosignal_axes, ...
                 current_point(1,1)*[1,1],[-1,1],'Color',color_value);
             
-            % Shift the two audio lines under the audio signal axes and 
-            % shift the audio patch under them 
+            % Shift the patch and its two audio lines under the audio 
+            % signal axes and 
+            uistack(audio_patch,'bottom')
             uistack(audio_line1,'bottom')
             uistack(audio_line2,'bottom')
-            uistack(audio_patch,'bottom')
             
             % Make the audio patch not able to capture mouse clicks
             audio_patch.PickableParts = 'none';
@@ -625,20 +627,19 @@ audio_patch = [];
         % If click right mouse button
         elseif strcmp(selection_type,'alt')
             
-            % Delete the audio line, if not empty
+            % If not empty, delete the audio line
             if ~isempty(audio_line)
                 delete(audio_line)
             end
             
-            % Delete the audio patch with its two audio lines, if not empty
+            % If not empty, delete the audio patch and its two audio lines
             if ~isempty(audio_patch)
                 delete(audio_line1)
                 delete(audio_line2)
                 delete(audio_patch)
             end
             
-            % Update the start and stop samples of the audio player in its 
-            % user data 
+            % Update the sample range of the audio player in its user data 
             audio_player.UserData = [1,number_samples];
             
         end
@@ -661,13 +662,15 @@ audio_patch = [];
             % If click right mouse button
             elseif strcmp(selection_type,'alt')
                 
-                % Delete the audio patch with its two audio lines
+                % Delete the audio line and the audio patch with its two 
+                % audio lines
+                delete(audio_line)
                 delete(audio_line1)
                 delete(audio_line2)
                 delete(audio_patch)
                 
-                % Update the start and stop samples of the audio player in 
-                % its user data
+                % Update the sample range of the audio player in its user 
+                % data
                 audio_player.UserData = [1,number_samples];
                 
             end
@@ -677,36 +680,66 @@ audio_patch = [];
         % Window button motion callback function for the figure
         function figurewindowbuttonmotionfcn(~,~,audio_linei)
             
-            % Delete the audio line
-            delete(audio_line)
-            
             % Location of the mouse pointer
             current_point = audiosignal_axes.CurrentPoint;
             
-            % Update the audio line of the audio patch that has been
-            % clicked, and the audio patch accordingly
+            % If the current point is out of the x-axis limits, return
+            if current_point(1,1) < x_lim(1) || current_point(1,1) > x_lim(2)
+                return
+            end
+            
+            % Update the coordinates of the audio line of the audio patch 
+            % that has been clicked and the coordinates of the audio patch
             audio_linei.XData = current_point(1,1)*[1,1];
             audio_patch.XData = [audio_line1.XData,audio_line2.XData];
+            
+            % If the two audio lines of the audio patch are at different 
+            % coordinates and the audio patch is a full rectangle
+            if audio_line1.XData(1) ~= audio_line2.XData(1)
+                
+                % Hide the audio line without deleting it
+                audio_line.Visible = 'off';
+                
+            % If the two audio lines of the audio patch are at the same 
+            % coordinates and the audio patch is a vertical line
+            else
+                
+                % Update the coordinates of the audio line and display it
+                audio_line.XData = current_point(1,1)*[1,1];
+                audio_line.Visible = 'on';
+                
+            end
             
         end
         
         % Window button up callback function for the figure
         function figurewindowbuttonupfcn(~,~)
             
-            % Update the stop sample of the audio player in its user data 
-            audio_player.UserData(2) = round(current_point(1)*sample_rate);
+            % Coordinates of the two audio lines of the audio patch
+            x_value1 = audio_line1.XData(1);
+            x_value2 = audio_line2.XData(1);
             
-            % Update the stop sample if there is an audio line and not an 
-            % audio patch
-            if audio_player.UserData(1)==audio_player.UserData(2)
-                audio_player.UserData(2) = number_samples;
+            % If the two audio lines of the audio patch are at the same
+            % coordinates
+            if x_value1 == x_value2
                 
-            % Swap the start and stop samples if the audio patch has been
-            % created from right to left
-            elseif audio_player.UserData(1)>audio_player.UserData(2)
-                start_sample = audio_player.UserData(1);
-                audio_player.UserData(1) = audio_player.UserData(2);
-                audio_player.UserData(2) = start_sample;
+                % Update the sample range of the audio player in its user
+                % data
+                audio_player.UserData = [round(x_value1*sample_rate),number_samples];
+                
+            % If audio_line1 is on the left side of audio_line2
+            elseif x_value1 < x_value2
+                
+                % Update the sample range of the audio player in its user
+                % data
+                audio_player.UserData = round([x_value1,x_value2]*sample_rate);
+            
+            % If audio_line1 is on the right side of audio_line2
+            else
+                
+                % Update the sample range of the audio player in its user
+                % data (reversed)
+                audio_player.UserData = round([x_value2,x_value1]*sample_rate);
                 
             end
             
