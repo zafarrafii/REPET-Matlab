@@ -6,7 +6,7 @@ function repet_gui
 %       Play Mixture:               Play/stop selected mixture audio
 %       Select:                     Select/deselect on signal axes (left/right mouse click)
 %       Zoom:                       Zoom in/out on any axes (left/right mouse click)
-%       Pan:                        Pan left and right on any axes
+%       Pan:                        Pan on any axes
 %       REPET:                      Process selected mixture using REPET
 %       Save Background:            Save background estimate of selected mixture in WAVE file
 %       Play Background:            Play/stop background audio of selected mixture
@@ -60,7 +60,7 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       08/15/18
+%       08/16/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -189,6 +189,13 @@ foregroundspectrogram_axes = axes( ...
 linkaxes([mixturesignal_axes,mixturespectrogram_axes,...
     backgroundsignal_axes,backgroundspectrogram_axes, ...
     foregroundsignal_axes,foregroundspectrogram_axes],'x')
+
+% Change pointer when mouse moves over a signal axes
+enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','ibeam');
+iptSetPointerBehavior(mixturesignal_axes,enterFcn);
+iptSetPointerBehavior(backgroundsignal_axes,enterFcn);
+iptSetPointerBehavior(foregroundsignal_axes,enterFcn);
+iptPointerManager(figure_object);
 
 % Make the figure visible
 figure_object.Visible = 'on';
@@ -665,6 +672,13 @@ audio_line2 = [];
             % figure
             figure_object.WindowButtonMotionFcn = {@figurewindowbuttonmotionfcn,audio_line2};
             figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
+            
+            % Change pointer when mouse moves over the audio lines of the 
+            % audio patch in the figure
+            enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
+            iptSetPointerBehavior(audio_line1,enterFcn);
+            iptSetPointerBehavior(audio_line2,enterFcn);
+            iptPointerManager(figure_object);
             
         % If click right mouse button
         elseif strcmp(selection_type,'alt')
