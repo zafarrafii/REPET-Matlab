@@ -190,7 +190,7 @@ linkaxes([mixturesignal_axes,mixturespectrogram_axes,...
     backgroundsignal_axes,backgroundspectrogram_axes, ...
     foregroundsignal_axes,foregroundspectrogram_axes],'x')
 
-% Change pointer when mouse moves over a signal axes
+% Change the pointer to a hand when the mouse moves over a signal axes
 enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','ibeam');
 iptSetPointerBehavior(mixturesignal_axes,enterFcn);
 iptSetPointerBehavior(backgroundsignal_axes,enterFcn);
@@ -642,9 +642,6 @@ audio_line2 = [];
             % Make the audio line not able to capture mouse clicks
             audio_line.PickableParts  = 'none';
             
-            % Update the start sample of the audio player in its user data 
-            audio_player.UserData(1) = round(current_point(1,1)*sample_rate);
-            
             % Create an audio patch with two audio lines
             color_value = 0.75*[1,1,1];
             audio_patch = patch(audiosignal_axes, ...
@@ -668,17 +665,21 @@ audio_line2 = [];
             audio_line1.ButtonDownFcn = @audiolinebuttondownfcn;
             audio_line2.ButtonDownFcn = @audiolinebuttondownfcn;
             
+            % Change the pointer to a hand when the mouse moves over the 
+            % audio lines of the audio patch and the audio signal axes
+            enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
+            iptSetPointerBehavior(audio_line1,enterFcn);
+            iptSetPointerBehavior(audio_line2,enterFcn);
+            iptSetPointerBehavior(audiosignal_axes,enterFcn);
+            iptPointerManager(figure_object);
+            
             % Add window button motion and up callback functions to the 
             % figure
             figure_object.WindowButtonMotionFcn = {@figurewindowbuttonmotionfcn,audio_line2};
             figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
             
-            % Change pointer when mouse moves over the audio lines of the 
-            % audio patch in the figure
-            enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
-            iptSetPointerBehavior(audio_line1,enterFcn);
-            iptSetPointerBehavior(audio_line2,enterFcn);
-            iptPointerManager(figure_object);
+            % Update the start sample of the audio player in its user data 
+            audio_player.UserData(1) = round(current_point(1,1)*sample_rate);
             
         % If click right mouse button
         elseif strcmp(selection_type,'alt')
@@ -709,6 +710,12 @@ audio_line2 = [];
             
             % If click left mouse button
             if strcmp(selection_type,'normal')
+                
+                % Change the pointer to a hand when the mouse moves over
+                % the audio signal axes
+                enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
+                iptSetPointerBehavior(audiosignal_axes,enterFcn);
+                iptPointerManager(figure_object);
                 
                 % Add window button motion and up callback functions to 
                 % the figure
@@ -770,6 +777,12 @@ audio_line2 = [];
         
         % Window button up callback function for the figure
         function figurewindowbuttonupfcn(~,~)
+            
+            % Change the pointer to a ibeam when the mouse moves over the 
+            % audio signal axes in the figure
+            enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','ibeam');
+            iptSetPointerBehavior(audiosignal_axes,enterFcn);
+            iptPointerManager(figure_object);
             
             % Coordinates of the two audio lines of the audio patch
             x_value1 = audio_line1.XData(1);
