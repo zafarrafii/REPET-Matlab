@@ -8,7 +8,7 @@ This repository includes a Matlab class and a Python module which implement a nu
 - [repet_gui Matlab GUI](#repet_gui-matlab-gui)
 - [repet_sim_demo_gui Matlab GUI](#repet_sim_demo_gui-matlab-gui)
 - [urepet Matlab GUI](#urepet-matlab-gui)
-- [Audio file](#audio-file)
+- [audio_file](#audio_file)
 - [References](#references)
 - [Author](#author)
 
@@ -722,7 +722,7 @@ Coming soon...
 
 Coming soon...
 
-## Audio file
+## audio_file
 
 - Tamy - Que Pena / Tanto Faz (excerpt)
 
