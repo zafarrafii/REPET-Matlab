@@ -7,7 +7,7 @@ This repository includes a Matlab class and a Python module which implement a nu
 - [repet_demo_gui Matlab GUI](#repet_demo_gui-matlab-gui)
 - [repet_sim_demo_gui Matlab GUI](#repet_sim_demo_gui-matlab-gui)
 - [urepet Matlab GUI](#urepet-matlab-gui)
-- [Audio File](#audio-file)
+- [Audio file](#audio-file)
 - [References](#references)
 - [Author](#author)
 
