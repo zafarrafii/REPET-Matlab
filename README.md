@@ -7,6 +7,7 @@ This repository includes a Matlab class and a Python module which implement a nu
 - [repet_demo_gui Matlab GUI](#repet_demo_gui-matlab-gui)
 - [repet_sim_demo_gui Matlab GUI](#repet_sim_demo_gui-matlab-gui)
 - [urepet Matlab GUI](#urepet-matlab-gui)
+- [Audio File](#audio-file)
 - [References](#references)
 - [Author](#author)
 
@@ -716,6 +717,10 @@ Coming soon...
 
 Coming soon...
 
+## Audio File
+
+- Tamy - Que Pena / Tanto Faz (excerpt)
+
 ## References
 
 - Zafar Rafii, Antoine Liutkus, and Bryan Pardo. "A Simple User Interface System for Recovering Patterns Repeating in Time and Frequency in Mixtures of Sounds," *40th IEEE International Conference on Acoustics, Speech and Signal Processing*, Brisbane, Australia, April 19-24, 2015. [[article](http://zafarrafii.com/Publications/Rafii-Liutkus-Pardo%20-%20A%20Simple%20User%20Interface%20System%20for%20Recovering%20Patterns%20Repeating%20in%20Time%20and%20Frequency%20in%20Mixtures%20of%20Sounds%20-%202015.pdf)][[poster](http://zafarrafii.com/Publications/Rafii-Liutkus-Pardo%20-%20A%20Simple%20User%20Interface%20System%20for%20Recovering%20Patterns%20Repeating%20in%20Time%20and%20Frequency%20in%20Mixtures%20of%20Sounds%20-%202015%20(poster).pdf)]
@@ -734,11 +739,7 @@ Coming soon...
 
 - Zafar Rafii and Bryan Pardo. "A Simple Music/Voice Separation Method based on the Extraction of the Repeating Musical Structure," *36th International Conference on Acoustics, Speech and Signal Processing*, Prague, Czech Republic, May 22-27, 2011. [[article](http://zafarrafii.com/Publications/Rafii-Pardo%20-%20A%20Simple%20Music-Voice%20Separation%20Method%20based%20on%20the%20Extraction%20of%20the%20Repeating%20Musical%20Structure%20-%202011.pdf)][[poster](http://zafarrafii.com/Publications/Rafii-Pardo%20-%20A%20Simple%20Music-Voice%20Separation%20Method%20based%20on%20the%20Extraction%20of%20the%20Repeating%20Musical%20Structure%20-%202011%20(poster).pdf)]
 
-## Audio File
-
-- Tamy - Que Pena / Tanto Faz (excerpt)
-
-# Author
+## Author
 
 - Zafar Rafii
 - zafarrafii@gmail.com
