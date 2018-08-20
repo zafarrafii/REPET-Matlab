@@ -709,6 +709,10 @@ plt.show()
 
 Coming soon...
 
+## repet_gui Matlab GUI
+
+Coming soon...
+
 ## repet_sim_demo_gui Matlab GUI
 
 Coming soon...
