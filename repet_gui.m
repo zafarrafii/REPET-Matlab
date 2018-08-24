@@ -190,7 +190,7 @@ linkaxes([mixturesignal_axes,mixturespectrogram_axes,...
     backgroundsignal_axes,backgroundspectrogram_axes, ...
     foregroundsignal_axes,foregroundspectrogram_axes],'x')
 
-% Change the pointer to a hand when the mouse moves over a signal axes
+% Change the pointer when the mouse moves over a signal axes
 enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','ibeam');
 iptSetPointerBehavior(mixturesignal_axes,enterFcn);
 iptSetPointerBehavior(backgroundsignal_axes,enterFcn);
