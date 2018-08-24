@@ -60,7 +60,7 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       08/23/18
+%       08/24/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -248,11 +248,11 @@ figure_object.Visible = 'on';
                 = stft(mixture_signal(:,channel_index),window_function,step_length);
 
         end
-
+        
         % Magnitude spectrogram (with DC component and without mirrored
         % frequencies)
         mixture_spectrogram = abs(mixture_stft(1:window_length/2+1,:,:));
-
+        
         % Plot the mixture signal and make it unable to capture mouse
         % clicks
         plot(mixturesignal_axes,1/sample_rate:1/sample_rate:number_samples/sample_rate,mixture_signal, ...
@@ -302,11 +302,12 @@ figure_object.Visible = 'on';
         % mixture player
         selectaudiotool(mixturesignal_axes,mixture_player)
         
-        
-        % ...
+        % Add clicked callback functions to the select, zoom, pan, and
+        % repet toogle buttons
         select_toggle.ClickedCallback = @selectclickedcallback;
         zoom_toggle.ClickedCallback = @zoomclickedcallback;
         pan_toggle.ClickedCallback = @panclickedcallback;
+        repet_toggle.ClickedCallback = @repetclickedcallback;
         
         % Enable the play mixture, select, zoom, pan, and repet toggle 
         % buttons
@@ -318,6 +319,76 @@ figure_object.Visible = 'on';
         
         % Change the select toggle button states to on
         select_toggle.State = 'on';
+        
+        % Clicked callback function for the repet toggle button
+        function repetclickedcallback(~,~)
+
+            % Change the repet toggle button state to off
+            repet_toggle.State = 'off';
+            
+            % Get the sample range of the mixture player from its user data 
+            sample_range = mixture_player.UserData;
+            
+            % Time range in time frames
+            time_range = [floor((window_length-step_length+sample_range)/step_length), ...
+                ceil((window_length-step_length+sample_range)/step_length)];
+            
+            % Beat spectrum of the spectrograms averaged over the channels
+            % (squared to emphasize peaks of periodicitiy)
+            beat_spectrum = beatspectrum(mean(mixture_spectrogram(:,time_range(1):time_range(2)),3).^2);
+            
+            % Normalize the beat spectrum by lag 0
+            beat_spectrum = beat_spectrum/beat_spectrum(1);
+            
+            % Period range in seconds for the beat spectrum (can be
+            % changed)
+            period_range = [1,10];
+            
+            % Period range in time frames
+            period_range = round(period_range*sample_rate/step_length);
+            
+            % Repeating period in time frames given the period range
+            repeating_period = periods(beat_spectrum,period_range);
+            
+            repeating_period
+            
+            % Plot the beat spectrum and make it unable to capture mouse 
+            % clicks
+            plot(beatspectrum_axes,(0:1/number_times*number_samples/sample_rate:(time_range(2)-time_range(1))/number_times*number_samples/sample_rate), ...
+                beat_spectrum,'PickableParts','none');
+            
+            % Update the beat spectrum axes properties
+            beatspectrum_axes.XLim = [0,sample_range(2)-sample_range(1)]/sample_rate;
+            beatspectrum_axes.YLim = [0,1];
+            beatspectrum_axes.XGrid = 'on';
+            beatspectrum_axes.XMinorGrid = 'on';
+            beatspectrum_axes.Title.String = 'Beat Spectrum';
+            beatspectrum_axes.XLabel.String = 'Lag (s)';
+            beatspectrum_axes.Layer = 'top';
+            
+            % Set a select beat tool on the beat spectrum axes
+            selectbeattool(beatspectrum_axes)
+            
+            % Set a select beat tool on the beat spectrum axes
+            function selectbeattool(beatspectrum_axes)
+                
+                % Add mouse-click callback function to the beat spectrum
+                % axes
+                beatspectrum_axes.ButtonDownFcn = @beatspectrumaxesbuttondownfcn;
+                
+                % Initialize the audio lines
+                audio_lines = [];
+                
+                % Mouse-click callback function for the beat spectrum
+                % axes
+                function beatspectrumaxesbuttondownfcn(~,~)
+                    
+                    rand
+                    
+                end
+                
+            end
+        end
         
     end
 
@@ -552,7 +623,7 @@ audio_line = [];
         playaudio_toggle.CData = stopicon;
         playaudio_toggle.TooltipString = 'Stop';
         
-        % Sample range in samples from the audio player
+        % Get the sample range of the audio player from its user data
         sample_range = audio_player.UserData;
         
         % Create an audio line on the audio signal axes
@@ -830,5 +901,52 @@ audio_line2 = [];
         end
         
     end
+
+end
+
+% Autocorrelation using the Wiener–Khinchin theorem (faster than using 
+% xcorr)
+function autocorrelation_matrix = acorr(data_matrix)
+
+% Number of points in each column
+number_points = size(data_matrix,1);
+
+% Power Spectral Density (PSD): PSD(X) = fft(X).*conj(fft(X)) (after 
+% zero-padding for proper autocorrelation)
+data_matrix = abs(fft(data_matrix,2*number_points)).^2;
+
+% Wiener–Khinchin theorem: PSD(X) = fft(acorr(X))
+autocorrelation_matrix = ifft(data_matrix);
+
+% Discard the symmetric part
+autocorrelation_matrix = autocorrelation_matrix(1:number_points,:);
+
+% Unbiased autocorrelation (lag 0 to number_points-1)
+autocorrelation_matrix = autocorrelation_matrix./(number_points:-1:1)';
+
+end
+        
+% Beat spectrum using the autocorrelation
+function beat_spectrum = beatspectrum(audio_spectrogram)
+
+% Autocorrelation of the frequency channels
+beat_spectrum = acorr(audio_spectrogram');
+
+% Mean over the frequency channels
+beat_spectrum = mean(beat_spectrum,2);
+
+end
+
+% Repeating periods from the beat spectra (spectrum or spectrogram)
+function repeating_periods = periods(beat_spectra,period_range)
+
+% The repeating periods are the indices of the maxima in the
+% beat spectra for the period range (they do not account for
+% lag 0 and should be shorter than a third of the length as at
+% least three segments are needed for the median)
+[~,repeating_periods] = max(beat_spectra(period_range(1)+1:min(period_range(2),floor(size(beat_spectra,1)/3)),:),[],1);
+
+% Re-adjust the index or indices
+repeating_periods = repeating_periods+period_range(1);
 
 end
