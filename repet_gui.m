@@ -60,7 +60,7 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       08/24/18
+%       08/27/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -92,15 +92,18 @@ select_toggle = uitoggletool(toolbar_object, ...
     'Separator','On', ...
     'CData',iconread('tool_pointer.png'), ...
     'TooltipString','Select', ...
-    'Enable','off');
+    'Enable','off', ...
+    'ClickedCallBack',@selectclickedcallback);
 zoom_toggle = uitoggletool(toolbar_object, ...
     'CData',iconread('tool_zoom_in.png'), ...
     'TooltipString','Zoom', ...
-    'Enable','off');
+    'Enable','off',...
+    'ClickedCallBack',@zoomclickedcallback);
 pan_toggle = uitoggletool(toolbar_object, ...
     'CData',iconread('tool_hand.png'), ...
     'TooltipString','Pan', ...
-    'Enable','off');
+    'Enable','off',...
+    'ClickedCallBack',@panclickedcallback);
 
 % Create repet toggle button on toolbar
 repet_toggle = uitoggletool(toolbar_object, ...
@@ -109,81 +112,54 @@ repet_toggle = uitoggletool(toolbar_object, ...
     'TooltipString','REPET', ...
     'Enable','off');
 
-% % Create save and play background toggle buttons on toolbar
-% savebackground_toggle = uitoggletool(toolbar_object, ...
-%     'Separator','On', ...
-%     'CData',iconread('file_save.png'), ...
-%     'TooltipString','Save Background', ...
-%     'Enable','off');
-% playbackground_toggle = uitoggletool(toolbar_object, ...
-%     'CData',playicon, ...
-%     'TooltipString','Play Background', ...
-%     'Enable','off');
-% 
-% % Create save and play foreground toggle buttons on toolbar
-% saveforeground_toggle = uitoggletool(toolbar_object, ...
-%     'Separator','On', ...
-%     'CData',iconread('file_save.png'), ...
-%     'TooltipString','Save Foreground', ...
-%     'Enable','off');
-% playforeground_toggle = uitoggletool(toolbar_object, ...
-%     'CData',playicon, ...
-%     'TooltipString','Play Foreground', ...
-%     'Enable','off');
+% Create save and play background toggle buttons on toolbar
+savebackground_toggle = uitoggletool(toolbar_object, ...
+    'Separator','On', ...
+    'CData',iconread('file_save.png'), ...
+    'TooltipString','Save Background', ...
+    'Enable','off');
+playbackground_toggle = uitoggletool(toolbar_object, ...
+    'CData',playicon, ...
+    'TooltipString','Play Background', ...
+    'Enable','off');
+
+% Create save and play foreground toggle buttons on toolbar
+saveforeground_toggle = uitoggletool(toolbar_object, ...
+    'Separator','On', ...
+    'CData',iconread('file_save.png'), ...
+    'TooltipString','Save Foreground', ...
+    'Enable','off');
+playforeground_toggle = uitoggletool(toolbar_object, ...
+    'CData',playicon, ...
+    'TooltipString','Play Foreground', ...
+    'Enable','off');
 
 % Create mixture signal, mixture spectrogram, and beat spectrum axes
 mixturesignal_axes = axes( ...
-    'Units','normalized', ...
-    'Position',[0.04,0.93,0.45,0.05], ...
-    'XTick',[], ...
-    'YTick',[], ...
-    'Box','on');
+    'OuterPosition',[0,0.9,0.5,0.1], ...
+    'Visible','off');
 mixturespectrogram_axes = axes( ...
-    'Units','normalized', ...
-    'Position',[0.04,0.56,0.45,0.30], ...
-    'XTick',[], ...
-    'YTick',[], ...
-    'Box','on');
+    'OuterPosition',[0,0.5,0.5,0.4], ...
+    'Visible','off');
 beatspectrum_axes = axes( ...
-    'Units','normalized', ...
-    'Position',[0.04,0.38,0.45,0.10], ...
-    'XTick',[], ...
-    'YTick',[], ...
-    'Box','on', ...
-    'HitTest','off');
+    'OuterPosition',[0,0.3,0.5,0.2], ...
+    'Visible','off');
 
 % Create background signal and spectrogram axes
 backgroundsignal_axes = axes( ...
-    'Units','normalized', ...
-    'Position',[0.54,0.93,0.45,0.05], ...
-    'XTick',[], ...
-    'YTick',[], ...
-    'Box','on', ...
-    'Layer','top', ...
-    'HitTest','off');
+    'OuterPosition',[0.5,0.9,0.5,0.1], ...
+    'Visible','off');
 backgroundspectrogram_axes = axes( ...
-    'Units','normalized', ...
-    'Position',[0.54,0.56,0.45,0.30], ...
-    'XTick',[], ...
-    'YTick',[], ...
-    'Box','on', ...
-    'HitTest','off');
+    'OuterPosition',[0.5,0.5,0.5,0.4], ...
+    'Visible','off');
 
 % Create foreground wave and spectrogram axes
 foregroundsignal_axes = axes( ...
-    'Units','normalized', ...
-    'Position',[0.54,0.43,0.45,0.05], ...
-    'XTick',[], ...
-    'YTick',[], ...
-    'Box','on', ...
-    'HitTest','off');
+    'OuterPosition',[0.5,0.4,0.5,0.1], ...
+    'Visible','off');
 foregroundspectrogram_axes = axes( ...
-    'Units','normalized', ...
-    'Position',[0.54,0.06,0.45,0.30], ...
-    'XTick',[], ...
-    'YTick',[], ...
-    'Box','on', ...
-    'HitTest','off');
+    'OuterPosition',[0.5,0,0.5,0.4], ...
+    'Visible','off');
 
 % Synchronize the x-axis limits of all the axes but beatspectrum_axes
 linkaxes([mixturesignal_axes,mixturespectrogram_axes,...
@@ -206,7 +182,7 @@ figure_object.Visible = 'on';
         % Change toggle button state to off
         openmixture_toggle.State = 'off';
         
-        % Open file selection dialog box
+        % Open file selection dialog box; return if cancel
         [mixture_name,mixture_path] = uigetfile({'*.wav';'*.mp3'}, ...
             'Select WAVE or MP3 File to Open');
         if isequal(mixture_name,0)
@@ -237,16 +213,11 @@ figure_object.Visible = 'on';
         % Number of time frames
         number_times = ceil((window_length-step_length+number_samples)/step_length);
 
-        % Initialize the STFT
+        % Short-time Fourier transform STFT) for every channel
         mixture_stft = zeros(window_length,number_times,number_channels);
-
-        % Loop over the channels
         for channel_index = 1:number_channels
-
-            % STFT of the current channel
             mixture_stft(:,:,channel_index) ...
                 = stft(mixture_signal(:,channel_index),window_function,step_length);
-
         end
         
         % Magnitude spectrogram (with DC component and without mirrored
@@ -291,22 +262,15 @@ figure_object.Visible = 'on';
         % Add close request callback function to the figure object
         figure_object.CloseRequestFcn = {@figurecloserequestfcn,mixture_player};
         
-        % Add clicked callback function to the play mixture toggle button
+        % Add clicked callback function to the play mixture toogle button
         playmixture_toggle.ClickedCallback = {@playaudioclickedcallback,mixture_player};
         
-        % Set a play audio tool on the mixture signal axes using the 
-        % mixture player
+        % Set a play and a select audio tool on the mixture signal axes 
+        % using the mixture player
         playaudiotool(mixturesignal_axes,mixture_player,playmixture_toggle);
-        
-        % Set a select audio tool on the mixture signal axes using the 
-        % mixture player
         selectaudiotool(mixturesignal_axes,mixture_player)
         
-        % Add clicked callback functions to the select, zoom, pan, and
-        % repet toogle buttons
-        select_toggle.ClickedCallback = @selectclickedcallback;
-        zoom_toggle.ClickedCallback = @zoomclickedcallback;
-        pan_toggle.ClickedCallback = @panclickedcallback;
+        % Add clicked callback function to the repet toogle button
         repet_toggle.ClickedCallback = @repetclickedcallback;
         
         % Enable the play mixture, select, zoom, pan, and repet toggle 
@@ -350,12 +314,10 @@ figure_object.Visible = 'on';
             % Repeating period in time frames given the period range
             repeating_period = periods(beat_spectrum,period_range);
             
-            repeating_period
-            
             % Plot the beat spectrum and make it unable to capture mouse 
             % clicks
             plot(beatspectrum_axes,(0:1/number_times*number_samples/sample_rate:(time_range(2)-time_range(1))/number_times*number_samples/sample_rate), ...
-                beat_spectrum,'PickableParts','none');
+                beat_spectrum,'PickableParts','none')
             
             % Update the beat spectrum axes properties
             beatspectrum_axes.XLim = [0,sample_range(2)-sample_range(1)]/sample_rate;
@@ -366,6 +328,19 @@ figure_object.Visible = 'on';
             beatspectrum_axes.XLabel.String = 'Lag (s)';
             beatspectrum_axes.Layer = 'top';
             
+            % Initialize array for the beat lines graphic object
+            number_lines = floor((time_range(2)-time_range(1))/repeating_period);
+            beat_lines = gobjects(number_lines,1);
+            
+            % Create a beat line on the beat spectrum axes
+            beat_lines(1) = line(beatspectrum_axes,(repeating_period-1)/number_times*number_samples/sample_rate*[1,1],[-1,1],'Color','r');
+            for line_index = 2:number_lines
+                beat_lines(line_index) = line(beatspectrum_axes,(repeating_period-1)*line_index/number_times*number_samples/sample_rate*[1,1],[-1,1], ...
+                    'Color','r', ...
+                    'LineStyle',':');
+            end
+            
+            
             % Set a select beat tool on the beat spectrum axes
             selectbeattool(beatspectrum_axes)
             
@@ -375,9 +350,6 @@ figure_object.Visible = 'on';
                 % Add mouse-click callback function to the beat spectrum
                 % axes
                 beatspectrum_axes.ButtonDownFcn = @beatspectrumaxesbuttondownfcn;
-                
-                % Initialize the audio lines
-                audio_lines = [];
                 
                 % Mouse-click callback function for the beat spectrum
                 % axes
@@ -670,11 +642,8 @@ function selectaudiotool(audiosignal_axes,audio_player)
 % Add mouse-click callback function to the audio signal axes
 audiosignal_axes.ButtonDownFcn = @audiosignalaxesbuttondownfcn;
 
-% Initialize the audio line and the audio patch with its two audio lines
-audio_line = [];
-audio_patch = [];
-audio_line1 = [];
-audio_line2 = [];
+% Initialize the audio lines (two audio lines and one audio patch)
+audio_lines = gobjects(3,1);
 
     % Mouse-click callback function for the audio signal axes
     function audiosignalaxesbuttondownfcn(~,~)
@@ -705,58 +674,46 @@ audio_line2 = [];
         % If click left mouse button
         if strcmp(selection_type,'normal')
             
-            % If not empty, delete the audio line
-            if ~isempty(audio_line)
-                delete(audio_line)
+            % If not empty, delete the audio lines
+            if ~isempty(audio_lines)
+                delete(audio_lines)
             end
             
-            % If not empty, delete the audio patch and its two audio lines
-            if ~isempty(audio_patch)
-                delete(audio_line1)
-                delete(audio_line2)
-                delete(audio_patch)
-            end
+            % Create a first audio line on the audio signal axes
+            color_value1 = [0,0,0];
+            audio_lines(1) = line(audiosignal_axes,current_point(1,1)*[1,1],[-1,1],'Color',color_value1);
             
-            % Create an audio line on the audio signal axes
-            audio_line = line(audiosignal_axes,current_point(1,1)*[1,1],[-1,1]);
+            % Create a second audio line and an audio patch with different
+            % colors
+            color_value2 = 0.75*[1,1,1];
+            audio_lines(2) = line(audiosignal_axes, ...
+                current_point(1,1)*[1,1],[-1,1],'Color',color_value2);
+            audio_lines(3) = patch(audiosignal_axes, ...
+                current_point(1)*[1,1,1,1],[-1,1,1,-1],color_value2,'LineStyle','none');
             
-            % Make the audio line not able to capture mouse clicks
-            audio_line.PickableParts  = 'none';
+            % Move the second audio line and the audio patch at the bottom 
+            % of the current stack
+            uistack(audio_lines(2),'bottom')
+            uistack(audio_lines(3),'bottom')
             
-            % Create an audio patch with two audio lines
-            color_value = 0.75*[1,1,1];
-            audio_patch = patch(audiosignal_axes, ...
-                current_point(1)*[1,1,1,1],[-1,1,1,-1],color_value,'LineStyle','none');
-            audio_line1 = line(audiosignal_axes, ...
-                current_point(1,1)*[1,1],[-1,1],'Color',color_value);
-            audio_line2 = line(audiosignal_axes, ...
-                current_point(1,1)*[1,1],[-1,1],'Color',color_value);
-            
-            % Shift the patch and its two audio lines under the audio 
-            % signal axes and 
-            uistack(audio_patch,'bottom')
-            uistack(audio_line1,'bottom')
-            uistack(audio_line2,'bottom')
+            % Add mouse-click callback functions to the audio lines
+            audio_lines(1).ButtonDownFcn = @audiolinebuttondownfcn;
+            audio_lines(2).ButtonDownFcn = @audiolinebuttondownfcn;
             
             % Make the audio patch not able to capture mouse clicks
-            audio_patch.PickableParts = 'none';
-            
-            % Add mouse-click callback function to the two audio lines of
-            % the audio patch
-            audio_line1.ButtonDownFcn = @audiolinebuttondownfcn;
-            audio_line2.ButtonDownFcn = @audiolinebuttondownfcn;
+            audio_lines(3).PickableParts = 'none';
             
             % Change the pointer to a hand when the mouse moves over the 
-            % audio lines of the audio patch and the audio signal axes
+            % audio lines on the audio signal axes
             enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
-            iptSetPointerBehavior(audio_line1,enterFcn);
-            iptSetPointerBehavior(audio_line2,enterFcn);
+            iptSetPointerBehavior(audio_lines(1),enterFcn);
+            iptSetPointerBehavior(audio_lines(2),enterFcn);
             iptSetPointerBehavior(audiosignal_axes,enterFcn);
             iptPointerManager(figure_object);
             
             % Add window button motion and up callback functions to the 
             % figure
-            figure_object.WindowButtonMotionFcn = {@figurewindowbuttonmotionfcn,audio_line2};
+            figure_object.WindowButtonMotionFcn = {@figurewindowbuttonmotionfcn,audio_lines(1)};
             figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
             
             % Update the start sample of the audio player in its user data 
@@ -765,16 +722,9 @@ audio_line2 = [];
         % If click right mouse button
         elseif strcmp(selection_type,'alt')
             
-            % If not empty, delete the audio line
-            if ~isempty(audio_line)
-                delete(audio_line)
-            end
-            
-            % If not empty, delete the audio patch and its two audio lines
-            if ~isempty(audio_patch)
-                delete(audio_line1)
-                delete(audio_line2)
-                delete(audio_patch)
+            % If not empty, delete the audio lines
+            if ~isempty(audio_lines)
+                delete(audio_lines)
             end
             
             % Update the sample range of the audio player in its user data 
@@ -782,8 +732,7 @@ audio_line2 = [];
             
         end
         
-        % Mouse-click callback function for the audio lines of the audio
-        % patch
+        % Mouse-click callback function for the audio lines
         function audiolinebuttondownfcn(object_handle,~)
             
             % Mouse selection type
@@ -806,12 +755,8 @@ audio_line2 = [];
             % If click right mouse button
             elseif strcmp(selection_type,'alt')
                 
-                % Delete the audio line and the audio patch with its two 
-                % audio lines
-                delete(audio_line)
-                delete(audio_line1)
-                delete(audio_line2)
-                delete(audio_patch)
+                % Delete the audio lines
+                delete(audio_lines)
                 
                 % Update the sample range of the audio player in its user 
                 % data
@@ -832,25 +777,29 @@ audio_line2 = [];
                 return
             end
             
-            % Update the coordinates of the audio line of the audio patch 
-            % that has been clicked and the coordinates of the audio patch
+            % Update the coordinates of the audio line that has been 
+            % clicked and the coordinates of the audio patch
             audio_linei.XData = current_point(1,1)*[1,1];
-            audio_patch.XData = [audio_line1.XData,audio_line2.XData];
+            audio_lines(3).XData = [audio_lines(1).XData,audio_lines(2).XData];
             
-            % If the two audio lines of the audio patch are at different 
-            % coordinates and the audio patch is a full rectangle
-            if audio_line1.XData(1) ~= audio_line2.XData(1)
+            % If the two audio lines are at different coordinates and the 
+            % audio patch is a full rectangle
+            if audio_lines(1).XData(1) ~= audio_lines(2).XData(1)
                 
-                % Hide the audio line without deleting it
-                audio_line.Visible = 'off';
+                % Change the color of the first audio line to match the 
+                % color of the second audio line and the audio patch, and 
+                % move at the bottom the current stack
+                audio_lines(1).Color = color_value2;
+                uistack(audio_lines(1),'bottom')
                 
-            % If the two audio lines of the audio patch are at the same 
-            % coordinates and the audio patch is a vertical line
+            % If the two audio lines are at the same coordinates and the 
+            % audio patch is a vertical line
             else
                 
-                % Update the coordinates of the audio line and display it
-                audio_line.XData = current_point(1,1)*[1,1];
-                audio_line.Visible = 'on';
+                % Change the color of the first audio line back, and move 
+                % it at the top of the current stack
+                audio_lines(1).Color = color_value1;
+                uistack(audio_lines(1),'top')
                 
             end
             
@@ -865,30 +814,18 @@ audio_line2 = [];
             iptSetPointerBehavior(audiosignal_axes,enterFcn);
             iptPointerManager(figure_object);
             
-            % Coordinates of the two audio lines of the audio patch
-            x_value1 = audio_line1.XData(1);
-            x_value2 = audio_line2.XData(1);
+            % Coordinates of the two audio lines
+            x_value1 = audio_lines(1).XData(1);
+            x_value2 = audio_lines(2).XData(1);
             
-            % If the two audio lines of the audio patch are at the same
+            % Update the sample range of the audio player in its user data 
+            % depending if the two audio lines have the same or diffferent 
             % coordinates
             if x_value1 == x_value2
-                
-                % Update the sample range of the audio player in its user
-                % data
                 audio_player.UserData = [round(x_value1*sample_rate),number_samples];
-                
-            % If audio_line1 is on the left side of audio_line2
             elseif x_value1 < x_value2
-                
-                % Update the sample range of the audio player in its user
-                % data
                 audio_player.UserData = round([x_value1,x_value2]*sample_rate);
-            
-            % If audio_line1 is on the right side of audio_line2
             else
-                
-                % Update the sample range of the audio player in its user
-                % data (reversed)
                 audio_player.UserData = round([x_value2,x_value1]*sample_rate);
                 
             end
@@ -937,14 +874,14 @@ beat_spectrum = mean(beat_spectrum,2);
 
 end
 
-% Repeating periods from the beat spectra (spectrum or spectrogram)
-function repeating_periods = periods(beat_spectra,period_range)
+% Repeating periods from the beat spectrum
+function repeating_periods = periods(beat_spectrum,period_range)
 
 % The repeating periods are the indices of the maxima in the
-% beat spectra for the period range (they do not account for
+% beat spectrum for the period range (they do not account for
 % lag 0 and should be shorter than a third of the length as at
 % least three segments are needed for the median)
-[~,repeating_periods] = max(beat_spectra(period_range(1)+1:min(period_range(2),floor(size(beat_spectra,1)/3)),:),[],1);
+[~,repeating_periods] = max(beat_spectrum(period_range(1)+1:min(period_range(2),floor(size(beat_spectrum,1)/3)),:),[],1);
 
 % Re-adjust the index or indices
 repeating_periods = repeating_periods+period_range(1);
