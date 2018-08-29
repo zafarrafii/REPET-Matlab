@@ -2,7 +2,7 @@
 
 This repository includes a Matlab class and a Python module which implement a number of methods/functions for the different algorithms of the REpeating Pattern Extraction Technique (REPET), and Matlab GUIs to demo the original REPET, REPET-SIM, and uREPET.
 
-- [repet Matlab class](#repet-matlab-class)
+- [`repet` Matlab class](#repet-matlab-class)
 - [repet Python module](#repet-python-module)
 - [repet_demo_gui Matlab GUI](#repet_demo_gui-matlab-gui)
 - [repet_gui Matlab GUI](#repet_gui-matlab-gui)
@@ -706,9 +706,9 @@ plt.show()
 
 <img src="images/python/repet_simonline.png" width="1000">
 
-## repet_demo_gui Matlab GUI
+## `repet_demo_gui` Matlab GUI
 
-Coming soon...
+Obsolete; use `repet_gui`.
 
 ## repet_gui Matlab GUI
 
