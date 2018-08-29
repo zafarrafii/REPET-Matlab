@@ -708,7 +708,7 @@ plt.show()
 
 ## `repet_demo_gui` Matlab GUI
 
-Obsolete; use `repet_gui`.
+Obsolete; use `repet_gui` below.
 
 ## repet_gui Matlab GUI
 
