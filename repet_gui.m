@@ -60,7 +60,7 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       08/28/18
+%       08/30/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -184,6 +184,22 @@ figure_object.Visible = 'on';
         % Change toggle button state to off
         openmixture_toggle.State = 'off';
         
+        % Clear all the axes and hide them
+        cla(mixturesignal_axes)
+        mixturesignal_axes.Visible = 'off';
+        cla(mixturespectrogram_axes)
+        mixturespectrogram_axes.Visible = 'off';
+        cla(beatspectrum_axes)
+        beatspectrum_axes.Visible = 'off';
+        cla(backgroundsignal_axes)
+        backgroundsignal_axes.Visible = 'off';
+        cla(backgroundspectrogram_axes)
+        backgroundspectrogram_axes.Visible = 'off';
+        cla(foregroundsignal_axes)
+        foregroundsignal_axes.Visible = 'off';
+        cla(foregroundspectrogram_axes)
+        foregroundspectrogram_axes.Visible = 'off';
+        
         % Open file selection dialog box; return if cancel
         [mixture_name,mixture_path] = uigetfile({'*.wav';'*.mp3'}, ...
             'Select WAVE or MP3 File to Open');
@@ -199,7 +215,23 @@ figure_object.Visible = 'on';
         
         % Number of samples and channels
         [number_samples,number_channels] = size(mixture_signal);
-
+        
+        % Plot the mixture signal and make it unable to capture mouse
+        % clicks
+        plot(mixturesignal_axes, ...
+            1/sample_rate:1/sample_rate:number_samples/sample_rate,mixture_signal, ...
+            'PickableParts','none');
+        
+        % Update the mixture signal axes properties
+        mixturesignal_axes.XLim = [1,number_samples]/sample_rate;
+        mixturesignal_axes.YLim = [-1,1];
+        mixturesignal_axes.XGrid = 'on';
+        mixturesignal_axes.Title.String = mixture_name;
+        mixturesignal_axes.Title.Interpreter = 'None';
+        mixturesignal_axes.XLabel.String = 'Time (s)';
+        mixturesignal_axes.Layer = 'top';
+        drawnow
+        
         % Window length in samples (audio stationary around 40 ms and power 
         % of 2 for fast FFT and constant overlap-add)
         window_length = 2.^nextpow2(0.04*sample_rate);
@@ -225,21 +257,6 @@ figure_object.Visible = 'on';
         % Magnitude spectrogram (with DC component and without mirrored
         % frequencies)
         mixture_spectrogram = abs(mixture_stft(1:window_length/2+1,:,:));
-        
-        % Plot the mixture signal and make it unable to capture mouse
-        % clicks
-        plot(mixturesignal_axes, ...
-            1/sample_rate:1/sample_rate:number_samples/sample_rate,mixture_signal, ...
-            'PickableParts','none');
-        
-        % Update the mixture signal axes properties
-        mixturesignal_axes.XLim = [1,number_samples]/sample_rate;
-        mixturesignal_axes.YLim = [-1,1];
-        mixturesignal_axes.XGrid = 'on';
-        mixturesignal_axes.Title.String = mixture_name;
-        mixturesignal_axes.Title.Interpreter = 'None';
-        mixturesignal_axes.XLabel.String = 'Time (s)';
-        mixturesignal_axes.Layer = 'top';
         
         % Display the mixture spectrogram (in dB, averaged over the 
         % channels)
@@ -297,8 +314,7 @@ figure_object.Visible = 'on';
             sample_range = mixture_player.UserData;
             
             % Time range in time frames
-            time_range = [floor((window_length-step_length+sample_range)/step_length), ...
-                ceil((window_length-step_length+sample_range)/step_length)];
+            time_range = ceil(sample_range/number_samples*number_times);
             
             % Beat spectrum of the spectrograms averaged over the channels
             % (squared to emphasize peaks of periodicitiy)
@@ -307,164 +323,175 @@ figure_object.Visible = 'on';
             % Normalize the beat spectrum by lag 0
             beat_spectrum = beat_spectrum/beat_spectrum(1);
             
+            % Number of lags in time frames (including lag 0)
+            number_lags = length(beat_spectrum);
+            
             % Period range in seconds for the beat spectrum (can be
             % changed)
             period_range = [1,10];
             
+            % Time conversion from seconds to frames
+            time_conversion = number_times*sample_rate/number_samples;
+            
             % Period range in time frames
-            period_range = round(period_range*sample_rate/step_length);
+            period_range = round(period_range*time_conversion);
             
             % Repeating period in time frames given the period range
-            repeating_period = periods(beat_spectrum,period_range);
+            repeating_period = repeatingperiod(beat_spectrum,period_range);
             
             % Plot the beat spectrum and make it unable to capture mouse
             % clicks
             plot(beatspectrum_axes, ...
-                (0:1/number_times*number_samples/sample_rate:(time_range(2)-time_range(1))/number_times*number_samples/sample_rate), ...
+                (0:1/time_conversion:(number_lags-1)/time_conversion), ...
                 beat_spectrum,'PickableParts','none')
             
             % Update the beat spectrum axes properties
-            beatspectrum_axes.XLim = [0,sample_range(2)-sample_range(1)]/sample_rate;
+            beatspectrum_axes.XLim = [0,number_lags-1]/time_conversion;
             beatspectrum_axes.YLim = [0,1];
             beatspectrum_axes.XGrid = 'on';
             beatspectrum_axes.XMinorGrid = 'on';
             beatspectrum_axes.Title.String = 'Beat Spectrum';
             beatspectrum_axes.XLabel.String = 'Lag (s)';
-            beatspectrum_axes.Layer = 'top';
-            
-            %HERE!!!
-            
-            %             % Create the beat lines on the beat spectrum axes
-            %             beatlines((repeating_period-1)/number_times*number_samples/sample_rate, ...
-            %                 length(beat_spectrum)/number_times*number_samples/sample_rate,beatspectrum_axes);
-            
-            
-            % Beat spectrum length
-            beatspectrum_length = length(beat_spectrum)
-            number_samples
             
             % Initialize the beat lines as an array for graphic objects
-            number_lines = floor(beatspectrum_length/(repeating_period-1));
+            number_lines = floor(number_lags/(repeating_period-1));
             beat_lines = gobjects(number_lines,1);
             
+            % Create the main beat line and the other dotted lines on the 
+            % beat spectrum axes
+            beat_lines(1) = line(beatspectrum_axes, ...
+                (repeating_period-1)/time_conversion*[1,1],[-1,1], ...
+                'Color','r');
+            for line_index = 2:number_lines
+                beat_lines(line_index) = line(beatspectrum_axes, ...
+                    (repeating_period-1)/time_conversion*line_index*[1,1],[-1,1], ...
+                    'Color','r','LineStyle',':');
+            end
             
-%             % Set the beat lines on the beat spectrum axes
-%             function beat_lines = beatlines
-%                 
-%                 % Beat spectrum length
-%                 beatspectrum_length = length(beat_spectrum);
-%                 
-%                 % Initialize the beat lines as an array for graphic objects
-%                 number_lines = floor(beatspectrum_length/(repeating_period-1));
-%                 beat_lines = gobjects(number_lines,1);
-%                 
-%                 % Create the main beat line and the other dotted lines on 
-%                 % the beat spectrum axes
-%                 beat_lines(1) = line(beatspectrum_axes, ...
-%                     (repeating_period-1)/number_times*number_samples/sample_rate*[1,1],[-1,1], ...
-%                     'Color','r');
-%                 for line_index = 2:number_lines
-%                     beat_lines(line_index) = line(beatspectrum_axes, ...
-%                         (repeating_period-1)/number_times*number_samples/sample_rate*line_index*[1,1],[-1,1], ...
-%                         'Color','r','LineStyle',':');
-%                 end
-%                 
-%                 % Current figure handle
-%                 figure_object = gcf;
-%                 
-%                 % Change the pointer to a hand when the mouse moves over the main line
-%                 enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
-%                 iptSetPointerBehavior(beat_lines(1),enterFcn);
-%                 iptPointerManager(figure_object);
-%                 
-%                 % Period range for the beat spectrum in seconds
-%                 beat_range = [1,floor(beatspectrum_length/3)]/number_times*number_samples/sample_rate;
-%                 
-%                 % Add mouse-click callback functions to the main line
-%                 beat_lines(1).ButtonDownFcn = @beatlinebuttondownfcn;
-%                 
-%                 % Mouse-click callback function for the main line
-%                 function beatlinebuttondownfcn(~,~)
-%                     
-%                     % Mouse selection type
-%                     selection_type = figure_object.SelectionType;
-%                     
-%                     % If not click left mouse button, return
-%                     if ~strcmp(selection_type,'normal')
-%                         return
-%                     end
-%                     
-%                     % Change the pointer to a hand when the mouse moves 
-%                     % over the beat spectrum axes and the figure object
-%                     enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
-%                     iptSetPointerBehavior(beatspectrum_axes,enterFcn);
-%                     iptSetPointerBehavior(figure_object,enterFcn);
-%                     iptPointerManager(figure_object);
-%                     
-%                     % Add window button motion and up callback functions to the figure
-%                     figure_object.WindowButtonMotionFcn = @figurewindowbuttonmotionfcn;
-%                     figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
-%                     
-%                 end
-%                 
-%                 % Window button motion callback function for the figure
-%                 function figurewindowbuttonmotionfcn(~,~)
-%                     
-%                     % Location of the mouse pointer
-%                     current_point = beatspectrum_axes.CurrentPoint;
-%                     
-%                     % If the current point is out of the beat spectrum x-axis limits,
-%                     % change it into the x-axis limits
-%                     if current_point(1,1) < period_range(1)
-%                         current_point(1,1) = period_range(1);
-%                     elseif current_point(1,1) > period_range(2)
-%                         current_point(1,1) = period_range(2);
-%                     end
-%                     
-%                     % Delete the beat lines
-%                     delete(beat_lines)
-%                     
-%                     % Create the main beat line and the other dotted lines 
-%                     % on the beat spectrum axes
-%                     beat_lines(1) = line(beatspectrum_axes, ...
-%                         current_point(1,1)*[1,1],[-1,1], ...
-%                         'Color','r');
-%                     for line_index = 2:number_lines %#ok<*FXUP>
-%                         beat_lines(line_index) = line(beatspectrum_axes, ...
-%                             current_point(1,1)*line_index*[1,1],[-1,1], ...
-%                             'Color','r','LineStyle',':');
-%                     end
-%                     
-%                 end
-%                 
-%                 % Window button up callback function for the figure
-%                 function figurewindowbuttonupfcn(~,~)
-%                     
-%                     % Change the pointer to a hand, an ibeam, and an arrow when the
-%                     % mouse moves over the main line, the beat spectrum axes and the
-%                     % figure object, respectively
-%                     enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
-%                     iptSetPointerBehavior(beat_lines(1),enterFcn);
-%                     iptPointerManager(figure_object);
-%                     enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','ibeam');
-%                     iptSetPointerBehavior(beatspectrum_axes,enterFcn);
-%                     iptPointerManager(figure_object);
-%                     enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','arrow');
-%                     iptSetPointerBehavior(figure_object,enterFcn);
-%                     iptPointerManager(figure_object);
-%                     
-%                     % Add mouse-click callback functions to the main line
-%                     beat_lines(1).ButtonDownFcn = @beatlinebuttondownfcn;
-%                     
-%                     % Remove the window button motion and up callback functions of
-%                     % the figure
-%                     figure_object.WindowButtonMotionFcn = '';
-%                     figure_object.WindowButtonUpFcn = '';
-%                     
-%                 end
-%                 
-%             end
-
+            % Beat limits for the repeating period on the beat spectrum in 
+            % seconds
+            beat_limits = [1,floor(number_lags/3)]/time_conversion;
+            
+            % Change the pointer to a hand when the mouse moves over the 
+            % beat line
+            enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
+            iptSetPointerBehavior(beat_lines(1),enterFcn);
+            iptPointerManager(figure_object);
+            
+            % Add mouse-click callback functions to the beat line
+            beat_lines(1).ButtonDownFcn = @beatlinebuttondownfcn;
+            
+            % Add mouse-click callback function to the beat spectrum axes
+            beatspectrum_axes.ButtonDownFcn = @beatspectrumaxesbuttondownfcn;
+            
+            % Mouse-click callback function for the beat line
+            function beatlinebuttondownfcn(~,~)
+                
+                % Mouse selection type
+                selection_type = figure_object.SelectionType;
+                
+                % If not click left mouse button, return
+                if ~strcmp(selection_type,'normal')
+                    return
+                end
+                
+                % Change the pointer to a hand when the mouse moves over 
+                % the beat spectrum axes and the figure object
+                enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
+                iptSetPointerBehavior(beatspectrum_axes,enterFcn);
+                iptSetPointerBehavior(figure_object,enterFcn);
+                iptPointerManager(figure_object);
+                
+                % Add window button motion and up callback functions to the 
+                % figure
+                figure_object.WindowButtonMotionFcn = @figurewindowbuttonmotionfcn;
+                figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
+                
+            end
+            
+            % Window button motion callback function for the figure
+            function figurewindowbuttonmotionfcn(~,~)
+                
+                % Location of the mouse pointer
+                current_point = beatspectrum_axes.CurrentPoint;
+                
+                % If the current point is out of the beat range, change it 
+                % into the beat limits
+                if current_point(1,1) < beat_limits(1)
+                    current_point(1,1) = beat_limits(1);
+                elseif current_point(1,1) > beat_limits(2)
+                    current_point(1,1) = beat_limits(2);
+                end
+                
+                % Update the x values of the beat lines
+                beat_lines(1).XData = current_point(1,1)*[1,1];
+                for line_index = 2:number_lines %#ok<*FXUP>
+                    beat_lines(line_index).XData = current_point(1,1)*line_index*[1,1];
+                end
+                
+            end
+            
+            % Window button up callback function for the figure
+            function figurewindowbuttonupfcn(~,~)
+                
+                % Change the pointer to an ibeam and an arrow when the 
+                % mouse moves over the beat spectrum axes and the figure 
+                % object, respectively
+                enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','ibeam');
+                iptSetPointerBehavior(beatspectrum_axes,enterFcn);
+                iptPointerManager(figure_object);
+                enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','arrow');
+                iptSetPointerBehavior(figure_object,enterFcn);
+                iptPointerManager(figure_object);
+                
+                % Remove the window button motion and up callback functions of
+                % the figure
+                figure_object.WindowButtonMotionFcn = '';
+                figure_object.WindowButtonUpFcn = '';
+                
+            end
+            
+            % Mouse-click callback function for the beat spectrum axes
+            function beatspectrumaxesbuttondownfcn(~,~)
+                
+                % Location of the mouse pointer
+                current_point = beatspectrum_axes.CurrentPoint;
+                
+                % If the current point is out of the beat range, change it 
+                % into the beat limits
+                if current_point(1,1) < beat_limits(1)
+                    current_point(1,1) = beat_limits(1);
+                elseif current_point(1,1) > beat_limits(2)
+                    current_point(1,1) = beat_limits(2);
+                end
+                
+                % Mouse selection type
+                selection_type = figure_object.SelectionType;
+                
+                % If not click left mouse button, return
+                if ~strcmp(selection_type,'normal')
+                    return
+                end
+                
+                % Change the pointer to a hand when the mouse moves over 
+                % the beat spectrum axes
+                enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
+                iptSetPointerBehavior(beatspectrum_axes,enterFcn);
+                iptPointerManager(figure_object);
+                
+                % Update the x values of the beat lines
+                beat_lines(1).XData = current_point(1,1)*[1,1];
+                for line_index = 2:number_lines %#ok<*FXUP>
+                    beat_lines(line_index).XData = current_point(1,1)*line_index*[1,1];
+                end
+                
+                % Add window button motion and up callback functions to the 
+                % figure
+                figure_object.WindowButtonMotionFcn = @figurewindowbuttonmotionfcn;
+                figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
+                
+            end
+            
         end
         
     end
@@ -607,37 +634,6 @@ function image_data = iconread(icon_name)
 
 end
 
-% Short-time Fourier transform (STFT) (with zero-padding at the edges)
-function audio_stft = stft(audio_signal,window_function,step_length)
-
-% Number of samples and window length
-number_samples = length(audio_signal);
-window_length = length(window_function);
-
-% Number of time frames
-number_times = ceil((window_length-step_length+number_samples)/step_length);
-
-% Zero-padding at the start and end to center the windows
-audio_signal = [zeros(window_length-step_length,1);audio_signal; ...
-    zeros(number_times*step_length-number_samples,1)];
-
-% Initialize the STFT
-audio_stft = zeros(window_length,number_times);
-
-% Loop over the time frames
-for time_index = 1:number_times
-    
-    % Window the signal
-    sample_index = step_length*(time_index-1);
-    audio_stft(:,time_index) = audio_signal(1+sample_index:window_length+sample_index).*window_function;
-    
-end
-
-% Fourier transform of the frames
-audio_stft = fft(audio_stft);
-
-end
-
 % Close request callback function for the figure
 function figurecloserequestfcn(~,~,mixture_player)
 
@@ -761,11 +757,11 @@ select_line = gobjects(3,1);
         sample_rate = audio_player.SampleRate;
         number_samples = audio_player.TotalSamples;
         
-        % Audio range in seconds
-        audio_range = [1/sample_rate,number_samples/sample_rate];
+        % Audio limits in seconds
+        audio_limits = [1/sample_rate,number_samples/sample_rate];
         
-        % If the current point is out of the audio signal limits, return
-        if current_point(1,1) < audio_range(1) || current_point(1,1) > audio_range(2) || ...
+        % If the current point is out of the audio limits, return
+        if current_point(1,1) < audio_limits(1) || current_point(1,1) > audio_limits(2) || ...
                 current_point(1,2) < -1 || current_point(1,2) > 1
             return
         end
@@ -879,12 +875,12 @@ select_line = gobjects(3,1);
             % Location of the mouse pointer
             current_point = audiosignal_axes.CurrentPoint;
             
-            % If the current point is out of the audio signal x-axis 
-            % limits, change it into the x-axis limits
-            if current_point(1,1) < audio_range(1)
-                current_point(1,1) = audio_range(1);
-            elseif current_point(1,1) > audio_range(2)
-                current_point(1,1) = audio_range(2);
+            % If the current point is out of the audio limits, change it 
+            % into the audio limits
+            if current_point(1,1) < audio_limits(1)
+                current_point(1,1) = audio_limits(1);
+            elseif current_point(1,1) > audio_limits(2)
+                current_point(1,1) = audio_limits(2);
             end
             
             % Update the coordinates of the audio line that has been 
@@ -922,7 +918,7 @@ select_line = gobjects(3,1);
             % mouse moves over audio the signal axes and the figure object,
             % respectively
             enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','ibeam');
-            iptSetPointerBehavior(signal_axes,enterFcn);
+            iptSetPointerBehavior(audiosignal_axes,enterFcn);
             iptPointerManager(figure_object);
             enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','arrow');
             iptSetPointerBehavior(figure_object,enterFcn);
@@ -952,6 +948,38 @@ select_line = gobjects(3,1);
         end
         
     end
+
+end
+
+% Short-time Fourier transform (STFT) (with zero-padding at the edges)
+function audio_stft = stft(audio_signal,window_function,step_length)
+
+% Number of samples and window length
+number_samples = length(audio_signal);
+window_length = length(window_function);
+
+% Number of time frames
+number_times = ceil((window_length-step_length+number_samples)/step_length);
+
+% Zero-padding at the start and end to center the windows
+audio_signal = [zeros(window_length-step_length,1);audio_signal; ...
+    zeros(number_times*step_length-number_samples,1)];
+
+% Initialize the STFT
+audio_stft = zeros(window_length,number_times);
+
+% Loop over the time frames
+for time_index = 1:number_times
+    
+    % Window the signal
+    sample_index = step_length*(time_index-1);
+    audio_stft(:,time_index) = audio_signal(1+sample_index:window_length+sample_index) ...
+        .*window_function;
+    
+end
+
+% Fourier transform of the frames
+audio_stft = fft(audio_stft);
 
 end
 
@@ -988,133 +1016,18 @@ beat_spectrum = mean(beat_spectrum,2);
 
 end
 
-% Repeating periods from the beat spectrum
-function repeating_periods = periods(beat_spectrum,period_range)
+% Repeating period from the beat spectrum
+function repeating_period = repeatingperiod(beat_spectrum,period_range)
 
-% The repeating periods are the indices of the maxima in the
-% beat spectrum for the period range (they do not account for
-% lag 0 and should be shorter than a third of the length as at
-% least three segments are needed for the median)
-[~,repeating_periods] = max(beat_spectrum(period_range(1)+1:min(period_range(2),floor(size(beat_spectrum,1)/3)),:),[],1);
+% Update the period range so that the repeating period is at most a third 
+% of the maximum lag as at least three segments are needed for the median
+period_range(2) = min(period_range(2),floor((length(beat_spectrum)-1)/3));
 
-% Re-adjust the index or indices
-repeating_periods = repeating_periods+period_range(1);
+% The repeating period is the index of the maximum in the beat spectrum 
+% given the period range (its does not account for lag 0)
+[~,repeating_period] = max(beat_spectrum(period_range(1)+1:period_range(2)+1));
+
+% Re-adjust the repeating period
+repeating_period = repeating_period+period_range(1);
 
 end
-
-% % Set the beat lines on the beat spectrum axes
-% function beat_lines = beatlines(beatline_position,beatspectrum_duration,beatspectrum_axes)
-% 
-% % Initialize the beat lines as an array for graphic objects
-% number_lines = floor(beatspectrum_duration/beatline_position);
-% beat_lines = gobjects(number_lines,1);
-% 
-% % Create the main beat line on the beat spectrum axes
-% beat_lines(1) = line(beatspectrum_axes, ...
-%     beatline_position*[1,1],[-1,1], ...
-%     'Color','r');
-% 
-% % Create the other beat lines as dotted lines
-% for line_index = 2:number_lines
-%     beat_lines(line_index) = line(beatspectrum_axes, ...
-%         beatline_position*line_index*[1,1],[-1,1], ...
-%         'Color','r','LineStyle',':');
-% end
-% 
-% % Current figure handle
-% figure_object = gcf;
-% 
-% % Change the pointer to a hand when the mouse moves over the main line
-% enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
-% iptSetPointerBehavior(beat_lines(1),enterFcn);
-% iptPointerManager(figure_object);
-% 
-% % Period range for the beat spectrum in seconds
-% % period_range = [1/number_times*number_samples/sample_rate,floor(beatspectrum_duration/3)];
-% period_range = [1,floor(beatspectrum_duration/3)];
-% 
-% % Add mouse-click callback functions to the main line
-% beat_lines(1).ButtonDownFcn = @beatlinebuttondownfcn;
-% 
-%     % Mouse-click callback function for the main line
-%     function beatlinebuttondownfcn(~,~)
-%         
-%         % Mouse selection type
-%         selection_type = figure_object.SelectionType;
-%         
-%         % If not click left mouse button, return
-%         if ~strcmp(selection_type,'normal')
-%             return
-%         end
-%         
-%         % Change the pointer to a hand when the mouse moves over the beat 
-%         % spectrum axes and the figure object
-%         enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
-%         iptSetPointerBehavior(beatspectrum_axes,enterFcn);
-%         iptSetPointerBehavior(figure_object,enterFcn);
-%         iptPointerManager(figure_object);
-%         
-%         % Add window button motion and up callback functions to the figure
-%         figure_object.WindowButtonMotionFcn = @figurewindowbuttonmotionfcn;
-%         figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
-%         
-%     end
-% 
-%     % Window button motion callback function for the figure
-%     function figurewindowbuttonmotionfcn(~,~)
-%         
-%         % Location of the mouse pointer
-%         current_point = beatspectrum_axes.CurrentPoint;
-%         
-%         % If the current point is out of the beat spectrum x-axis limits, 
-%         % change it into the x-axis limits
-%         if current_point(1,1) < period_range(1)
-%             current_point(1,1) = period_range(1);
-%         elseif current_point(1,1) > period_range(2)
-%             current_point(1,1) = period_range(2);
-%         end
-%         
-%         % Delete the beat lines
-%         delete(beat_lines)
-%         
-%         % Create the main beat line on the beat spectrum axes
-%         beat_lines(1) = line(beatspectrum_axes, ...
-%             current_point(1,1)*[1,1],[-1,1], ...
-%             'Color','r');
-%         
-%         % Create the other beat lines as dotted lines
-%         for line_index = 2:number_lines %#ok<*FXUP>
-%             beat_lines(line_index) = line(beatspectrum_axes, ...
-%                 current_point(1,1)*line_index*[1,1],[-1,1], ...
-%                 'Color','r','LineStyle',':');
-%         end
-%         
-%     end
-% 
-%     % Window button up callback function for the figure
-%     function figurewindowbuttonupfcn(~,~)
-%         
-%         % Change the pointer to a hand, an ibeam, and an arrow when the 
-%         % mouse moves over the main line, the beat spectrum axes and the 
-%         % figure object, respectively
-%         enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
-%         iptSetPointerBehavior(beat_lines(1),enterFcn);
-%         iptPointerManager(figure_object);
-%         enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','ibeam');
-%         iptSetPointerBehavior(beatspectrum_axes,enterFcn);
-%         iptPointerManager(figure_object);
-%         enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','arrow');
-%         iptSetPointerBehavior(figure_object,enterFcn);
-%         iptPointerManager(figure_object);
-%         
-%         % Add mouse-click callback functions to the main line
-%         beat_lines(1).ButtonDownFcn = @beatlinebuttondownfcn;
-%         
-%         % Remove the window button motion and up callback functions of
-%         % the figure
-%         figure_object.WindowButtonMotionFcn = '';
-%         figure_object.WindowButtonUpFcn = '';
-%         
-%     end
-% 
-% end
