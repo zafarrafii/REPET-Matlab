@@ -496,10 +496,15 @@ if ~strcmp(fileext,'.wav')                                                  % Re
     return
 end
 
+% file = fullfile(filepath,[filename,fileext]);                               % File with path and extension
+% [x,fs,nbits] = wavread(file);
+% h.mixture_audio = x;                                                        % Mixture audio (fs and nbits will be automatically saved in audioplayer)
+% h.mixture_audioplayer = audioplayer(x,fs,nbits);                            % Mixture audioplayer
+
 file = fullfile(filepath,[filename,fileext]);                               % File with path and extension
-[x,fs,nbits] = wavread(file);
+[x,fs] = audioread(file);
 h.mixture_audio = x;                                                        % Mixture audio (fs and nbits will be automatically saved in audioplayer)
-h.mixture_audioplayer = audioplayer(x,fs,nbits);                            % Mixture audioplayer
+h.mixture_audioplayer = audioplayer(x,fs);                            % Mixture audioplayer
 
 if length(filename) > 20                                                    % Shorten file name if more than 20 characters
     filename = [filename(1:20),'~'];
