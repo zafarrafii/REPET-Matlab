@@ -500,10 +500,12 @@ figure_object.Visible = 'on';
             background_player = audioplayer(background_signal,sample_rate);
             foreground_player = audioplayer(foreground_signal,sample_rate);
             
+            %%% HERE!
+            
             % Store the sample range in the user data of the background and
             % foreground players
-            background_player.UserData = [1,number_samples];
-            foreground_player.UserData = [1,number_samples];
+            background_player.UserData = [sample_range(1),sample_range(2)];
+            foreground_player.UserData = [1,sample_range(2)-sample_range(1)+1];
             
             % Add clicked callback functions to the play background and 
             % foreground toogle buttons
