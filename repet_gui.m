@@ -60,7 +60,7 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       08/31/18
+%       09/07/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -170,7 +170,7 @@ linkaxes([mixturesignal_axes,mixturespectrogram_axes,...
 
 % Change the pointer when the mouse moves over an audio signal or beat 
 % spectrum axes
-enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','ibeam');
+enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','ibeam');
 iptSetPointerBehavior(mixturesignal_axes,enterFcn);
 iptSetPointerBehavior(beatspectrum_axes,enterFcn);
 iptSetPointerBehavior(backgroundsignal_axes,enterFcn);
@@ -189,7 +189,7 @@ figure_object.Visible = 'on';
         % Open file selection dialog box; return if cancel
         [mixture_name,mixture_path] = uigetfile({'*.wav';'*.mp3'}, ...
             'Select WAVE or MP3 File to Open');
-        if isequal(mixture_name,0)
+        if isequal(mixture_name,0) || isequal(mixture_path,0)
             return
         end
         
@@ -218,7 +218,7 @@ figure_object.Visible = 'on';
         % Number of samples and channels
         [number_samples,number_channels] = size(mixture_signal);
         
-        % Plot the mixture signal and make it unable to capture mouse
+        % Plot the mixture signal and make it unable to capture mouse 
         % clicks
         plot(mixturesignal_axes, ...
             1/sample_rate:1/sample_rate:number_samples/sample_rate,mixture_signal, ...
@@ -275,10 +275,10 @@ figure_object.Visible = 'on';
         mixturespectrogram_axes.XLabel.String = 'Time (s)';
         mixturespectrogram_axes.YLabel.String = 'Frequency (Hz)';
         
-        % Create object for playing audio
+        % Create object for playing audio for mixture signal
         mixture_player = audioplayer(mixture_signal,sample_rate);
         
-        % Store the sample range in the user data of the audio player
+        % Store the sample range in the user data of the mixture player
         mixture_player.UserData = [1,number_samples];
         
         % Add close request callback function to the figure object
@@ -303,7 +303,7 @@ figure_object.Visible = 'on';
         pan_toggle.Enable = 'on';
         repet_toggle.Enable = 'on';
         
-        % Change the select toggle button states to on
+        % Change the select toggle button state to on
         select_toggle.State = 'on';
         
         % Clicked callback function for the repet toggle button
@@ -328,32 +328,30 @@ figure_object.Visible = 'on';
             % Number of lags in time frames (including lag 0)
             number_lags = length(beat_spectrum);
             
-            % Period range in seconds for the beat spectrum (can be
-            % changed)
+            % Period range in seconds for the beat spectrum
             period_range = [1,10];
             
-            % Time conversion from seconds to frames
-            time_conversion = number_times*sample_rate/number_samples;
+            % Functions to convert time from seconds to frames and from
+            % frames to seconds
+            sec2tim = @(x) round(x*sample_rate/number_samples*number_times);
+            tim2sec = @(x) x/number_times*number_samples/sample_rate;
             
-            % Period range in time frames
-            period_range = round(period_range*time_conversion);
-            
-            % Repeating period in time frames given the period range
-            repeating_period = repeatingperiod(beat_spectrum,period_range);
+            % Repeating period in time frames given the period range in
+            % time frames
+            repeating_period = repeatingperiod(beat_spectrum,sec2tim(period_range));
             
             % Plot the beat spectrum and make it unable to capture mouse
             % clicks
             plot(beatspectrum_axes, ...
-                (0:1/time_conversion:(number_lags-1)/time_conversion), ...
-                beat_spectrum,'k','PickableParts','none')
+                (0:tim2sec(1):tim2sec(number_lags-1)),beat_spectrum,'k','PickableParts','none')
             
             % Update the beat spectrum axes properties
-            beatspectrum_axes.XLim = [0,number_lags-1]/time_conversion;
+            beatspectrum_axes.XLim = [0,tim2sec(number_lags-1)];
             beatspectrum_axes.YLim = [0,1];
             beatspectrum_axes.XGrid = 'on';
             beatspectrum_axes.XMinorGrid = 'on';
             beatspectrum_axes.Title.String = ['Beat Spectrum: repeating period = ', ...
-                num2str(round(repeating_period/time_conversion,3)),' seconds'];
+                num2str(round(tim2sec(repeating_period),3)),' seconds'];
             beatspectrum_axes.XLabel.String = 'Lag (s)';
             
             % Initialize the beat lines as an array for graphic objects
@@ -363,28 +361,26 @@ figure_object.Visible = 'on';
             % Create the main beat line and the other dotted lines on the 
             % beat spectrum axes
             beat_lines(1) = line(beatspectrum_axes, ...
-                (repeating_period-1)/time_conversion*[1,1],[-1,1], ...
-                'Color','r');
+                tim2sec(repeating_period-1)*[1,1],[-1,1],'Color','r');
             for line_index = 2:number_lines
                 beat_lines(line_index) = line(beatspectrum_axes, ...
-                    (repeating_period-1)/time_conversion*line_index*[1,1],[-1,1], ...
+                    tim2sec(repeating_period-1)*line_index*[1,1],[-1,1], ...
                     'Color','r','LineStyle',':','PickableParts','none');
             end
             
-            % Beat limits for the repeating period on the beat spectrum in 
-            % seconds
-            beat_limits = [1,floor(number_lags/3)]/time_conversion;
-            
             % Change the pointer to a hand when the mouse moves over the 
-            % beat line
-            enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand'); 
+            % main beat line
+            enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','hand'); 
             iptSetPointerBehavior(beat_lines(1),enterFcn);
             iptPointerManager(figure_object);
             
-            % Add mouse-click callback functions to the beat line
-            beat_lines(1).ButtonDownFcn = @beatlinebuttondownfcn;
+            % Beat limits for the repeating period on the beat spectrum in 
+            % seconds
+            beat_limits = tim2sec([1,floor(number_lags/3)]);
             
-            % Add mouse-click callback function to the beat spectrum axes
+            % Add mouse-click callback functions to the main beat line and
+            % to the beat spectrum axes
+            beat_lines(1).ButtonDownFcn = @beatlinebuttondownfcn;
             beatspectrum_axes.ButtonDownFcn = @beatspectrumaxesbuttondownfcn;
             
             % Cutoff frequency in Hz for the high-pass filtering of the 
@@ -402,7 +398,8 @@ figure_object.Visible = 'on';
             for channel_index = 1:number_channels
                 
                 % Repeating mask for the current channel
-                repeating_mask = repeatingmask(mixture_spectrogram(:,time_range(1):time_range(2),channel_index),repeating_period);
+                repeating_mask ...
+                    = repeatingmask(mixture_spectrogram(:,time_range(1):time_range(2),channel_index),repeating_period);
                 
                 % High-pass filtering of the foreground
                 repeating_mask(2:cutoff_frequency+1,:) = 1;
@@ -411,7 +408,8 @@ figure_object.Visible = 'on';
                 repeating_mask = cat(1,repeating_mask,repeating_mask(end-1:-1:2,:));
                 
                 % Estimated background STFT for the current channel
-                background_stft(:,:,channel_index) = repeating_mask.*mixture_stft(:,time_range(1):time_range(2),channel_index);
+                background_stft(:,:,channel_index) ...
+                    = repeating_mask.*mixture_stft(:,time_range(1):time_range(2),channel_index);
                 
                 % Estimated background signal
                 background_signal1 = istft(background_stft(:,:,channel_index),window_function,step_length);
@@ -478,7 +476,7 @@ figure_object.Visible = 'on';
             % Display the foreground spectrogram (in dB, averaged over the
             % channels)
             imagesc(foregroundspectrogram_axes, ...
-                [time_range(1),time_range(2)]/number_times*number_samples/sample_rate, ...
+                tim2sec([time_range(1),time_range(2)]), ...
                 [1,window_length/2]/window_length*sample_rate, ...
                 db(mean(abs(foreground_stft(2:window_length/2+1,:,:)),3)))
             
@@ -492,17 +490,33 @@ figure_object.Visible = 'on';
             foregroundspectrogram_axes.YLabel.String = 'Frequency (Hz)';
             drawnow
             
-            % HERE!!!
+            % Add clicked callback functions for the save background and 
+            % foreground toggle buttons
+            savebackground_toggle.ClickedCallback = @savebackgroundclickedcallback;
+            saveforeground_toggle.ClickedCallback = @saveforegroundclickedcallback;
             
-            % Add clicked callback function to the play background and 
-            % foreground toogle button
-            playbackground_toggle.ClickedCallback = {@playaudioclickedcallback,background_player};
-            playbackground_toggle.ClickedCallback = {@playaudioclickedcallback,background_player};
+            % Create objects for playing audio for background and
+            % foreground signals
+            background_player = audioplayer(background_signal,sample_rate);
+            foreground_player = audioplayer(foreground_signal,sample_rate);
             
-            % Set a play line and a select line on the mixture signal axes 
-            % using the mixture player
-            playline(mixturesignal_axes,mixture_player,playmixture_toggle);
-            selectline(mixturesignal_axes,mixture_player)
+            % Store the sample range in the user data of the background and
+            % foreground players
+            background_player.UserData = [1,number_samples];
+            foreground_player.UserData = [1,number_samples];
+            
+            % Add clicked callback functions to the play background and 
+            % foreground toogle buttons
+            playbackground_toggle.ClickedCallback = {@playaudioclickedcallback,background_player};
+            playforeground_toggle.ClickedCallback = {@playaudioclickedcallback,foreground_player};
+            
+            % Set a play line and a select line on the background and 
+            % foreground signal axes using the background and foreground
+            % players, respectively
+            playline(backgroundsignal_axes,background_player,playbackground_toggle);
+            selectline(backgroundsignal_axes,background_player)
+            playline(foregroundsignal_axes,foreground_player,playforeground_toggle);
+            selectline(foregroundsignal_axes,foreground_player)
             
             % Enable the save and play background and foreground
             % buttons
@@ -511,7 +525,7 @@ figure_object.Visible = 'on';
             saveforeground_toggle.Enable = 'on';
             playforeground_toggle.Enable = 'on';
             
-            % Mouse-click callback function for the beat line
+            % Mouse-click callback function for the main beat line
             function beatlinebuttondownfcn(~,~)
                 
                 % Mouse selection type
@@ -524,7 +538,7 @@ figure_object.Visible = 'on';
                 
                 % Change the pointer to a hand when the mouse moves over 
                 % the beat spectrum axes and the figure object
-                enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
+                enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','hand');
                 iptSetPointerBehavior(beatspectrum_axes,enterFcn);
                 iptSetPointerBehavior(figure_object,enterFcn);
                 iptPointerManager(figure_object);
@@ -542,7 +556,7 @@ figure_object.Visible = 'on';
                 % Location of the mouse pointer
                 current_point = beatspectrum_axes.CurrentPoint;
                 
-                % If the current point is out of the beat range, change it 
+                % If the current point is out of the beat limits, change it 
                 % into the beat limits
                 if current_point(1,1) < beat_limits(1)
                     current_point(1,1) = beat_limits(1);
@@ -568,15 +582,15 @@ figure_object.Visible = 'on';
                 % Change the pointer to an ibeam and an arrow when the 
                 % mouse moves over the beat spectrum axes and the figure 
                 % object, respectively
-                enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','ibeam');
+                enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','ibeam');
                 iptSetPointerBehavior(beatspectrum_axes,enterFcn);
                 iptPointerManager(figure_object);
-                enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','arrow');
+                enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','arrow');
                 iptSetPointerBehavior(figure_object,enterFcn);
                 iptPointerManager(figure_object);
                 
-                % Remove the window button motion and up callback functions of
-                % the figure
+                % Remove the window button motion and up callback functions 
+                % of the figure
                 figure_object.WindowButtonMotionFcn = '';
                 figure_object.WindowButtonUpFcn = '';
                 
@@ -604,7 +618,7 @@ figure_object.Visible = 'on';
                 
                 % Change the pointer to a hand when the mouse moves over 
                 % the beat spectrum axes
-                enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
+                enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','hand');
                 iptSetPointerBehavior(beatspectrum_axes,enterFcn);
                 iptPointerManager(figure_object);
                 
@@ -622,6 +636,50 @@ figure_object.Visible = 'on';
                 % figure
                 figure_object.WindowButtonMotionFcn = @figurewindowbuttonmotionfcn;
                 figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
+                
+            end
+            
+            % Clicked callback function for the save background toggle 
+            % button
+            function savebackgroundclickedcallback(~,~)
+                
+                % Change toggle button state to off
+                savebackground_toggle.State = 'off';
+                
+                % Open dialog box for saving files; return if cancel
+                [background_name,background_path] = uiputfile('*.wav*', ...
+                    'Save Background as WAVE File','background_file.wav');
+                if isequal(background_name,0) || isequal(background_path,0)
+                    return
+                end
+                
+                % Build full file name
+                background_file = fullfile(background_path,background_name);
+                
+                % Write audio file
+                audiowrite(background_file,background_signal,sample_rate)
+                
+            end
+            
+            % Clicked callback function for the save foreground toggle 
+            % button
+            function saveforegroundclickedcallback(~,~)
+                
+                % Change toggle button state to off
+                saveforeground_toggle.State = 'off';
+                
+                % Open dialog box for saving files; return if cancel
+                [foreground_name,foreground_path] = uiputfile('*.wav*', ...
+                    'Save Foreground as WAVE File','foreground_file.wav');
+                if isequal(foreground_name,0) || isequal(foreground_path,0)
+                    return
+                end
+                
+                % Build full file name
+                foreground_file = fullfile(foreground_path,foreground_name);
+                
+                % Write audio file
+                audiowrite(foreground_file,foreground_signal,sample_rate)
                 
             end
             
@@ -1150,7 +1208,6 @@ audio_signal = audio_signal(window_length-step_length+1:number_samples-(window_l
 audio_signal = audio_signal/sum(window_function(1:step_length:window_length));
 
 end
-
 
 % Autocorrelation using the Wiener–Khinchin theorem (faster than using
 % xcorr)
