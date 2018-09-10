@@ -232,7 +232,7 @@ figure_object.Visible = 'on';
         mixturesignal_axes.Title.Interpreter = 'None';
         mixturesignal_axes.XLabel.String = 'Time (s)';
         mixturesignal_axes.Layer = 'top';
-        mixturesignal_axes.UserData.FullXLim = [1,number_samples]/sample_rate;
+        mixturesignal_axes.UserData.PlotXLim = [1,number_samples]/sample_rate;
         mixturesignal_axes.UserData.SelectXLim = [1,number_samples]/sample_rate;
         drawnow
         
@@ -280,9 +280,6 @@ figure_object.Visible = 'on';
         % Create object for playing audio for mixture signal
         mixture_player = audioplayer(mixture_signal,sample_rate);
         
-        % Store the sample range in the user data of the mixture player
-        mixture_player.UserData = [1,number_samples];
-        
         % Add close request callback function to the figure object
         figure_object.CloseRequestFcn = {@figurecloserequestfcn,mixture_player};
         
@@ -291,8 +288,8 @@ figure_object.Visible = 'on';
         
         % Set a select line and a play line on the mixture signal axes 
         % using the mixture player
-        playline(mixturesignal_axes,mixture_player,playmixture_toggle);
         selectline(mixturesignal_axes)
+        playline(mixturesignal_axes,mixture_player,playmixture_toggle);
         
         % Add clicked callback function to the repet toogle button
         repet_toggle.ClickedCallback = @repetclickedcallback;
@@ -314,10 +311,10 @@ figure_object.Visible = 'on';
             % Change the repet toggle button state to off
             repet_toggle.State = 'off';
             
-            % Get the sample range of the mixture player from its user data
-            sample_range = mixture_player.UserData;
+            % Get the sample range from the mixture signal axes' user data
+            sample_range = round(mixturesignal_axes.UserData.SelectXLim*sample_rate);
             
-            % Time range in time frames
+            % Translate to a time range in time frames
             time_range = ceil(sample_range/number_samples*number_times);
             
             % Beat spectrum of the spectrograms averaged over the channels
@@ -436,6 +433,8 @@ figure_object.Visible = 'on';
             backgroundsignal_axes.Title.Interpreter = 'None';
             backgroundsignal_axes.XLabel.String = 'Time (s)';
             backgroundsignal_axes.Layer = 'top';
+            backgroundsignal_axes.UserData.PlotXLim = mixturesignal_axes.UserData.SelectXLim;
+            backgroundsignal_axes.UserData.SelectXLim = mixturesignal_axes.UserData.SelectXLim;
             drawnow
             
             % Display the background spectrogram (in dB, averaged over the
@@ -473,6 +472,8 @@ figure_object.Visible = 'on';
             foregroundsignal_axes.Title.Interpreter = 'None';
             foregroundsignal_axes.XLabel.String = 'Time (s)';
             foregroundsignal_axes.Layer = 'top';
+            foregroundsignal_axes.UserData.FullXLim = mixturesignal_axes.UserData.SelectXLim;
+            foregroundsignal_axes.UserData.SelectXLim = mixturesignal_axes.UserData.SelectXLim;
             drawnow
             
             % Display the foreground spectrogram (in dB, averaged over the
@@ -502,25 +503,18 @@ figure_object.Visible = 'on';
             background_player = audioplayer(background_signal,sample_rate);
             foreground_player = audioplayer(foreground_signal,sample_rate);
             
-            %%% HERE!
-            
-            % Store the sample range in the user data of the background and
-            % foreground players
-            background_player.UserData = [1,sample_range(2)-sample_range(1)+1];
-            foreground_player.UserData = [1,sample_range(2)-sample_range(1)+1];
-            
             % Add clicked callback functions to the play background and 
             % foreground toogle buttons
-            playbackground_toggle.ClickedCallback = {@playaudioclickedcallback,background_player};
-            playforeground_toggle.ClickedCallback = {@playaudioclickedcallback,foreground_player};
+            playbackground_toggle.ClickedCallback = {@playaudioclickedcallback,background_player,backgroundsignal_axes};
+            playforeground_toggle.ClickedCallback = {@playaudioclickedcallback,foreground_player,foregroundsignal_axes};
             
             % Set a play line and a select line on the background and 
             % foreground signal axes using the background and foreground
             % players, respectively
+            selectline(backgroundsignal_axes)
             playline(backgroundsignal_axes,background_player,playbackground_toggle);
-            selectline(backgroundsignal_axes,background_player)
+            selectline(foregroundsignal_axes)
             playline(foregroundsignal_axes,foreground_player,playforeground_toggle);
-            selectline(foregroundsignal_axes,foreground_player)
             
             % Enable the save and play background and foreground
             % buttons
@@ -859,13 +853,13 @@ if isplaying(audio_player)
     
 else
     
-    % Get the select x-limits from the audio signal axes' user data and the
+    % Get the select limits from the audio signal axes' user data and the
     % sample rate from the audio player
-    select_xlimits = audiosignal_axes.UserData.SelectXLim;
+    select_limits = audiosignal_axes.UserData.SelectXLim;
     sample_rate = audio_player.SampleRate;
     
     % Play the audio given the sample range
-    play(audio_player,round(select_xlimits*sample_rate))
+    play(audio_player,round(select_limits*sample_rate))
     
 end
 
@@ -887,11 +881,9 @@ select_line = gobjects(3,1);
         % Location of the mouse pointer
         current_point = audiosignal_axes.CurrentPoint;
         
-        % Full x-limits from the audio signal axes' user data
-        full_xlimits = audiosignal_axes.UserData.FullXLim;
-        
-        % If the current point is out of the full limits, return
-        if current_point(1,1) < full_xlimits(1) || current_point(1,1) > full_xlimits(2) || ...
+        % If the current point is out of the plot x-limits, return
+        if current_point(1,1) < audiosignal_axes.UserData.PlotXLim(1) ...
+                || current_point(1,1) > audiosignal_axes.UserData.PlotXLim(2) || ...
                 current_point(1,2) < -1 || current_point(1,2) > 1
             return
         end
@@ -960,7 +952,7 @@ select_line = gobjects(3,1);
             end
             
             % Update the select limits in the audio signal axes' user data
-            audiosignal_axes.UserData.SelectXLim = audiosignal_axes.UserData.FullXLim;
+            audiosignal_axes.UserData.SelectXLim = audiosignal_axes.UserData.PlotXLim;
             
         end
         
@@ -993,7 +985,7 @@ select_line = gobjects(3,1);
                 
                 % Update the select limits in the audio signal axes' user 
                 % data
-                audiosignal_axes.UserData.SelectXLim = audiosignal_axes.UserData.FullXLim;
+                audiosignal_axes.UserData.SelectXLim = audiosignal_axes.UserData.PlotXLim;
                 
             end
             
@@ -1005,12 +997,12 @@ select_line = gobjects(3,1);
             % Location of the mouse pointer
             current_point = audiosignal_axes.CurrentPoint;
             
-            % If the current point is out of the audio limits, change it 
+            % If the current point is out of the plot x-limits, change it 
             % into the audio limits
-            if current_point(1,1) < full_xlimits(1)
-                current_point(1,1) = full_xlimits(1);
-            elseif current_point(1,1) > full_xlimits(2)
-                current_point(1,1) = full_xlimits(2);
+            if current_point(1,1) < audiosignal_axes.UserData.PlotXLim(1)
+                current_point(1,1) = audiosignal_axes.UserData.PlotXLim(1);
+            elseif current_point(1,1) > audiosignal_axes.UserData.PlotXLim(2)
+                current_point(1,1) = audiosignal_axes.UserData.PlotXLim(2);
             end
             
             % Update the coordinates of the audio line that has been 
@@ -1062,7 +1054,7 @@ select_line = gobjects(3,1);
             % depending if the two lines have the same or different 
             % coordinates
             if x_value1 == x_value2
-                audiosignal_axes.UserData.SelectXLim = [x_value1,audiosignal_axes.UserData.FullXLim(2)];
+                audiosignal_axes.UserData.SelectXLim = [x_value1,audiosignal_axes.UserData.PlotXLim(2)];
             elseif x_value1 < x_value2
                 audiosignal_axes.UserData.SelectXLim = [x_value1,x_value2];
             else
@@ -1103,11 +1095,11 @@ play_line = [];
         playaudio_toggle.CData = stopicon;
         playaudio_toggle.TooltipString = 'Stop';
         
-        % Get the select x-limits from the audio signal axes' user data
-        select_xlimits = audiosignal_axes.UserData.SelectXLim;
+        % Get the select limits from the audio signal axes' user data
+        select_limits = audiosignal_axes.UserData.SelectXLim;
         
         % Create a play line on the audio signal axes
-        play_line = line(audiosignal_axes,select_xlimits(1)*[1,1],[-1,1]);
+        play_line = line(audiosignal_axes,select_limits(1)*[1,1],[-1,1]);
         
     end
     
@@ -1130,12 +1122,12 @@ play_line = [];
         % Current sample and sample range from the audio player
         current_sample = audio_player.CurrentSample;
         
-        % Get the select x-limits from the audio signal axes' user data
-        select_xlimits = audiosignal_axes.UserData.SelectXLim;
+        % Get the select limits from the audio signal axes' user data
+        select_limits = audiosignal_axes.UserData.SelectXLim;
         
         % Make sure the current sample is greater than the start sample (to
         % prevent the audio line from showing up at the start at the end)
-        if current_sample > select_xlimits(1)*sample_rate
+        if current_sample > select_limits(1)*sample_rate
         
             % Update the play line
             play_line.XData = current_sample/sample_rate*[1,1];
