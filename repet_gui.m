@@ -60,7 +60,7 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       09/10/18
+%       09/11/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -312,7 +312,13 @@ figure_object.Visible = 'on';
             repet_toggle.State = 'off';
             
             % Get the sample range from the mixture signal axes' user data
-            sample_range = round(mixturesignal_axes.UserData.SelectXLim*sample_rate);
+            if mixturesignal_axes.UserData.SelectXLim(1) == mixturesignal_axes.UserData.SelectXLim(2)
+                % If it is a select line
+                sample_range = [1,number_samples];
+            else
+                % If it is a select region
+                sample_range = round(mixturesignal_axes.UserData.SelectXLim*sample_rate);
+            end
             
             % Translate to a time range in time frames
             time_range = ceil(sample_range/number_samples*number_times);
@@ -472,7 +478,7 @@ figure_object.Visible = 'on';
             foregroundsignal_axes.Title.Interpreter = 'None';
             foregroundsignal_axes.XLabel.String = 'Time (s)';
             foregroundsignal_axes.Layer = 'top';
-            foregroundsignal_axes.UserData.FullXLim = mixturesignal_axes.UserData.SelectXLim;
+            foregroundsignal_axes.UserData.PlotXLim = mixturesignal_axes.UserData.SelectXLim;
             foregroundsignal_axes.UserData.SelectXLim = mixturesignal_axes.UserData.SelectXLim;
             drawnow
             
@@ -848,18 +854,30 @@ object_handle.State = 'off';
 % If the playback of the audio player is in progress
 if isplaying(audio_player)
     
-    % Stop the playback
+    % Stop the audio
     stop(audio_player)
     
 else
     
-    % Get the select limits from the audio signal axes' user data and the
-    % sample rate from the audio player
-    select_limits = audiosignal_axes.UserData.SelectXLim;
+    % Get the sample rate and the number of samples from the audio player
     sample_rate = audio_player.SampleRate;
+    number_samples = audio_player.TotalSamples;
+    
+    % Get the plot and select limits from the audio signal axes' user data
+    plot_limits = audiosignal_axes.UserData.PlotXLim;
+    select_limits = audiosignal_axes.UserData.SelectXLim;
+    
+    % Derive the sample range for the audio player
+    if select_limits(1) == select_limits(2)
+        % If it is a select line
+        sample_range = [round((select_limits(1)-plot_limits(1))*sample_rate)+1,number_samples];
+    else
+        % If it is a select region
+        sample_range = round((select_limits-plot_limits(1))*sample_rate+1);
+    end
     
     % Play the audio given the sample range
-    play(audio_player,round(select_limits*sample_rate))
+    play(audio_player,sample_range)
     
 end
 
@@ -942,6 +960,7 @@ select_line = gobjects(3,1);
             
             % Update the select limits in the audio signal axes' user data
             audiosignal_axes.UserData.SelectXLim(1) = current_point(1,1);
+            audiosignal_axes.UserData.SelectXLim(2) = current_point(1,1);
             
         % If click right mouse button
         elseif strcmp(selection_type,'alt')
@@ -1054,7 +1073,7 @@ select_line = gobjects(3,1);
             % depending if the two lines have the same or different 
             % coordinates
             if x_value1 == x_value2
-                audiosignal_axes.UserData.SelectXLim = [x_value1,audiosignal_axes.UserData.PlotXLim(2)];
+                audiosignal_axes.UserData.SelectXLim = [x_value1,x_value1];
             elseif x_value1 < x_value2
                 audiosignal_axes.UserData.SelectXLim = [x_value1,x_value2];
             else
@@ -1090,7 +1109,7 @@ play_line = [];
     % Function to execute one time when the playback starts
     function audioplayerstartfcn(~,~)
         
-        % Change the play audio toggle button icon to a stop icon and the 
+        % Change the play audio toggle button icon to a stop icon and the
         % tool tip text to 'Stop'
         playaudio_toggle.CData = stopicon;
         playaudio_toggle.TooltipString = 'Stop';
@@ -1102,11 +1121,11 @@ play_line = [];
         play_line = line(audiosignal_axes,select_limits(1)*[1,1],[-1,1]);
         
     end
-    
+
     % Function to execute one time when playback stops
     function audioplayerstopfcn(~,~)
         
-        % Change the play audio toggle button icon to a play icon and the 
+        % Change the play audio toggle button icon to a play icon and the
         % tool tip text to 'Play'
         playaudio_toggle.CData = playicon;
         playaudio_toggle.TooltipString = 'Play';
@@ -1115,22 +1134,24 @@ play_line = [];
         delete(play_line)
         
     end
-    
+
     % Function to execute repeatedly during playback
     function audioplayertimerfcn(~,~)
         
         % Current sample and sample range from the audio player
         current_sample = audio_player.CurrentSample;
         
-        % Get the select limits from the audio signal axes' user data
+        % Get the plot and the select limits from the audio signal axes' 
+        % user data
+        plot_limits = audiosignal_axes.UserData.PlotXLim;
         select_limits = audiosignal_axes.UserData.SelectXLim;
         
         % Make sure the current sample is greater than the start sample (to
         % prevent the audio line from showing up at the start at the end)
         if current_sample > select_limits(1)*sample_rate
-        
+            
             % Update the play line
-            play_line.XData = current_sample/sample_rate*[1,1];
+            play_line.XData = (plot_limits(1)+current_sample/sample_rate)*[1,1];
             
         end
         
@@ -1241,15 +1262,22 @@ end
 % Repeating period from the beat spectrum
 function repeating_period = repeatingperiod(beat_spectrum,period_range)
 
-% Update the period range so that the repeating period is at most a third 
-% of the maximum lag as at least three segments are needed for the median
+% Update the maximum period so that the repeating period is at most a third 
+% of the maximum lag, as at least three segments are needed for the median
 period_range(2) = min(period_range(2),floor((length(beat_spectrum)-1)/3));
 
-% The repeating period is the index of the maximum in the beat spectrum 
-% given the period range (its does not account for lag 0)
-[~,repeating_period] = max(beat_spectrum(period_range(1)+1:period_range(2)+1));
+% Update the minimum period to 1 lag if the maximum period is smaller than 
+% the minimum period
+if period_range(2)<period_range(1)
+    period_range(1) = 1;
+end
 
-% Re-adjust the repeating period
+% The repeating period is the index of the maximum peak in the beat
+% spectrum given the period range (its does not account for lag 0)
+beat_spectrum = beat_spectrum(period_range(1)+1:period_range(2)+1);
+[~,repeating_period] = max(beat_spectrum.* ...
+    [0;(beat_spectrum(2:end-1)>=beat_spectrum(1:end-2)) ...
+    & (beat_spectrum(2:end-1)>=beat_spectrum(3:end));0]);
 repeating_period = repeating_period+period_range(1);
 
 end
