@@ -71,7 +71,8 @@ figure_object = figure( ...
     'Position',[screen_size(3:4)/4+1,screen_size(3:4)/2], ...
     'Name','REPET GUI', ...
     'NumberTitle','off', ...
-    'MenuBar','none');
+    'MenuBar','none', ...
+    'CloseRequestFcn',@figurecloserequestfcn);
 
 % Create toolbar on figure
 toolbar_object = uitoolbar(figure_object);
@@ -167,6 +168,8 @@ foregroundspectrogram_axes = axes( ...
 linkaxes([mixturesignal_axes,mixturespectrogram_axes,...
     backgroundsignal_axes,backgroundspectrogram_axes, ...
     foregroundsignal_axes,foregroundspectrogram_axes],'x')
+linkaxes([mixturespectrogram_axes,backgroundspectrogram_axes, ...
+    foregroundspectrogram_axes],'xy')
 
 % Change the pointer when the mouse moves over an audio signal or beat 
 % spectrum axes
@@ -177,6 +180,11 @@ iptSetPointerBehavior(backgroundsignal_axes,enterFcn);
 iptSetPointerBehavior(foregroundsignal_axes,enterFcn);
 iptPointerManager(figure_object);
 
+% Initialize the audio players (for the figure's close request callback)
+mixture_player = audioplayer(0,80);
+background_player = audioplayer(0,80);
+foreground_player = audioplayer(0,80);
+
 % Make the figure visible
 figure_object.Visible = 'on';
     
@@ -185,6 +193,10 @@ figure_object.Visible = 'on';
         
         % Change toggle button state to off
         openmixture_toggle.State = 'off';
+        
+        % Remove the figure's close request callback so that it allows
+        % all the other objects to get created before it can get closed
+        figure_object.CloseRequestFcn = '';
         
         % Open file selection dialog box; return if cancel
         [mixture_name,mixture_path] = uigetfile({'*.wav';'*.mp3'}, ...
@@ -262,10 +274,15 @@ figure_object.Visible = 'on';
         % frequencies)
         mixture_spectrogram = abs(mixture_stft(1:window_length/2+1,:,:));
         
+        % Functions to convert time from seconds to frames and from frames 
+        % to seconds
+        sec2tim = @(x) round(x*sample_rate/number_samples*number_times);
+        tim2sec = @(x) x/number_times*number_samples/sample_rate;
+        
         % Display the mixture spectrogram (in dB, averaged over the 
         % channels)
         imagesc(mixturespectrogram_axes, ...
-            [1,number_times]/number_times*number_samples/sample_rate, ...
+            tim2sec([1,number_times]), ...
             [1,window_length/2]/window_length*sample_rate, ...
             db(mean(mixture_spectrogram(2:end,:),3)))
         
@@ -276,20 +293,17 @@ figure_object.Visible = 'on';
         mixturespectrogram_axes.Title.String = 'Audio Spectrogram';
         mixturespectrogram_axes.XLabel.String = 'Time (s)';
         mixturespectrogram_axes.YLabel.String = 'Frequency (Hz)';
+        drawnow
         
         % Create object for playing audio for mixture signal
         mixture_player = audioplayer(mixture_signal,sample_rate);
         
-        % Add close request callback function to the figure object
-        figure_object.CloseRequestFcn = {@figurecloserequestfcn,mixture_player};
+        % Set a select line and a play line on the mixture signal axes 
+        selectline(mixturesignal_axes)
+        playline(mixturesignal_axes,mixture_player,playmixture_toggle);
         
         % Add clicked callback function to the play mixture toogle button
         playmixture_toggle.ClickedCallback = {@playaudioclickedcallback,mixture_player,mixturesignal_axes};
-        
-        % Set a select line and a play line on the mixture signal axes 
-        % using the mixture player
-        selectline(mixturesignal_axes)
-        playline(mixturesignal_axes,mixture_player,playmixture_toggle);
         
         % Add clicked callback function to the repet toogle button
         repet_toggle.ClickedCallback = @repetclickedcallback;
@@ -305,11 +319,18 @@ figure_object.Visible = 'on';
         % Change the select toggle button state to on
         select_toggle.State = 'on';
         
+        % Add the figure's close request callback back
+        figure_object.CloseRequestFcn = @figurecloserequestfcn;
+        
         % Clicked callback function for the repet toggle button
         function repetclickedcallback(~,~)
             
             % Change the repet toggle button state to off
             repet_toggle.State = 'off';
+            
+            % Remove the figure's close request callback so that it allows
+            % all the other objects to get created before it can get closed
+            figure_object.CloseRequestFcn = '';
             
             % Get the sample range from the mixture signal axes' user data
             if mixturesignal_axes.UserData.SelectXLim(1) == mixturesignal_axes.UserData.SelectXLim(2)
@@ -335,11 +356,6 @@ figure_object.Visible = 'on';
             
             % Period range in seconds for the beat spectrum
             period_range = [1,10];
-            
-            % Functions to convert time from seconds to frames and from
-            % frames to seconds
-            sec2tim = @(x) round(x*sample_rate/number_samples*number_times);
-            tim2sec = @(x) x/number_times*number_samples/sample_rate;
             
             % Repeating period in time frames given the period range in
             % time frames
@@ -446,15 +462,16 @@ figure_object.Visible = 'on';
             % Display the background spectrogram (in dB, averaged over the
             % channels)
             imagesc(backgroundspectrogram_axes, ...
-                [time_range(1),time_range(2)]/number_times*number_samples/sample_rate, ...
+                tim2sec([time_range(1),time_range(2)]), ...
                 [1,window_length/2]/window_length*sample_rate, ...
                 db(mean(abs(background_stft(2:window_length/2+1,:,:)),3)))
             
             % Update the mixture spectrogram axes properties
-            backgroundspectrogram_axes.Colormap = jet;
             backgroundspectrogram_axes.XLim = [1,number_samples]/sample_rate;
             backgroundspectrogram_axes.YDir = 'normal';
             backgroundspectrogram_axes.XGrid = 'on';
+            backgroundspectrogram_axes.Colormap = jet;
+            backgroundspectrogram_axes.CLim = mixturespectrogram_axes.CLim;
             backgroundspectrogram_axes.Title.String = 'Background Spectrogram';
             backgroundspectrogram_axes.XLabel.String = 'Time (s)';
             backgroundspectrogram_axes.YLabel.String = 'Frequency (Hz)';
@@ -464,7 +481,7 @@ figure_object.Visible = 'on';
             foreground_signal = mixture_signal(sample_range(1):sample_range(2),:)-background_signal;
             foreground_stft = mixture_stft(:,time_range(1):time_range(2),:)-background_stft;
             
-            % Plot the background signal and make it unable to capture 
+            % Plot the foreground signal and make it unable to capture 
             % mouse clicks
             plot(foregroundsignal_axes, ...
                 sample_range(1)/sample_rate:1/sample_rate:sample_range(2)/sample_rate,foreground_signal, ...
@@ -490,10 +507,11 @@ figure_object.Visible = 'on';
                 db(mean(abs(foreground_stft(2:window_length/2+1,:,:)),3)))
             
             % Update the mixture spectrogram axes properties
-            foregroundspectrogram_axes.Colormap = jet;
             foregroundspectrogram_axes.XLim = [1,number_samples]/sample_rate;
             foregroundspectrogram_axes.YDir = 'normal';
             foregroundspectrogram_axes.XGrid = 'on';
+            foregroundspectrogram_axes.Colormap = jet;
+            foregroundspectrogram_axes.CLim = mixturespectrogram_axes.CLim;
             foregroundspectrogram_axes.Title.String = 'Foreground Spectrogram';
             foregroundspectrogram_axes.XLabel.String = 'Time (s)';
             foregroundspectrogram_axes.YLabel.String = 'Frequency (Hz)';
@@ -528,6 +546,9 @@ figure_object.Visible = 'on';
             playbackground_toggle.Enable = 'on';
             saveforeground_toggle.Enable = 'on';
             playforeground_toggle.Enable = 'on';
+            
+            % Add the figure's close request callback back
+            figure_object.CloseRequestFcn = @figurecloserequestfcn;
             
             % Mouse-click callback function for the main beat line
             function beatlinebuttondownfcn(~,~)
@@ -756,6 +777,33 @@ figure_object.Visible = 'on';
         
     end
 
+    % Close request callback function for the figure
+    function figurecloserequestfcn(object_handle,~)
+        
+        % If any audio is playing, stop it
+        if isplaying(mixture_player)
+            stop(mixture_player)
+        end
+        if isplaying(background_player)
+            stop(background_player)
+        end
+        if isplaying(foreground_player)
+            stop(foreground_player)
+        end
+        
+        % Create question dialog box to close the figure
+        user_answer = questdlg('Close REPET GUI?',...
+            'Close REPET GUI','Yes','No','Yes');
+        switch user_answer
+            case 'Yes'
+                delete(object_handle)
+            case 'No'
+                return
+        end
+        
+        
+    end
+
 end
 
 % Create play icon
@@ -826,60 +874,6 @@ function image_data = iconread(icon_name)
 
     % Convert the 0's to NaN's in the image using the transparency
     image_data(image_transparency==0) = NaN;
-
-end
-
-% Close request callback function for the figure
-function figurecloserequestfcn(~,~,mixture_player)
-
-% If the playback is in progress
-if isplaying(mixture_player)
-    
-    % Stop the audio
-    stop(mixture_player)
-    
-end
-
-% Delete the current figure
-delete(gcf)
-
-end
-
-% Clicked callback function for the play audio toggle buttons
-function playaudioclickedcallback(object_handle,~,audio_player,audiosignal_axes)
-
-% Change the toggle button state to off
-object_handle.State = 'off';
-
-% If the playback of the audio player is in progress
-if isplaying(audio_player)
-    
-    % Stop the audio
-    stop(audio_player)
-    
-else
-    
-    % Get the sample rate and the number of samples from the audio player
-    sample_rate = audio_player.SampleRate;
-    number_samples = audio_player.TotalSamples;
-    
-    % Get the plot and select limits from the audio signal axes' user data
-    plot_limits = audiosignal_axes.UserData.PlotXLim;
-    select_limits = audiosignal_axes.UserData.SelectXLim;
-    
-    % Derive the sample range for the audio player
-    if select_limits(1) == select_limits(2)
-        % If it is a select line
-        sample_range = [round((select_limits(1)-plot_limits(1))*sample_rate)+1,number_samples];
-    else
-        % If it is a select region
-        sample_range = round((select_limits-plot_limits(1))*sample_rate+1);
-    end
-    
-    % Play the audio given the sample range
-    play(audio_player,sample_range)
-    
-end
 
 end
 
@@ -1154,6 +1148,44 @@ play_line = [];
         end
         
     end
+
+end
+
+% Clicked callback function for the play audio toggle buttons
+function playaudioclickedcallback(object_handle,~,audio_player,audiosignal_axes)
+
+% Change the toggle button state to off
+object_handle.State = 'off';
+
+% If the playback of the audio player is in progress
+if isplaying(audio_player)
+    
+    % Stop the audio
+    stop(audio_player)
+    
+else
+    
+    % Get the sample rate and the number of samples from the audio player
+    sample_rate = audio_player.SampleRate;
+    number_samples = audio_player.TotalSamples;
+    
+    % Get the plot and select limits from the audio signal axes' user data
+    plot_limits = audiosignal_axes.UserData.PlotXLim;
+    select_limits = audiosignal_axes.UserData.SelectXLim;
+    
+    % Derive the sample range for the audio player
+    if select_limits(1) == select_limits(2)
+        % If it is a select line
+        sample_range = [round((select_limits(1)-plot_limits(1))*sample_rate)+1,number_samples];
+    else
+        % If it is a select region
+        sample_range = round((select_limits-plot_limits(1))*sample_rate+1);
+    end
+    
+    % Play the audio given the sample range
+    play(audio_player,sample_range)
+    
+end
 
 end
 
