@@ -60,7 +60,7 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       09/11/18
+%       09/12/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -1141,14 +1141,12 @@ play_line = [];
         % Current sample and sample range from the audio player
         current_sample = audio_player.CurrentSample;
         
-        % Get the plot and the select limits from the audio signal axes' 
-        % user data
+        % Get the plot limits from the audio signal axes' user data
         plot_limits = audiosignal_axes.UserData.PlotXLim;
-        select_limits = audiosignal_axes.UserData.SelectXLim;
         
-        % Make sure the current sample is greater than the start sample (to
-        % prevent the audio line from showing up at the start at the end)
-        if current_sample > select_limits(1)*sample_rate
+        % Make sure the current sample is only increasing (to prevent the 
+        % play line from showing up at the start when the playback is over)
+        if current_sample > 1
             
             % Update the play line
             play_line.XData = (plot_limits(1)+current_sample/sample_rate)*[1,1];
