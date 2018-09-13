@@ -2,31 +2,20 @@ function repet_gui
 % REPET_GUI REpeating Pattern Extraction Technique (REPET) graphical user interface (GUI).
 %
 %   Toolbar:
-%       Open Mixture:               Open mixture file (.wav or .mp3)
-%       Play Mixture:               Play/stop selected mixture audio
-%       Select:                     Select/deselect on signal axes (left/right mouse click)
-%       Zoom:                       Zoom in/out on any axes (left/right mouse click)
-%       Pan:                        Pan on any axes
-%       REPET:                      Process selected mixture using REPET
-%       Save Background:            Save background estimate of selected mixture in WAVE file
-%       Play Background:            Play/stop background audio of selected mixture
-%       Save Foreground:            Save foreground estimate of selected mixture in WAVE file
-%       Play Foreground:            Play/stop foreground audio of selected mixture
+%       Open Mixture:                   Open mixture file (.wav or .mp3)
+%       Play Mixture:                   Play/stop selected mixture audio
+%       Select:                         Select/deselect on signal axes (left/right mouse click)
+%       Zoom:                           Zoom on any axes
+%       Pan:                            Pan on any axes
+%       REPET:                          Process selected mixture using REPET
+%       Save Background:                Save background estimate of selected mixture (in .wav)
+%       Play Background:                Play/stop background audio of selected mixture
+%       Save Foreground:                Save foreground estimate of selected mixture (in .wav)
+%       Play Foreground:                Play/stop foreground audio of selected mixture
 %   Mixture axes:
-%       Mixture signal axes:        Display mixture signal
-%       Mixture spectrogram axes:   Display mixture spectrogram
-%       Beat spectrum axes:         Display beat spectrum of selected mixture
-%       
-%       Period slider/edit:     Modify repeating period (in seconds)
-%       Hardness slider/edit:   Modify masking hardness (in [0,1])
-%           Turns soft time-frequency mask into binary time-frequency mask
-%           The closer to 0, the softer the mask, the less separation artifacts (0 = original soft mask)
-%           The closer to 1, the harder the mask, the less source interference (1 = full binary mask)
-%       Threshold slider/edit:  Modify masking threshold (in [0,1])
-%           Defines pivot value around which the energy will be spread apart (when hardness > 0)
-%           The closer to 0, the more energy for the background, the less interference in the foreground
-%           The closer to 1, the less energy for the background, the less interference from the foreground
-%
+%       Mixture signal axes:            Display mixture signal
+%       Mixture spectrogram axes:       Display mixture spectrogram
+%       Beat spectrum axes:             Display beat spectrum of selected mixture
 %   Background and foreground axes:
 %       Background signal axes:         Display background signal of selected mixture
 %       Background spectrogram axes:    Display background spectrogram of selected mixture
@@ -60,7 +49,7 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       09/12/18
+%       09/13/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -164,7 +153,8 @@ foregroundspectrogram_axes = axes( ...
     'OuterPosition',[0.5,0,0.5,0.4], ...
     'Visible','off');
 
-% Synchronize the x-axis limits of all the axes but beatspectrum_axes
+% Synchronize the x-axis limits of all the axes but beatspectrum_axes and
+% the x-axis and y-axis of the spectrogram axes
 linkaxes([mixturesignal_axes,mixturespectrogram_axes,...
     backgroundsignal_axes,backgroundspectrogram_axes, ...
     foregroundsignal_axes,foregroundspectrogram_axes],'x')
@@ -205,7 +195,7 @@ figure_object.Visible = 'on';
             return
         end
         
-        % Clear all the axes and hide them
+        % Clear all the (old) axes and hide them
         cla(mixturesignal_axes)
         mixturesignal_axes.Visible = 'off';
         cla(mixturespectrogram_axes)
@@ -224,7 +214,7 @@ figure_object.Visible = 'on';
         % Build full file name
         mixture_file = fullfile(mixture_path,mixture_name);
 
-        % Read audio file and return sample rate in Hz
+        % Read mixture file and return sample rate in Hz
         [mixture_signal,sample_rate] = audioread(mixture_file);
         
         % Number of samples and channels
@@ -287,9 +277,9 @@ figure_object.Visible = 'on';
             db(mean(mixture_spectrogram(2:end,:),3)))
         
         % Update the mixture spectrogram axes properties
-        mixturespectrogram_axes.Colormap = jet;
         mixturespectrogram_axes.YDir = 'normal';
         mixturespectrogram_axes.XGrid = 'on';
+        mixturespectrogram_axes.Colormap = jet;
         mixturespectrogram_axes.Title.String = 'Audio Spectrogram';
         mixturespectrogram_axes.XLabel.String = 'Time (s)';
         mixturespectrogram_axes.YLabel.String = 'Frequency (Hz)';
@@ -332,19 +322,22 @@ figure_object.Visible = 'on';
             % all the other objects to get created before it can get closed
             figure_object.CloseRequestFcn = '';
             
+            % Get select limits from the mixture signal axes' user data
+            select_limits = mixturesignal_axes.UserData.SelectXLim;
+            
             % Get the sample range from the mixture signal axes' user data
-            if mixturesignal_axes.UserData.SelectXLim(1) == mixturesignal_axes.UserData.SelectXLim(2)
+            if select_limits(1) == select_limits(2)
                 % If it is a select line
                 sample_range = [1,number_samples];
             else
                 % If it is a select region
-                sample_range = round(mixturesignal_axes.UserData.SelectXLim*sample_rate);
+                sample_range = round(select_limits*sample_rate);
             end
             
             % Translate to a time range in time frames
             time_range = ceil(sample_range/number_samples*number_times);
             
-            % Beat spectrum of the spectrograms averaged over the channels
+            % Beat spectrum of the spectrogram averaged over the channels
             % (squared to emphasize peaks of periodicitiy)
             beat_spectrum = beatspectrum(mean(mixture_spectrogram(:,time_range(1):time_range(2)),3).^2);
             
@@ -353,6 +346,10 @@ figure_object.Visible = 'on';
             
             % Number of lags in time frames (including lag 0)
             number_lags = length(beat_spectrum);
+            
+            % Beat limits for the repeating period on the beat spectrum in 
+            % seconds
+            beat_limits = tim2sec([1,floor(number_lags/3)]);
             
             % Period range in seconds for the beat spectrum
             period_range = [1,10];
@@ -389,15 +386,11 @@ figure_object.Visible = 'on';
                     'Color','r','LineStyle',':','PickableParts','none');
             end
             
-            % Change the pointer to a hand when the mouse moves over the 
-            % main beat line
+            % Change the pointer when the mouse moves over the main beat 
+            % line
             enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','hand'); 
             iptSetPointerBehavior(beat_lines(1),enterFcn);
             iptPointerManager(figure_object);
-            
-            % Beat limits for the repeating period on the beat spectrum in 
-            % seconds
-            beat_limits = tim2sec([1,floor(number_lags/3)]);
             
             % Add mouse-click callback functions to the main beat line and
             % to the beat spectrum axes
@@ -435,7 +428,7 @@ figure_object.Visible = 'on';
                 % Estimated background signal
                 background_signal1 = istft(background_stft(:,:,channel_index),window_function,step_length);
                 
-                % Truncate to the correct number of samples
+                % Truncate to the true number of samples
                 background_signal(:,channel_index) ...
                     = background_signal1(1:sample_range(2)-sample_range(1)+1);
                 
@@ -452,11 +445,10 @@ figure_object.Visible = 'on';
             backgroundsignal_axes.YLim = [-1,1];
             backgroundsignal_axes.XGrid = 'on';
             backgroundsignal_axes.Title.String = 'Background Signal';
-            backgroundsignal_axes.Title.Interpreter = 'None';
             backgroundsignal_axes.XLabel.String = 'Time (s)';
             backgroundsignal_axes.Layer = 'top';
-            backgroundsignal_axes.UserData.PlotXLim = mixturesignal_axes.UserData.SelectXLim;
-            backgroundsignal_axes.UserData.SelectXLim = mixturesignal_axes.UserData.SelectXLim;
+            backgroundsignal_axes.UserData.PlotXLim = select_limits;
+            backgroundsignal_axes.UserData.SelectXLim = select_limits;
             drawnow
             
             % Display the background spectrogram (in dB, averaged over the
@@ -492,11 +484,10 @@ figure_object.Visible = 'on';
             foregroundsignal_axes.YLim = [-1,1];
             foregroundsignal_axes.XGrid = 'on';
             foregroundsignal_axes.Title.String = 'Background Signal';
-            foregroundsignal_axes.Title.Interpreter = 'None';
             foregroundsignal_axes.XLabel.String = 'Time (s)';
             foregroundsignal_axes.Layer = 'top';
-            foregroundsignal_axes.UserData.PlotXLim = mixturesignal_axes.UserData.SelectXLim;
-            foregroundsignal_axes.UserData.SelectXLim = mixturesignal_axes.UserData.SelectXLim;
+            foregroundsignal_axes.UserData.PlotXLim = select_limits;
+            foregroundsignal_axes.UserData.SelectXLim = select_limits;
             drawnow
             
             % Display the foreground spectrogram (in dB, averaged over the
@@ -532,9 +523,8 @@ figure_object.Visible = 'on';
             playbackground_toggle.ClickedCallback = {@playaudioclickedcallback,background_player,backgroundsignal_axes};
             playforeground_toggle.ClickedCallback = {@playaudioclickedcallback,foreground_player,foregroundsignal_axes};
             
-            % Set a play line and a select line on the background and 
-            % foreground signal axes using the background and foreground
-            % players, respectively
+            % Set play lines and select lines on the background and 
+            % foreground signal axes, respectively
             selectline(backgroundsignal_axes)
             playline(backgroundsignal_axes,background_player,playbackground_toggle);
             selectline(foregroundsignal_axes)
@@ -561,8 +551,8 @@ figure_object.Visible = 'on';
                     return
                 end
                 
-                % Change the pointer to a hand when the mouse moves over 
-                % the beat spectrum axes and the figure object
+                % Change the pointer when the mouse moves over the beat 
+                % spectrum axes and the figure object
                 enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','hand');
                 iptSetPointerBehavior(beatspectrum_axes,enterFcn);
                 iptSetPointerBehavior(figure_object,enterFcn);
@@ -604,9 +594,8 @@ figure_object.Visible = 'on';
             % Window button up callback function for the figure
             function figurewindowbuttonupfcn(~,~)
                 
-                % Change the pointer to an ibeam and an arrow when the 
-                % mouse moves over the beat spectrum axes and the figure 
-                % object, respectively
+                % Change the pointer when the mouse moves over the beat 
+                % spectrum axes and the figure object, respectively
                 enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','ibeam');
                 iptSetPointerBehavior(beatspectrum_axes,enterFcn);
                 iptPointerManager(figure_object);
@@ -641,8 +630,8 @@ figure_object.Visible = 'on';
                     return
                 end
                 
-                % Change the pointer to a hand when the mouse moves over 
-                % the beat spectrum axes
+                % Change the pointer when the mouse moves over the beat 
+                % spectrum axes
                 enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','hand');
                 iptSetPointerBehavior(beatspectrum_axes,enterFcn);
                 iptPointerManager(figure_object);
@@ -653,7 +642,7 @@ figure_object.Visible = 'on';
                     beat_lines(line_index).XData = current_point(1,1)*line_index*[1,1];
                 end
                 
-                % Update repeating period in the beat spectrum title
+                % Update the repeating period in the beat spectrum title
                 beatspectrum_axes.Title.String = ['Beat Spectrum: repeating period = ', ...
                     num2str(round(current_point(1,1),3)),' seconds'];
                 
@@ -739,7 +728,7 @@ figure_object.Visible = 'on';
         pan_toggle.State = 'off';
         
         % Make the zoom enable on the current figure
-        zoom_object = zoom(gcf);
+        zoom_object = zoom(figure_object);
         zoom_object.Enable = 'on';
         
         % Set the zoom for the x-axis only in the mixture, background, and 
@@ -766,7 +755,7 @@ figure_object.Visible = 'on';
         zoom off
         
         % Make the pan enable on the current figure
-        pan_object = pan(gcf);
+        pan_object = pan(figure_object);
         pan_object.Enable = 'on';
         
         % Set the pan for the x-axis only in the mixture, background, and 
