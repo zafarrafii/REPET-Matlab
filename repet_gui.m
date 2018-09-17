@@ -49,7 +49,7 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       09/14/18
+%       09/17/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -153,8 +153,8 @@ foregroundspectrogram_axes = axes( ...
     'OuterPosition',[0.5,0,0.5,0.4], ...
     'Visible','off');
 
-% Synchronize the x-axis limits of all the axes but beatspectrum_axes and
-% the x-axis and y-axis of the spectrogram axes
+% Synchronize the x-axis limits of all the axes but the beat spectrum axes 
+% and both the x-axis and y-axis of the spectrogram axes
 linkaxes([mixturesignal_axes,mixturespectrogram_axes,...
     backgroundsignal_axes,backgroundspectrogram_axes, ...
     foregroundsignal_axes,foregroundspectrogram_axes],'x')
@@ -287,7 +287,7 @@ figure_object.Visible = 'on';
         mixturespectrogram_axes.YLabel.String = 'Frequency (Hz)';
         drawnow
         
-        % Create object for playing audio for mixture signal
+        % Create object for playing audio for the mixture signal
         mixture_player = audioplayer(mixture_signal,sample_rate);
         
         % Set a select line and a play line on the mixture signal axes 
@@ -748,11 +748,11 @@ figure_object.Visible = 'on';
         zoom_toggle.State = 'on';
         pan_toggle.State = 'off';
         
-        % Make the zoom enable on the current figure
+        % Make the zoom enable on the figure
         zoom_object = zoom(figure_object);
         zoom_object.Enable = 'on';
         
-        % Set the zoom for the x-axis only in the mixture, background, and 
+        % Set the zoom for the x-axis only on the mixture, background, and 
         % foreground signal axes
         setAxesZoomConstraint(zoom_object,mixturesignal_axes,'x');
         setAxesZoomConstraint(zoom_object,backgroundsignal_axes,'x');
@@ -775,11 +775,11 @@ figure_object.Visible = 'on';
         % Turn the zoom off
         zoom off
         
-        % Make the pan enable on the current figure
+        % Make the pan enable on the figure
         pan_object = pan(figure_object);
         pan_object.Enable = 'on';
         
-        % Set the pan for the x-axis only in the mixture, background, and 
+        % Set the pan for the x-axis only on the mixture, background, and 
         % foreground signal axes
         setAxesPanConstraint(pan_object,mixturesignal_axes,'x');
         setAxesPanConstraint(pan_object,backgroundsignal_axes,'x');
@@ -887,7 +887,7 @@ function image_data = iconread(icon_name)
 
 end
 
-% Set a select line on a audio signal axes
+% Set a select line on an audio signal axes
 function selectline(audiosignal_axes)
 
 % Add mouse-click callback function to the audio signal axes
@@ -903,9 +903,11 @@ select_line = gobjects(3,1);
         % Location of the mouse pointer
         current_point = audiosignal_axes.CurrentPoint;
         
-        % If the current point is out of the plot x-limits, return
-        if current_point(1,1) < audiosignal_axes.UserData.PlotXLim(1) ...
-                || current_point(1,1) > audiosignal_axes.UserData.PlotXLim(2) || ...
+        % Plot x-axis limits from the audio signal axes' user data
+        plot_limits = audiosignal_axes.UserData.PlotXLim;
+        
+        % If the current point is out of the plot x-axis limits, return
+        if current_point(1,1) < plot_limits(1) || current_point(1,1) > plot_limits(2) || ...
                 current_point(1,2) < -1 || current_point(1,2) > 1
             return
         end
@@ -927,35 +929,32 @@ select_line = gobjects(3,1);
             % Create a first line on the audio signal axes
             color_value1 = 0.5*[1,1,1];
             select_line(1) = line(audiosignal_axes, ...
-                current_point(1,1)*[1,1],[-1,1],'Color',color_value1);
+                current_point(1,1)*[1,1],[-1,1], ...
+                'Color',color_value1, ...
+                'ButtonDownFcn',@selectlinebuttondownfcn);
             
-            % Create a second line and a patch with different colors
+            % Create a second line and a non-clickable patch with different 
+            % colors and move them at the bottom of the current stack
             color_value2 = 0.75*[1,1,1];
             select_line(2) = line(audiosignal_axes, ...
-                current_point(1,1)*[1,1],[-1,1],'Color',color_value2);
-            select_line(3) = patch(audiosignal_axes, ...
-                current_point(1)*[1,1,1,1],[-1,1,1,-1],color_value2,'LineStyle','none');
-            
-            % Move the second line and the patch at the bottom of the 
-            % current stack
+                current_point(1,1)*[1,1],[-1,1], ...
+                'Color',color_value2, ...
+                'ButtonDownFcn',@selectlinebuttondownfcn);
             uistack(select_line(2),'bottom')
+            select_line(3) = patch(audiosignal_axes, ...
+                current_point(1,1)*[1,1,1,1],[-1,1,1,-1],color_value2, ...
+                'LineStyle','none', ...
+                'PickableParts','none');
             uistack(select_line(3),'bottom')
             
-            % Change the pointer to a hand when the mouse moves over the 
-            % lines, the audio signal axes, or the figure object
+            % Change the pointer when the mouse moves over the lines, the 
+            % audio signal axes, and the figure object
             enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
             iptSetPointerBehavior(select_line(1),enterFcn);
             iptSetPointerBehavior(select_line(2),enterFcn);
             iptSetPointerBehavior(audiosignal_axes,enterFcn);
             iptSetPointerBehavior(figure_object,enterFcn);
             iptPointerManager(figure_object);
-            
-            % Add mouse-click callback functions to the lines
-            select_line(1).ButtonDownFcn = @selectlinebuttondownfcn;
-            select_line(2).ButtonDownFcn = @selectlinebuttondownfcn;
-            
-            % Make the patch not able to capture mouse clicks
-            select_line(3).PickableParts = 'none';
             
             % Add window button motion and up callback functions to the 
             % figure
@@ -975,7 +974,7 @@ select_line = gobjects(3,1);
             end
             
             % Update the select limits in the audio signal axes' user data
-            audiosignal_axes.UserData.SelectXLim = audiosignal_axes.UserData.PlotXLim;
+            audiosignal_axes.UserData.SelectXLim = plot_limits;
             
         end
         
@@ -988,8 +987,8 @@ select_line = gobjects(3,1);
             % If click left mouse button
             if strcmp(selection_type,'normal')
                 
-                % Change the pointer to a hand when the mouse moves over 
-                % the audio signal axes or the figure object
+                % Change the pointer when the mouse moves over the audio 
+                % signal axes or the figure object
                 enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
                 iptSetPointerBehavior(audiosignal_axes,enterFcn);
                 iptSetPointerBehavior(figure_object,enterFcn);
@@ -1008,7 +1007,7 @@ select_line = gobjects(3,1);
                 
                 % Update the select limits in the audio signal axes' user 
                 % data
-                audiosignal_axes.UserData.SelectXLim = audiosignal_axes.UserData.PlotXLim;
+                audiosignal_axes.UserData.SelectXLim = plot_limits;
                 
             end
             
@@ -1022,10 +1021,10 @@ select_line = gobjects(3,1);
             
             % If the current point is out of the plot x-limits, change it 
             % into the audio limits
-            if current_point(1,1) < audiosignal_axes.UserData.PlotXLim(1)
-                current_point(1,1) = audiosignal_axes.UserData.PlotXLim(1);
-            elseif current_point(1,1) > audiosignal_axes.UserData.PlotXLim(2)
-                current_point(1,1) = audiosignal_axes.UserData.PlotXLim(2);
+            if current_point(1,1) < plot_limits(1)
+                current_point(1,1) = plot_limits(1);
+            elseif current_point(1,1) > plot_limits(2)
+                current_point(1,1) = plot_limits(2);
             end
             
             % Update the coordinates of the audio line that has been 
@@ -1059,9 +1058,8 @@ select_line = gobjects(3,1);
         % Window button up callback function for the figure
         function figurewindowbuttonupfcn(~,~)
             
-            % Change the pointer back to a ibeam and an arrow when the 
-            % mouse moves over audio the signal axes and the figure object,
-            % respectively
+            % Change the pointer back when the mouse moves over audio the 
+            % signal axes and the figure object
             enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','ibeam');
             iptSetPointerBehavior(audiosignal_axes,enterFcn);
             iptPointerManager(figure_object);
@@ -1096,7 +1094,7 @@ select_line = gobjects(3,1);
 
 end
 
-% Set a play line on a audio signal axes using an audio player
+% Set a play line on an audio signal axes using an audio player
 function playline(audiosignal_axes,audio_player,playaudio_toggle)
 
 % Sample rate in Hz from the audio player
@@ -1209,7 +1207,7 @@ window_length = length(window_function);
 % Number of time frames
 number_times = ceil((window_length-step_length+number_samples)/step_length);
 
-% Zero-padding at the start and end to center the windows
+% Zero-padding at the start and the end to center the windows
 audio_signal = [zeros(window_length-step_length,1);audio_signal; ...
     zeros(number_times*step_length-number_samples,1)];
 
@@ -1219,7 +1217,7 @@ audio_stft = zeros(window_length,number_times);
 % Loop over the time frames
 for time_index = 1:number_times
     
-    % Window the signal
+    % Framing and windowing of the signal
     sample_index = step_length*(time_index-1);
     audio_stft(:,time_index) = audio_signal(1+sample_index:window_length+sample_index) ...
         .*window_function;
@@ -1231,7 +1229,7 @@ audio_stft = fft(audio_stft);
 
 end
 
-% Inverse short-time Fourier transform (STFT)
+% Inverse short-time Fourier transform
 function audio_signal = istft(audio_stft,window_function,step_length)
 
 % Window length and number of time frames
@@ -1243,15 +1241,13 @@ number_samples = (number_times-1)*step_length+window_length;
 % Initialize the signal
 audio_signal = zeros(number_samples,1);
 
-% Inverse Fourier transform of the frames and real part to ensure real 
-% values
+% Inverse Fourier transform of the frames and ensure real values
 audio_stft = real(ifft(audio_stft));
 
 % Loop over the time frames
 for time_index = 1:number_times
     
-    % Inverse Fourier transform of the signal (normalized overlap-add if 
-    % proper window and step)
+    % Overlap-add of the signal (normalized proper window and step length)
     sample_index = step_length*(time_index-1);
     audio_signal(1+sample_index:window_length+sample_index) ...
         = audio_signal(1+sample_index:window_length+sample_index)+audio_stft(:,time_index);
@@ -1261,13 +1257,12 @@ end
 % Remove the zero-padding at the start and the end
 audio_signal = audio_signal(window_length-step_length+1:number_samples-(window_length-step_length));
 
-% Un-window the signal (just in case)
+% Normalize by the window (just in case)
 audio_signal = audio_signal/sum(window_function(1:step_length:window_length));
 
 end
 
-% Autocorrelation using the Wiener–Khinchin theorem (faster than using
-% xcorr)
+% Autocorrelation using the Wiener–Khinchin theorem (faster than xcorr)
 function autocorrelation_matrix = acorr(data_matrix)
 
 % Number of points in each column
@@ -1341,8 +1336,8 @@ audio_spectrogram = reshape(audio_spectrogram,[number_frequencies,repeating_peri
 repeating_segment = [median(audio_spectrogram(:,1:number_times-(number_segments-1)*repeating_period,:),3), ...
     median(audio_spectrogram(:,number_times-(number_segments-1)*repeating_period+1:repeating_period,1:end-1),3)];
 
-% Derive the repeating spectrogram by making sure it has less energy than 
-% the audio spectrogram
+% Derive the repeating spectrogram by ensuring it has less energy than the 
+% audio spectrogram
 repeating_spectrogram = min(audio_spectrogram,repeating_segment);
 
 % Derive the repeating mask by normalizing the repeating spectrogram by the 
