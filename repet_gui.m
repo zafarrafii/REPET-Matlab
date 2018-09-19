@@ -792,7 +792,7 @@ figure_object.Visible = 'on';
     end
 
     % Close request callback function for the figure
-    function figurecloserequestfcn(object_handle,~)
+    function figurecloserequestfcn(~,~)
         
         % If any audio is playing, stop it
         if isplaying(mixture_player)
@@ -810,7 +810,7 @@ figure_object.Visible = 'on';
             'Close REPET GUI','Yes','No','Yes');
         switch user_answer
             case 'Yes'
-                delete(object_handle)
+                delete(figure_object)
             case 'No'
                 return
         end
@@ -964,8 +964,7 @@ audiosignal_axes.ButtonDownFcn = @audiosignalaxesbuttondownfcn;
             figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
             
             % Update the select limits in the audio signal axes' user data
-            audiosignal_axes.UserData.SelectXLim(1) = current_point(1,1);
-            audiosignal_axes.UserData.SelectXLim(2) = current_point(1,1);
+            audiosignal_axes.UserData.SelectXLim = current_point(1,1)*[1,1];
             
         % If click right mouse button
         elseif strcmp(selection_type,'alt')
@@ -1060,7 +1059,7 @@ audiosignal_axes.ButtonDownFcn = @audiosignalaxesbuttondownfcn;
         % Window button up callback function for the figure
         function figurewindowbuttonupfcn(~,~)
             
-            % Change the pointer back when the mouse moves over audio the
+            % Change the pointer back when the mouse moves over the audio
             % signal axes and the figure object
             enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','ibeam');
             iptSetPointerBehavior(audiosignal_axes,enterFcn);
@@ -1082,7 +1081,6 @@ audiosignal_axes.ButtonDownFcn = @audiosignalaxesbuttondownfcn;
                 audiosignal_axes.UserData.SelectXLim = [x_value1,x_value2];
             else
                 audiosignal_axes.UserData.SelectXLim = [x_value2,x_value1];
-                
             end
             
             % Remove the window button motion and up callback functions of
