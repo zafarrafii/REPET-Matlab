@@ -49,7 +49,7 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       09/18/18
+%       09/19/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -439,15 +439,6 @@ figure_object.Visible = 'on';
             % Mouse-click callback function for the beat spectrum axes
             function beatspectrumaxesbuttondownfcn(~,~)
                 
-                % Location of the mouse pointer
-                current_point = beatspectrum_axes.CurrentPoint;
-                
-                % If the current point is out of the beat range, return
-                if current_point(1,1) < beat_limits(1) || current_point(1,1) > beat_limits(2) || ...
-                        current_point(1,2) < -1 || current_point(1,2) > 1
-                    return
-                end
-                
                 % Mouse selection type
                 selection_type = figure_object.SelectionType;
                 
@@ -456,6 +447,15 @@ figure_object.Visible = 'on';
                     return
                 end
                 
+                % Location of the mouse pointer
+                current_point = beatspectrum_axes.CurrentPoint;
+                
+                % If the current point is out of the beat limits, return
+                if current_point(1,1) < beat_limits(1) || current_point(1,1) > beat_limits(2) || ...
+                        current_point(1,2) < -1 || current_point(1,2) > 1
+                    return
+                end
+
                 % Change the pointer when the mouse moves over the beat
                 % spectrum axes
                 enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','hand');
@@ -463,8 +463,7 @@ figure_object.Visible = 'on';
                 iptPointerManager(figure_object);
                 
                 % Update the x values of the beat lines
-                beat_lines(1).XData = current_point(1,1)*[1,1];
-                for line_index = 2:number_lines %#ok<*FXUP>
+                for line_index = 1:number_lines %#ok<*FXUP>
                     beat_lines(line_index).XData = current_point(1,1)*line_index*[1,1];
                 end
                 
@@ -477,7 +476,7 @@ figure_object.Visible = 'on';
                 figure_object.WindowButtonMotionFcn = @figurewindowbuttonmotionfcn;
                 figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
                 
-                % Update the results using the current point in time frames
+                % Run REPET again given the current point in time frames
                 repet(sec2tim(current_point(1,1)))
                 
             end
@@ -522,8 +521,7 @@ figure_object.Visible = 'on';
                 end
                 
                 % Update the x values of the beat lines
-                beat_lines(1).XData = current_point(1,1)*[1,1];
-                for line_index = 2:number_lines %#ok<*FXUP>
+                for line_index = 1:number_lines %#ok<*FXUP>
                     beat_lines(line_index).XData = current_point(1,1)*line_index*[1,1];
                 end
                 
@@ -537,7 +535,7 @@ figure_object.Visible = 'on';
             function figurewindowbuttonupfcn(~,~)
                 
                 % Change the pointer when the mouse moves over the beat
-                % spectrum axes and the figure object, respectively
+                % spectrum axes and the figure object
                 enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','ibeam');
                 iptSetPointerBehavior(beatspectrum_axes,enterFcn);
                 iptPointerManager(figure_object);
@@ -550,11 +548,11 @@ figure_object.Visible = 'on';
                 figure_object.WindowButtonMotionFcn = '';
                 figure_object.WindowButtonUpFcn = '';
                 
-                % Location of the mouse pointer
-                current_point = beatspectrum_axes.CurrentPoint;
+                % Repeating period in seconds from the main beat line
+                repeat_period = beat_lines(1).XData(1);
                 
-                % Update the results using the current point in time frames
-                repet(sec2tim(current_point(1,1)))
+                % Run REPET again given the current point in time frames
+                repet(sec2tim(repeat_period))
                 
             end
             
@@ -636,7 +634,7 @@ figure_object.Visible = 'on';
                 foregroundsignal_axes.XLim = [1,number_samples]/sample_rate;
                 foregroundsignal_axes.YLim = [-1,1];
                 foregroundsignal_axes.XGrid = 'on';
-                foregroundsignal_axes.Title.String = 'Background Signal';
+                foregroundsignal_axes.Title.String = 'Foreground Signal';
                 foregroundsignal_axes.XLabel.String = 'Time (s)';
                 foregroundsignal_axes.Layer = 'top';
                 foregroundsignal_axes.UserData.PlotXLim = select_limits;
@@ -661,7 +659,7 @@ figure_object.Visible = 'on';
                 foregroundspectrogram_axes.YLabel.String = 'Frequency (Hz)';
                 drawnow
                 
-                % Create objects for playing audio for background and
+                % Create objects for playing audio for the background and
                 % foreground signals
                 background_player = audioplayer(background_signal,sample_rate);
                 foreground_player = audioplayer(foreground_signal,sample_rate);
@@ -672,7 +670,7 @@ figure_object.Visible = 'on';
                 playforeground_toggle.ClickedCallback = {@playaudioclickedcallback,foreground_player,foregroundsignal_axes};
                 
                 % Set play lines and select lines on the background and
-                % foreground signal axes, respectively
+                % foreground signal axes
                 selectline(backgroundsignal_axes)
                 playline(backgroundsignal_axes,background_player,playbackground_toggle);
                 selectline(foregroundsignal_axes)
