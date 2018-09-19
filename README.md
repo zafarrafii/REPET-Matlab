@@ -713,7 +713,33 @@ Operational but obsolete; use repet_gui below.
 
 ## repet_gui Matlab GUI
 
-Coming soon...
+REPET graphical user interface (GUI).
+
+Functionalities:
+
+- [Open Mixture](#open-mixture)
+- [Play/Stop Mixture](#playstop-mixture)
+- [Select/Drag](#selectdrag)
+- [Zoom](#zoom)
+- [Pan](#pan)
+- [REPET](#repet)
+- [Play/Stop Background](#playstop-background)
+- [Save Background](#save-background)
+- [Play/Stop Foreground](#playstop-foreground)
+- [Save foreground](#save-foreground)
+
+### Open Mixture
+### Play/Stop Mixture
+### Select/Drag
+### Zoom
+### Pan
+### REPET
+### Open
+### Play/Stop Mixture
+### Save Background
+### Play/Stop Background
+### Save Foreground
+### Play/Stop Foreground
 
 ## repet_sim_demo_gui Matlab GUI
 
