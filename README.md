@@ -768,6 +768,11 @@ Functionalities:
 <img src="images/repet_gui/pan.gif" width="1000">
 
 ### REPET
+
+- Apply the original REPET to the mixture signal or the selected region of the mixture signal if any.
+- Compute the beat spectrum and estimate the repeating period, and display them; the repeating period period can be changed by selecting on the beat spectrum axes or draging the beat line.
+- Derive the background signal and the foreground signal of the mixture signal or the selected region of the mixture signal, and display them with the background spectrogram and the foreground spectrogram.
+
 ### Open
 ### Play/Stop Mixture
 ### Save Background
