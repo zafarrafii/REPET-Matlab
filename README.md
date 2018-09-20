@@ -770,11 +770,9 @@ Functionalities:
 ### REPET
 
 - Apply the original REPET to the mixture signal or the selected region of the mixture signal if any.
-- Compute the beat spectrum and estimate the repeating period, and display them; the repeating period period can be changed by selecting on the beat spectrum axes or draging the beat line.
-- Derive the background signal and the foreground signal of the mixture signal or the selected region of the mixture signal, and display them with the background spectrogram and the foreground spectrogram.
+- Compute the beat spectrum and estimate the repeating period, and display them; the repeating period period can be changed by dragging the beat line or by selecting on the beat spectrum axes, which will update the background and foreground estimates.
+- Derive the background signal and the foreground signal of the mixture signal or the selected region of the mixture signal, and display them with the background spectrogram and the foreground spectrogram; the select, zoom, and pan tools will work the same way on the background and foreground signal and spectrogram axes.
 
-### Open
-### Play/Stop Mixture
 ### Save Background
 ### Play/Stop Background
 ### Save Foreground
