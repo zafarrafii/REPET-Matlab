@@ -729,8 +729,28 @@ Functionalities:
 - [Save foreground](#save-foreground)
 
 ### Open Mixture
+
+- Select a WAVE or MP3 to open; the mixture can be mono or stereo.
+- Display the mixture signal and the mixture spectrogram; the x-axis limits of the mixture signal axes and the mixture spectrogram axes will be synchronized (and will stay synchronized if a zoom or pan is applied on any of the axes, including the background and foreground signal and spectrogram axes).
+
+<img src="images/repet_gui/open_mixture.gif" width="1000">
+
 ### Play/Stop Mixture
+
+- Play the mixture if the playback is not in progress; stop the mixture if the playback is in progress; a playback line will be displayed as the playback is in progress.
+- If there is no selection line or region, the mixture will be played from the start to the end; if there is a selection line, the mixture will be played from the selection line to the end of the mixture; if there is a selection region, the mixture will be played from the start to the end of the selection region.
+
+<img src="images/repet_gui/play_mixture.gif" width="1000">
+
 ### Select/Drag
+
+- If a left mouse click is done on any signal axes (mixture, background, or foreground signal axes), a selection line is created; the audio will be played from the selection line to the end of the audio.
+- If a left mouse click and drag is done on any signal axes or on a selection line, a selection region is created; the audio will be played from the start to the end of the selection region and REPET will be applied only to the selectio region.
+- If a left mouse click and drag is done on the left or right boundary of a selection region, the selection region is resized.
+- If a right mouse click is done on any signal axes, any selection line or region is removed.
+
+<img src="images/select.gif" width="1000">
+
 ### Zoom
 ### Pan
 ### REPET
