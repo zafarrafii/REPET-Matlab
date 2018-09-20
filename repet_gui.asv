@@ -525,6 +525,24 @@ figure_object.Visible = 'on';
                     beat_lines(line_index).XData = current_point(1,1)*line_index*[1,1];
                 end
                 
+            % Initialize the beat lines as an array for graphic objects
+            number_lines = floor(number_lags/(repeating_period-1));
+            beat_lines = gobjects(number_lines,1);
+            
+            % Create the main beat line and the other dotted lines on the
+            % beat spectrum axes
+            beat_lines(1) = line(beatspectrum_axes, ...
+                tim2sec(repeating_period-1)*[1,1],[-1,1], ...
+                'Color','r');
+            for line_index = 2:number_lines
+                beat_lines(line_index) = line(beatspectrum_axes, ...
+                    tim2sec(repeating_period-1)*line_index*[1,1],[-1,1], ...
+                    'Color','r', ...
+                    'LineStyle',':', ...
+                    'PickableParts','none');
+            end
+                
+                
                 % Update repeating period in the beat spectrum title
                 beatspectrum_axes.Title.String = ['Beat Spectrum: repeating period = ', ...
                     num2str(round(current_point(1,1),3)),' seconds'];
@@ -1121,7 +1139,7 @@ audio_player.TimerFcn = @audioplayertimerfcn;
         % Change the play audio toggle button icon to a stop icon and the
         % tooltip to 'Stop'
         playaudio_toggle.CData = stop_icon;
-        playaudio_toggle.TooltipString = playaudio_toggle.TooltipString'Stop';
+        playaudio_toggle.TooltipString = ['Stop',playaudio_toggle.TooltipString(5:end)];
         
         % Get the select limits from the audio signal axes' user data
         select_limits = audiosignal_axes.UserData.SelectXLim;
@@ -1137,7 +1155,7 @@ audio_player.TimerFcn = @audioplayertimerfcn;
         % Change the play audio toggle button icon to a play icon and the
         % tooltip to 'Play'
         playaudio_toggle.CData = play_icon;
-        playaudio_toggle.TooltipString = 'Play';
+        playaudio_toggle.TooltipString = ['Play',playaudio_toggle.TooltipString(5:end)];
         
         % Delete the play line
         delete(play_line)

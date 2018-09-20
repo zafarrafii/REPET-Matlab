@@ -378,17 +378,17 @@ figure_object.Visible = 'on';
             beatspectrum_axes.XLabel.String = 'Lag (s)';
             
             % Initialize the beat lines as an array for graphic objects
-            number_lines = floor(number_lags/(repeating_period-1));
+            number_lines = floor((number_lags-1)/repeating_period);
             beat_lines = gobjects(number_lines,1);
             
             % Create the main beat line and the other dotted lines on the
             % beat spectrum axes
             beat_lines(1) = line(beatspectrum_axes, ...
-                tim2sec(repeating_period-1)*[1,1],[-1,1], ...
+                tim2sec(repeating_period)*[1,1],[-1,1], ...
                 'Color','r');
             for line_index = 2:number_lines
                 beat_lines(line_index) = line(beatspectrum_axes, ...
-                    tim2sec(repeating_period-1)*line_index*[1,1],[-1,1], ...
+                    tim2sec(repeating_period)*line_index*[1,1],[-1,1], ...
                     'Color','r', ...
                     'LineStyle',':', ...
                     'PickableParts','none');
@@ -462,9 +462,17 @@ figure_object.Visible = 'on';
                 iptSetPointerBehavior(beatspectrum_axes,enterFcn);
                 iptPointerManager(figure_object);
                 
-                % Update the x values of the beat lines
-                for line_index = 1:number_lines %#ok<*FXUP>
-                    beat_lines(line_index).XData = current_point(1,1)*line_index*[1,1];
+                % Update the main beat line and re-create the dotted lines
+                beat_lines(1).XData = current_point(1,1)*[1,1];
+                delete(beat_lines(2:end))
+                number_lines = floor(tim2sec(number_lags-1)/current_point(1,1));
+                beat_lines = [beat_lines(1);gobjects(number_lines-1,1)];
+                for line_index = 2:number_lines %#ok<*FXUP>
+                    beat_lines(line_index) = line(beatspectrum_axes, ...
+                        current_point(1,1)*line_index*[1,1],[-1,1], ...
+                        'Color','r', ...
+                        'LineStyle',':', ...
+                        'PickableParts','none');
                 end
                 
                 % Update the repeating period in the beat spectrum title
@@ -520,9 +528,17 @@ figure_object.Visible = 'on';
                     current_point(1,1) = beat_limits(2);
                 end
                 
-                % Update the x values of the beat lines
-                for line_index = 1:number_lines %#ok<*FXUP>
-                    beat_lines(line_index).XData = current_point(1,1)*line_index*[1,1];
+                % Update the main beat line and re-create the dotted lines
+                beat_lines(1).XData = current_point(1,1)*[1,1];
+                delete(beat_lines(2:end))
+                number_lines = floor(tim2sec(number_lags-1)/current_point(1,1));
+                beat_lines = [beat_lines(1);gobjects(number_lines-1,1)];
+                for line_index = 2:number_lines %#ok<*FXUP>
+                    beat_lines(line_index) = line(beatspectrum_axes, ...
+                        current_point(1,1)*line_index*[1,1],[-1,1], ...
+                        'Color','r', ...
+                        'LineStyle',':', ...
+                        'PickableParts','none');
                 end
                 
                 % Update repeating period in the beat spectrum title
