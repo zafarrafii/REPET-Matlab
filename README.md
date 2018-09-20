@@ -749,7 +749,7 @@ Functionalities:
 - If a left mouse click and drag is done on the left or right boundary of a selection region, the selection region is resized.
 - If a right mouse click is done on any signal axes, any selection line or region is removed.
 
-<img src="images/select.gif" width="1000">
+<img src="images/repet_gui/select.gif" width="1000">
 
 ### Zoom
 
@@ -757,7 +757,7 @@ Functionalities:
 
 - If used on any signal axes, zoom horizontally only; the x-axis limits of all the signal axes and all the spectrogram axes will stay synchronized.
 
-<img src="images/zap_zoom.gif" width="1000">
+<img src="images/repet_gui/zoom.gif" width="1000">
 
 ### Pan
 
@@ -765,7 +765,7 @@ Functionalities:
 
 - If used on any signal axes, pan horizontally only; the x-axis limits of all the signal axes and all the spectrogram axes will stay synchronized.
 
-<img src="images/zap_pan.gif" width="1000">
+<img src="images/repet_gui/pan.gif" width="1000">
 
 ### REPET
 ### Open
