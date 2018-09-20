@@ -745,14 +745,28 @@ Functionalities:
 ### Select/Drag
 
 - If a left mouse click is done on any signal axes (mixture, background, or foreground signal axes), a selection line is created; the audio will be played from the selection line to the end of the audio.
-- If a left mouse click and drag is done on any signal axes or on a selection line, a selection region is created; the audio will be played from the start to the end of the selection region and REPET will be applied only to the selectio region.
+- If a left mouse click and drag is done on any signal axes or on a selection line, a selection region is created; the audio will be played from the start to the end of the selection region and REPET will be applied only to the selection region.
 - If a left mouse click and drag is done on the left or right boundary of a selection region, the selection region is resized.
 - If a right mouse click is done on any signal axes, any selection line or region is removed.
 
-<img src="images/select.gif" width="1000">
+<img src="images/repet_gui/select.gif" width="1000">
 
 ### Zoom
+
+- Turn zooming on or off or magnify by factor (see https://mathworks.com/help/matlab/ref/zoom.html)
+
+- If used on any signal axes, zoom horizontally only; the x-axis limits of all the signal axes and all the spectrogram axes will stay synchronized.
+
+<img src="images/repet_gui/zoom.gif" width="1000">
+
 ### Pan
+
+- Pan view of graph interactively (see https://www.mathworks.com/help/matlab/ref/pan.html)
+
+- If used on any signal axes, pan horizontally only; the x-axis limits of all the signal axes and all the spectrogram axes will stay synchronized.
+
+<img src="images/repet_gui/pan.gif" width="1000">
+
 ### REPET
 ### Open
 ### Play/Stop Mixture
