@@ -1121,7 +1121,7 @@ audio_player.TimerFcn = @audioplayertimerfcn;
         % Change the play audio toggle button icon to a stop icon and the
         % tooltip to 'Stop'
         playaudio_toggle.CData = stop_icon;
-        playaudio_toggle.TooltipString = ['Stop',playaudio_toggle.TooltipString(5:end)];
+        playaudio_toggle.TooltipString = playaudio_toggle.TooltipString'Stop';
         
         % Get the select limits from the audio signal axes' user data
         select_limits = audiosignal_axes.UserData.SelectXLim;
@@ -1137,7 +1137,7 @@ audio_player.TimerFcn = @audioplayertimerfcn;
         % Change the play audio toggle button icon to a play icon and the
         % tooltip to 'Play'
         playaudio_toggle.CData = play_icon;
-        playaudio_toggle.TooltipString = ['Play',playaudio_toggle.TooltipString(5:end)];
+        playaudio_toggle.TooltipString = 'Play';
         
         % Delete the play line
         delete(play_line)
