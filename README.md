@@ -759,7 +759,7 @@ Functionalities:
 
 - Turn zooming on or off or magnify by factor (see https://mathworks.com/help/matlab/ref/zoom.html)
 
-- If used on any signal axes, zoom horizontally only; the x-axis limits of all the signal axes and all the spectrogram axes will stay synchronized.
+- If used on a signal axes, zoom horizontally only; the x-axis limits of all the signal axes and all the spectrogram axes will stay synchronized.
 
 <img src="images/repet_gui/zoom.gif" width="1000">
 
@@ -767,7 +767,7 @@ Functionalities:
 
 - Pan view of graph interactively (see https://www.mathworks.com/help/matlab/ref/pan.html)
 
-- If used on any signal axes, pan horizontally only; the x-axis limits of all the signal axes and all the spectrogram axes will stay synchronized.
+- If used on a signal axes, pan horizontally only; the x-axis limits of all the signal axes and all the spectrogram axes will stay synchronized.
 
 <img src="images/repet_gui/pan.gif" width="1000">
 
@@ -787,7 +787,7 @@ Functionalities:
 
 ### Play/Stop Background
 
-- Play/stop the background estimate (see [Play/Stop Mixture](#playstop-mixture)).
+- Play or stop the background estimate (see [Play/Stop Mixture](#playstop-mixture)).
 
 <img src="images/repet_gui/play_background.gif" width="1000">
 
@@ -797,7 +797,7 @@ Functionalities:
 
 ### Play/Stop Foreground
 
-- Play/stop the foreground estimate (see [Play/Stop Mixture](#playstop-mixture)).
+- Play or stop the foreground estimate (see [Play/Stop Mixture](#playstop-mixture)).
 
 
 ## repet_sim_demo_gui Matlab GUI
@@ -828,36 +828,35 @@ Functionalities:
 
 ### Play/Stop Mixture
 
-- Play and stop the mixture (see [Play/Stop Mixture](#playstop-mixture)).
+- Play or stop the mixture (see [Play/Stop Mixture](#playstop-mixture)).
 
 ### Select/Drag
 
-- 
-
+- select or drag on a signal or spectogram axes (see [Select/Drag](#selectdrag)).
 
 ### Zoom
 
-- 
+- Zoom on a signal or spectogram axes (see [Zoom](#zoom)).
 
 ### Pan
 
-- 
+- Pan on a signal or spectogram axes (see [Pan](#pan)).
 
 ### REPET-SIM
 
 - Apply REPET-SIM to the mixture signal or the selected region of the mixture signal if any.
-- Compute the beat spectrum and estimate the repeating period, and display them; the repeating period period can be changed by dragging the beat line or by selecting on the beat spectrum axes, which will update the background and foreground estimates.
+- Compute the self-similarity matrix and estimate the repeating elements, and display them.
 - Derive the background and foreground estimates from the mixture signal or the selected region of the mixture signal, and display their signals and spectrograms; the select, zoom, and pan tools will work the same way on the background and foreground signal and spectrogram axes.
 
 <img src="images/repetsim_gui/repetsim.gif" width="1000">
 
 ### Save Background
 
-- Save the background estimate as a WAVE file; the default name is "background_file.wav."
+- Save the background estimate (see [Save Background](#save-background)).
 
 ### Play/Stop Background
 
-- Play/stop the background estimate (see [Play/Stop Mixture](#playstop-mixture)).
+- Play or stop the background estimate (see [Play/Stop Background](#playstop-background)).
 
 ### Save Foreground
 
@@ -865,7 +864,7 @@ Functionalities:
 
 ### Play/Stop Foreground
 
-- Play/stop the foreground estimate (see [Play/Stop Foreground](#playstop-foreground)).
+- Play or stop the foreground estimate (see [Play/Stop Foreground](#playstop-foreground)).
 
 
 ## urepet Matlab GUI
