@@ -771,13 +771,13 @@ Functionalities:
 
 - Apply the original REPET to the mixture signal or the selected region of the mixture signal if any.
 - Compute the beat spectrum and estimate the repeating period, and display them; the repeating period period can be changed by dragging the beat line or by selecting on the beat spectrum axes, which will update the background and foreground estimates.
-- Derive the background signal and the foreground signal of the mixture signal or the selected region of the mixture signal, and display them with the background spectrogram and the foreground spectrogram; the select, zoom, and pan tools will work the same way on the background and foreground signal and spectrogram axes.
+- Derive the background and foreground estimates from the mixture signal or the selected region of the mixture signal, and display their signals and spectrograms; the select, zoom, and pan tools will work the same way on the background and foreground signal and spectrogram axes.
 
 <img src="images/repet_gui/repet.gif" width="1000">
 
 ### Save Background
 
-- Save the background estimate as a WAVE file.
+- Save the background estimate as a WAVE file; the default name is "background_file.wav."
 
 <img src="images/repet_gui/save_background.gif" width="1000">
 
