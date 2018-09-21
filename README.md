@@ -13,6 +13,7 @@ This repository includes a Matlab class and a Python module which implement a nu
 - [References](#references)
 - [Author](#author)
 
+
 ## repet Matlab class
 
 <img src="images/repet.png" width="750">
@@ -341,6 +342,7 @@ colormap(jet)
 ```
 
 <img src="images/matlab/repet_simonline.png" width="1000">
+
 
 ## repet Python module
 
@@ -707,9 +709,11 @@ plt.show()
 
 <img src="images/python/repet_simonline.png" width="1000">
 
+
 ## repet_demo_gui Matlab GUI
 
 Operational but obsolete; use repet_gui below.
+
 
 ## repet_gui Matlab GUI
 
@@ -800,17 +804,79 @@ Functionalities:
 
 Operational but obsolete; use repetsim_gui below.
 
+
 ## repetsim_gui Matlab GUI
 
-Coming soon...
+REPET-SIM graphical user interface (GUI).
+
+Functionalities:
+
+- [Open Mixture](#open-mixture-1)
+- [Play/Stop Mixture](#playstop-mixture-1)
+- [Select/Drag](#selectdrag-1)
+- [Zoom](#zoom-1)
+- [Pan](#pan-1)
+- [REPET-SIM](#repet-sim)
+- [Save Background](#save-background-1)
+- [Play/Stop Background](#playstop-background-1)
+- [Save foreground](#save-foreground-1)
+- [Play/Stop Foreground](#playstop-foreground-1)
+
+### Open Mixture
+
+- Open the mixture (see [Open Mixture](#open-mixture)).
+
+### Play/Stop Mixture
+
+- Play and stop the mixture (see [Play/Stop Mixture](#playstop-mixture)).
+
+### Select/Drag
+
+- 
+
+
+### Zoom
+
+- 
+
+### Pan
+
+- 
+
+### REPET-SIM
+
+- Apply REPET-SIM to the mixture signal or the selected region of the mixture signal if any.
+- Compute the beat spectrum and estimate the repeating period, and display them; the repeating period period can be changed by dragging the beat line or by selecting on the beat spectrum axes, which will update the background and foreground estimates.
+- Derive the background and foreground estimates from the mixture signal or the selected region of the mixture signal, and display their signals and spectrograms; the select, zoom, and pan tools will work the same way on the background and foreground signal and spectrogram axes.
+
+<img src="images/repetsim_gui/repetsim.gif" width="1000">
+
+### Save Background
+
+- Save the background estimate as a WAVE file; the default name is "background_file.wav."
+
+### Play/Stop Background
+
+- Play/stop the background estimate (see [Play/Stop Mixture](#playstop-mixture)).
+
+### Save Foreground
+
+- Save the foreground estimate (see [Save Foreground](#save-foreground)).
+
+### Play/Stop Foreground
+
+- Play/stop the foreground estimate (see [Play/Stop Foreground](#playstop-foreground)).
+
 
 ## urepet Matlab GUI
 
 Coming soon...
 
+
 ## audio_file
 
 - Tamy - Que Pena / Tanto Faz (excerpt)
+
 
 ## References
 
@@ -829,6 +895,7 @@ Coming soon...
 - Antoine Liutkus, Zafar Rafii, Roland Badeau, Bryan Pardo, and Gaël Richard. "Adaptive Filtering for Music/Voice Separation Exploiting the Repeating Musical Structure," *37th International Conference on Acoustics, Speech and Signal Processing*, Kyoto, Japan, March 25-30, 2012. [[article](http://zafarrafii.com/Publications/Liutkus-Rafii-Badeau-Pardo-Richard%20-%20Adaptive%20Filtering%20for%20Music-Voice%20Separation%20Exploiting%20the%20Repeating%20Musical%20Structure%20-%202012.pdf)][[slides](http://zafarrafii.com/Publications/Liutkus-Rafii-Badeau-Pardo-Richard%20-%20Adaptive%20Filtering%20for%20Music-Voice%20Separation%20Exploiting%20the%20Repeating%20Musical%20Structure%20-%202012%20(slides).pdf)]
 
 - Zafar Rafii and Bryan Pardo. "A Simple Music/Voice Separation Method based on the Extraction of the Repeating Musical Structure," *36th International Conference on Acoustics, Speech and Signal Processing*, Prague, Czech Republic, May 22-27, 2011. [[article](http://zafarrafii.com/Publications/Rafii-Pardo%20-%20A%20Simple%20Music-Voice%20Separation%20Method%20based%20on%20the%20Extraction%20of%20the%20Repeating%20Musical%20Structure%20-%202011.pdf)][[poster](http://zafarrafii.com/Publications/Rafii-Pardo%20-%20A%20Simple%20Music-Voice%20Separation%20Method%20based%20on%20the%20Extraction%20of%20the%20Repeating%20Musical%20Structure%20-%202011%20(poster).pdf)]
+
 
 ## Author
 
