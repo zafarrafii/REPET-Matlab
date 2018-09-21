@@ -723,10 +723,10 @@ Functionalities:
 - [Zoom](#zoom)
 - [Pan](#pan)
 - [REPET](#repet)
-- [Play/Stop Background](#playstop-background)
 - [Save Background](#save-background)
-- [Play/Stop Foreground](#playstop-foreground)
+- [Play/Stop Background](#playstop-background)
 - [Save foreground](#save-foreground)
+- [Play/Stop Foreground](#playstop-foreground)
 
 ### Open Mixture
 
@@ -776,9 +776,22 @@ Functionalities:
 <img src="images/repet_gui/repet.gif" width="1000">
 
 ### Save Background
+
+- Save the background estimate as a WAVE file.
+
+<img src="images/repet_gui/save_background.gif" width="1000">
+
 ### Play/Stop Background
+
+- 
+
 ### Save Foreground
+
+- See [Play/Stop Foreground](#playstop-foreground)
+
 ### Play/Stop Foreground
+
+See [Play/Stop Foreground](#playstop-foreground)
 
 ## repet_sim_demo_gui Matlab GUI
 
