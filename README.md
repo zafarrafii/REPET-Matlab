@@ -783,15 +783,18 @@ Functionalities:
 
 ### Play/Stop Background
 
-- 
+- Play/stop the background estimate (see [Play/Stop Mixture](#playstop-mixture)).
+
+<img src="images/repet_gui/play_background.gif" width="1000">
 
 ### Save Foreground
 
-- See [Play/Stop Foreground](#playstop-foreground)
+- Save the foreground estimate (see [Save Background](#save-background)).
 
 ### Play/Stop Foreground
 
-See [Play/Stop Foreground](#playstop-foreground)
+- Play/stop the foreground estimate (see [Play/Stop Mixture](#playstop-mixture)).
+
 
 ## repet_sim_demo_gui Matlab GUI
 
