@@ -49,7 +49,7 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       09/20/18
+%       09/24/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -191,6 +191,9 @@ figure_object.Visible = 'on';
         % all the other objects to get created before it can get closed
         figure_object.CloseRequestFcn = '';
         
+        % Change the pointer symbol while the figure is busy
+        figure_object.Pointer = 'watch';
+        
         % Open file selection dialog box; return if cancel
         [mixture_name,mixture_path] = uigetfile({'*.wav';'*.mp3'}, ...
             'Select WAVE or MP3 File to Open');
@@ -318,7 +321,10 @@ figure_object.Visible = 'on';
         % Add the figure's close request callback back
         figure_object.CloseRequestFcn = @figurecloserequestfcn;
         
-        % Clicked callback function for the repet toggle button
+        % Change the pointer symbol back
+        figure_object.Pointer = 'arrow';
+        
+        % Clicked callback function for the REPET toggle button
         function repetclickedcallback(~,~)
             
             % Change the repet toggle button state to off
@@ -327,6 +333,9 @@ figure_object.Visible = 'on';
             % Remove the figure's close request callback so that it allows
             % all the other objects to get created before it can get closed
             figure_object.CloseRequestFcn = '';
+            
+            % Change the pointer symbol while the figure is busy
+            figure_object.Pointer = 'watch';
             
             % Select limits from the mixture signal axes' user data
             select_limits = mixturesignal_axes.UserData.SelectXLim;
@@ -435,6 +444,9 @@ figure_object.Visible = 'on';
             
             % Add the figure's close request callback back
             figure_object.CloseRequestFcn = @figurecloserequestfcn;
+            
+            % Change the pointer symbol back
+            figure_object.Pointer = 'arrow';
             
             % Mouse-click callback function for the beat spectrum axes
             function beatspectrumaxesbuttondownfcn(~,~)
@@ -625,7 +637,7 @@ figure_object.Visible = 'on';
                     [1,window_length/2]/window_length*sample_rate, ...
                     db(mean(abs(background_stft(2:window_length/2+1,:,:)),3)))
                 
-                % Update the mixture spectrogram axes properties
+                % Update the background spectrogram axes properties
                 backgroundspectrogram_axes.XLim = [1,number_samples]/sample_rate;
                 backgroundspectrogram_axes.YDir = 'normal';
                 backgroundspectrogram_axes.XGrid = 'on';
@@ -664,7 +676,7 @@ figure_object.Visible = 'on';
                     [1,window_length/2]/window_length*sample_rate, ...
                     db(mean(abs(foreground_stft(2:window_length/2+1,:,:)),3)))
                 
-                % Update the mixture spectrogram axes properties
+                % Update the foreground spectrogram axes properties
                 foregroundspectrogram_axes.XLim = [1,number_samples]/sample_rate;
                 foregroundspectrogram_axes.YDir = 'normal';
                 foregroundspectrogram_axes.XGrid = 'on';

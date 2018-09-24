@@ -47,7 +47,7 @@ function repetsim_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       09/21/18
+%       09/24/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -127,16 +127,16 @@ playforeground_toggle = uitoggletool(toolbar_object, ...
     'Enable','off', ...
     'UserData',struct('PlayIcon',play_icon,'StopIcon',stop_icon));
 
-% Create the mixture signal and spectrogram axes, and the beat spectrum
-% axes
+% Create the mixture signal and spectrogram axes, and the self-similarity 
+% matrix axes
 mixturesignal_axes = axes( ...
     'OuterPosition',[0,0.9,0.5,0.1], ...
     'Visible','off');
 mixturespectrogram_axes = axes( ...
     'OuterPosition',[0,0.5,0.5,0.4], ...
     'Visible','off');
-beatspectrum_axes = axes( ...
-    'OuterPosition',[0,0.2,0.5,0.2], ...
+selfsimilaritymatrix_axes = axes( ...
+    'OuterPosition',[0,0,0.5,0.5], ...
     'Visible','off');
 
 % Create the background and foreground signal and spectrogram axes
@@ -161,11 +161,9 @@ linkaxes([mixturesignal_axes,mixturespectrogram_axes,...
 linkaxes([mixturespectrogram_axes,backgroundspectrogram_axes, ...
     foregroundspectrogram_axes],'xy')
 
-% Change the pointer when the mouse moves over an audio signal or the beat
-% spectrum axes
+% Change the pointer when the mouse moves over an audio signal axes
 enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','ibeam');
 iptSetPointerBehavior(mixturesignal_axes,enterFcn);
-iptSetPointerBehavior(beatspectrum_axes,enterFcn);
 iptSetPointerBehavior(backgroundsignal_axes,enterFcn);
 iptSetPointerBehavior(foregroundsignal_axes,enterFcn);
 iptPointerManager(figure_object);
@@ -189,6 +187,9 @@ figure_object.Visible = 'on';
         % all the other objects to get created before it can get closed
         figure_object.CloseRequestFcn = '';
         
+        % Change the pointer symbol while the figure is busy
+        figure_object.Pointer = 'watch';
+        
         % Open file selection dialog box; return if cancel
         [mixture_name,mixture_path] = uigetfile({'*.wav';'*.mp3'}, ...
             'Select WAVE or MP3 File to Open');
@@ -202,8 +203,8 @@ figure_object.Visible = 'on';
         mixturesignal_axes.Visible = 'off';
         cla(mixturespectrogram_axes)
         mixturespectrogram_axes.Visible = 'off';
-        cla(beatspectrum_axes)
-        beatspectrum_axes.Visible = 'off';
+        cla(selfsimilaritymatrix_axes)
+        selfsimilaritymatrix_axes.Visible = 'off';
         cla(backgroundsignal_axes)
         backgroundsignal_axes.Visible = 'off';
         cla(backgroundspectrogram_axes)
@@ -267,9 +268,7 @@ figure_object.Visible = 'on';
         % frequencies)
         mixture_spectrogram = abs(mixture_stft(1:window_length/2+1,:,:));
         
-        % Functions to convert time from seconds to frames and from frames
-        % to seconds
-        sec2tim = @(x) round(x*sample_rate/number_samples*number_times);
+        % Functions to convert time from frames to seconds
         tim2sec = @(x) x/number_times*number_samples/sample_rate;
         
         % Display the mixture spectrogram (in dB, averaged over the
@@ -300,7 +299,7 @@ figure_object.Visible = 'on';
         playmixture_toggle.ClickedCallback = {@playaudioclickedcallback,mixture_player,mixturesignal_axes};
         
         % Add clicked callback function to the REPET toogle button
-        repet_toggle.ClickedCallback = @repetclickedcallback;
+        repetsim_toggle.ClickedCallback = @repetsimclickedcallback;
         
         % Enable the play mixture, select, zoom, pan, and REPET toggle
         % buttons
@@ -308,7 +307,7 @@ figure_object.Visible = 'on';
         select_toggle.Enable = 'on';
         zoom_toggle.Enable = 'on';
         pan_toggle.Enable = 'on';
-        repet_toggle.Enable = 'on';
+        repetsim_toggle.Enable = 'on';
         
         % Change the select toggle button state to on
         select_toggle.State = 'on';
@@ -316,15 +315,21 @@ figure_object.Visible = 'on';
         % Add the figure's close request callback back
         figure_object.CloseRequestFcn = @figurecloserequestfcn;
         
-        % Clicked callback function for the repet toggle button
-        function repetclickedcallback(~,~)
+        % Change the pointer symbol back
+        figure_object.Pointer = 'arrow';
+        
+        % Clicked callback function for the REPET-SIM toggle button
+        function repetsimclickedcallback(~,~)
             
             % Change the repet toggle button state to off
-            repet_toggle.State = 'off';
+            repetsim_toggle.State = 'off';
             
             % Remove the figure's close request callback so that it allows
             % all the other objects to get created before it can get closed
             figure_object.CloseRequestFcn = '';
+            
+            % Change the pointer symbol while the figure is busy
+            figure_object.Pointer = 'watch';
             
             % Select limits from the mixture signal axes' user data
             select_limits = mixturesignal_axes.UserData.SelectXLim;
@@ -341,67 +346,38 @@ figure_object.Visible = 'on';
             % Translate to a time range in time frames
             time_range = ceil(sample_range/number_samples*number_times);
             
-            % Beat spectrum of the spectrogram averaged over the channels
-            % (squared to emphasize peaks of periodicitiy)
-            beat_spectrum = beatspectrum(mean(mixture_spectrogram(:,time_range(1):time_range(2)),3).^2);
+            % Self-similarity of the spectrograms averaged over the
+            % channels
+            selfsimilarity_matrix = selfsimilaritymatrix(mean(mixture_spectrogram(:,time_range(1):time_range(2)),3));
             
-            % Normalize the beat spectrum by lag 0
-            beat_spectrum = beat_spectrum/beat_spectrum(1);
+            % Display the self-similarity matrix
+            imagesc(selfsimilaritymatrix_axes, ...
+                tim2sec([time_range(1),time_range(2)]), ...
+                tim2sec([time_range(1),time_range(2)]), ...
+                selfsimilarity_matrix,[0,1])
             
-            % Number of lags in time frames (including lag 0)
-            number_lags = length(beat_spectrum);
+            % Update the self-similarity matrix axes properties
+            selfsimilaritymatrix_axes.XLim = [1,number_samples]/sample_rate;
+            selfsimilaritymatrix_axes.YLim = [1,number_samples]/sample_rate;
+            selfsimilaritymatrix_axes.YDir = 'normal';
+            selfsimilaritymatrix_axes.XGrid = 'on';
+            selfsimilaritymatrix_axes.YGrid = 'on';
+            selfsimilaritymatrix_axes.Colormap = jet;
+            selfsimilaritymatrix_axes.Title.String = 'Self-similarity Matrix';
+            selfsimilaritymatrix_axes.XLabel.String = 'Time (s)';
+            selfsimilaritymatrix_axes.YLabel.String = 'Time (s)';
+            drawnow
             
-            % Beat limits for the repeating period on the beat spectrum in
-            % seconds
-            beat_limits = tim2sec([1,floor(number_lags/3)]);
+            % Minimal threshold for two similar frames in [0,1], minimal 
+            % distance between two similar frames in seconds, and maximal 
+            % number of similar frames for one frame
+            similarity_threshold = 0;
+            similarity_distance = 1;
+            similarity_number = 100;
             
-            % Period range in seconds for the beat spectrum
-            period_range = [1,10];
-            
-            % Repeating period in time frames given the period range
-            repeating_period = repeatingperiod(beat_spectrum,sec2tim(period_range));
-            
-            % Plot the beat spectrum and make it unable to capture mouse
-            % clicks
-            plot(beatspectrum_axes, ...
-                (0:tim2sec(1):tim2sec(number_lags-1)),beat_spectrum,'k','PickableParts','none')
-            
-            % Update the beat spectrum axes properties
-            beatspectrum_axes.XLim = [0,tim2sec(number_lags-1)];
-            beatspectrum_axes.YLim = [0,1];
-            beatspectrum_axes.XGrid = 'on';
-            beatspectrum_axes.XMinorGrid = 'on';
-            beatspectrum_axes.Title.String = ['Beat Spectrum: repeating period = ', ...
-                num2str(round(tim2sec(repeating_period),3)),' seconds'];
-            beatspectrum_axes.XLabel.String = 'Lag (s)';
-            
-            % Initialize the beat lines as an array for graphic objects
-            number_lines = floor((number_lags-1)/repeating_period);
-            beat_lines = gobjects(number_lines,1);
-            
-            % Create the main beat line and the other dotted lines on the
-            % beat spectrum axes
-            beat_lines(1) = line(beatspectrum_axes, ...
-                tim2sec(repeating_period)*[1,1],[-1,1], ...
-                'Color','r');
-            for line_index = 2:number_lines
-                beat_lines(line_index) = line(beatspectrum_axes, ...
-                    tim2sec(repeating_period)*line_index*[1,1],[-1,1], ...
-                    'Color','r', ...
-                    'LineStyle',':', ...
-                    'PickableParts','none');
-            end
-            
-            % Change the pointer when the mouse moves over the main beat
-            % line
-            enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','hand');
-            iptSetPointerBehavior(beat_lines(1),enterFcn);
-            iptPointerManager(figure_object);
-            
-            % Add mouse-click callback functions to the beat spectrum axes
-            % and the main beat line
-            beatspectrum_axes.ButtonDownFcn = @beatspectrumaxesbuttondownfcn;
-            beat_lines(1).ButtonDownFcn = @beatlinebuttondownfcn;
+            % Similarity indices for all the frames
+            similarity_indices ...
+                = similarityindices(selfsimilarity_matrix,similarity_threshold,similarity_distance,similarity_number);
             
             % Cutoff frequency in Hz for the high-pass filtering of the
             % foreground
@@ -413,11 +389,123 @@ figure_object.Visible = 'on';
             % Initialize the background and foreground STFTs and signals
             background_stft = zeros(window_length,time_range(2)-time_range(1)+1,number_channels);
             background_signal = zeros(sample_range(2)-sample_range(1)+1,number_channels);
-            foreground_stft = zeros(window_length,time_range(2)-time_range(1)+1,number_channels);
-            foreground_signal = zeros(sample_range(2)-sample_range(1)+1,number_channels);
             
-            % Run REPET given the repeating period in time frames
-            repet(repeating_period)
+            % Loop over the channels
+            for channel_index = 1:number_channels %#ok<*FXUP>
+                
+                % Repeating mask for the current channel
+                repeating_mask ...
+                    = repeatingmask(mixture_spectrogram(:,time_range(1):time_range(2),channel_index),similarity_indices);
+                
+                % High-pass filtering of the foreground
+                repeating_mask(2:cutoff_frequency+1,:) = 1;
+                
+                % Mirror the frequency channels
+                repeating_mask = cat(1,repeating_mask,repeating_mask(end-1:-1:2,:));
+                
+                % Estimated background STFT for the current channel
+                background_stft(:,:,channel_index) ...
+                    = repeating_mask.*mixture_stft(:,time_range(1):time_range(2),channel_index);
+                
+                % Estimated background signal
+                background_signal1 = istft(background_stft(:,:,channel_index),window_function,step_length);
+                
+                % Truncate to the true number of samples
+                background_signal(:,channel_index) ...
+                    = background_signal1(1:sample_range(2)-sample_range(1)+1);
+                
+            end
+            
+            % Plot the background signal and make it unable to capture
+            % mouse clicks
+            plot(backgroundsignal_axes, ...
+                sample_range(1)/sample_rate:1/sample_rate:sample_range(2)/sample_rate,background_signal, ...
+                'PickableParts','none');
+            
+            % Update the background signal axes properties
+            backgroundsignal_axes.XLim = [1,number_samples]/sample_rate;
+            backgroundsignal_axes.YLim = [-1,1];
+            backgroundsignal_axes.XGrid = 'on';
+            backgroundsignal_axes.Title.String = 'Background Signal';
+            backgroundsignal_axes.XLabel.String = 'Time (s)';
+            backgroundsignal_axes.Layer = 'top';
+            backgroundsignal_axes.UserData.PlotXLim = select_limits;
+            backgroundsignal_axes.UserData.SelectXLim = select_limits;
+            drawnow
+            
+            % Display the background spectrogram (in dB, averaged over
+            % the channels)
+            imagesc(backgroundspectrogram_axes, ...
+                tim2sec([time_range(1),time_range(2)]), ...
+                [1,window_length/2]/window_length*sample_rate, ...
+                db(mean(abs(background_stft(2:window_length/2+1,:,:)),3)))
+            
+            % Update the background spectrogram axes properties
+            backgroundspectrogram_axes.XLim = [1,number_samples]/sample_rate;
+            backgroundspectrogram_axes.YDir = 'normal';
+            backgroundspectrogram_axes.XGrid = 'on';
+            backgroundspectrogram_axes.Colormap = jet;
+            backgroundspectrogram_axes.CLim = mixturespectrogram_axes.CLim;
+            backgroundspectrogram_axes.Title.String = 'Background Spectrogram';
+            backgroundspectrogram_axes.XLabel.String = 'Time (s)';
+            backgroundspectrogram_axes.YLabel.String = 'Frequency (Hz)';
+            drawnow
+            
+            % Corresponding foreground signal and STFT
+            foreground_signal = mixture_signal(sample_range(1):sample_range(2),:)-background_signal;
+            foreground_stft = mixture_stft(:,time_range(1):time_range(2),:)-background_stft;
+            
+            % Plot the foreground signal and make it unable to capture
+            % mouse clicks
+            plot(foregroundsignal_axes, ...
+                sample_range(1)/sample_rate:1/sample_rate:sample_range(2)/sample_rate,foreground_signal, ...
+                'PickableParts','none');
+            
+            % Update the foreground signal axes properties
+            foregroundsignal_axes.XLim = [1,number_samples]/sample_rate;
+            foregroundsignal_axes.YLim = [-1,1];
+            foregroundsignal_axes.XGrid = 'on';
+            foregroundsignal_axes.Title.String = 'Foreground Signal';
+            foregroundsignal_axes.XLabel.String = 'Time (s)';
+            foregroundsignal_axes.Layer = 'top';
+            foregroundsignal_axes.UserData.PlotXLim = select_limits;
+            foregroundsignal_axes.UserData.SelectXLim = select_limits;
+            drawnow
+            
+            % Display the foreground spectrogram (in dB, averaged over the 
+            % channels)
+            imagesc(foregroundspectrogram_axes, ...
+                tim2sec([time_range(1),time_range(2)]), ...
+                [1,window_length/2]/window_length*sample_rate, ...
+                db(mean(abs(foreground_stft(2:window_length/2+1,:,:)),3)))
+            
+            % Update the foreground spectrogram axes properties
+            foregroundspectrogram_axes.XLim = [1,number_samples]/sample_rate;
+            foregroundspectrogram_axes.YDir = 'normal';
+            foregroundspectrogram_axes.XGrid = 'on';
+            foregroundspectrogram_axes.Colormap = jet;
+            foregroundspectrogram_axes.CLim = mixturespectrogram_axes.CLim;
+            foregroundspectrogram_axes.Title.String = 'Foreground Spectrogram';
+            foregroundspectrogram_axes.XLabel.String = 'Time (s)';
+            foregroundspectrogram_axes.YLabel.String = 'Frequency (Hz)';
+            drawnow
+            
+            % Create objects for playing audio for the background and
+            % foreground signals
+            background_player = audioplayer(background_signal,sample_rate);
+            foreground_player = audioplayer(foreground_signal,sample_rate);
+            
+            % Add clicked callback functions to the play background and
+            % foreground toogle buttons
+            playbackground_toggle.ClickedCallback = {@playaudioclickedcallback,background_player,backgroundsignal_axes};
+            playforeground_toggle.ClickedCallback = {@playaudioclickedcallback,foreground_player,foregroundsignal_axes};
+            
+            % Set play lines and select lines on the background and
+            % foreground signal axes
+            selectline(backgroundsignal_axes)
+            playline(backgroundsignal_axes,background_player,playbackground_toggle);
+            selectline(foregroundsignal_axes)
+            playline(foregroundsignal_axes,foreground_player,playforeground_toggle);
             
             % Add clicked callback functions for the save background and
             % foreground toggle buttons
@@ -434,263 +522,8 @@ figure_object.Visible = 'on';
             % Add the figure's close request callback back
             figure_object.CloseRequestFcn = @figurecloserequestfcn;
             
-            % Mouse-click callback function for the beat spectrum axes
-            function beatspectrumaxesbuttondownfcn(~,~)
-                
-                % Mouse selection type
-                selection_type = figure_object.SelectionType;
-                
-                % If not click left mouse button, return
-                if ~strcmp(selection_type,'normal')
-                    return
-                end
-                
-                % Location of the mouse pointer
-                current_point = beatspectrum_axes.CurrentPoint;
-                
-                % If the current point is out of the beat limits, return
-                if current_point(1,1) < beat_limits(1) || current_point(1,1) > beat_limits(2) || ...
-                        current_point(1,2) < -1 || current_point(1,2) > 1
-                    return
-                end
-
-                % Change the pointer when the mouse moves over the beat
-                % spectrum axes
-                enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','hand');
-                iptSetPointerBehavior(beatspectrum_axes,enterFcn);
-                iptPointerManager(figure_object);
-                
-                % Update the main beat line and re-create the dotted lines
-                beat_lines(1).XData = current_point(1,1)*[1,1];
-                delete(beat_lines(2:end))
-                number_lines = floor(tim2sec(number_lags-1)/current_point(1,1));
-                beat_lines = [beat_lines(1);gobjects(number_lines-1,1)];
-                for line_index = 2:number_lines %#ok<*FXUP>
-                    beat_lines(line_index) = line(beatspectrum_axes, ...
-                        current_point(1,1)*line_index*[1,1],[-1,1], ...
-                        'Color','r', ...
-                        'LineStyle',':', ...
-                        'PickableParts','none');
-                end
-                
-                % Update the repeating period in the beat spectrum title
-                beatspectrum_axes.Title.String = ['Beat Spectrum: repeating period = ', ...
-                    num2str(round(current_point(1,1),3)),' seconds'];
-                
-                % Add window button motion and up callback functions to the
-                % figure
-                figure_object.WindowButtonMotionFcn = @figurewindowbuttonmotionfcn;
-                figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
-                
-                % Run REPET again given the current point in time frames
-                repet(sec2tim(current_point(1,1)))
-                
-            end
-            
-            % Mouse-click callback function for the main beat line
-            function beatlinebuttondownfcn(~,~)
-                
-                % Mouse selection type
-                selection_type = figure_object.SelectionType;
-                
-                % If not click left mouse button, return
-                if ~strcmp(selection_type,'normal')
-                    return
-                end
-                
-                % Change the pointer when the mouse moves over the beat
-                % spectrum axes and the figure object
-                enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','hand');
-                iptSetPointerBehavior(beatspectrum_axes,enterFcn);
-                iptSetPointerBehavior(figure_object,enterFcn);
-                iptPointerManager(figure_object);
-                
-                % Add window button motion and up callback functions to the
-                % figure
-                figure_object.WindowButtonMotionFcn = @figurewindowbuttonmotionfcn;
-                figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
-                
-            end
-            
-            % Window button motion callback function for the figure
-            function figurewindowbuttonmotionfcn(~,~)
-                
-                % Location of the mouse pointer
-                current_point = beatspectrum_axes.CurrentPoint;
-                
-                % If the current point is out of the beat limits, change it
-                % into the beat limits
-                if current_point(1,1) < beat_limits(1)
-                    current_point(1,1) = beat_limits(1);
-                elseif current_point(1,1) > beat_limits(2)
-                    current_point(1,1) = beat_limits(2);
-                end
-                
-                % Update the main beat line and re-create the dotted lines
-                beat_lines(1).XData = current_point(1,1)*[1,1];
-                delete(beat_lines(2:end))
-                number_lines = floor(tim2sec(number_lags-1)/current_point(1,1));
-                beat_lines = [beat_lines(1);gobjects(number_lines-1,1)];
-                for line_index = 2:number_lines %#ok<*FXUP>
-                    beat_lines(line_index) = line(beatspectrum_axes, ...
-                        current_point(1,1)*line_index*[1,1],[-1,1], ...
-                        'Color','r', ...
-                        'LineStyle',':', ...
-                        'PickableParts','none');
-                end
-                
-                % Update repeating period in the beat spectrum title
-                beatspectrum_axes.Title.String = ['Beat Spectrum: repeating period = ', ...
-                    num2str(round(current_point(1,1),3)),' seconds'];
-                
-            end
-            
-            % Window button up callback function for the figure
-            function figurewindowbuttonupfcn(~,~)
-                
-                % Change the pointer when the mouse moves over the beat
-                % spectrum axes and the figure object
-                enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','ibeam');
-                iptSetPointerBehavior(beatspectrum_axes,enterFcn);
-                iptPointerManager(figure_object);
-                enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','arrow');
-                iptSetPointerBehavior(figure_object,enterFcn);
-                iptPointerManager(figure_object);
-                
-                % Remove the window button motion and up callback functions
-                % of the figure
-                figure_object.WindowButtonMotionFcn = '';
-                figure_object.WindowButtonUpFcn = '';
-                
-                % Repeating period in seconds from the main beat line
-                repeat_period = beat_lines(1).XData(1);
-                
-                % Run REPET again given the current point in time frames
-                repet(sec2tim(repeat_period))
-                
-            end
-            
-            % REPET function given a repeating period in time frames
-            function repet(repeating_period)
-                
-                % Loop over the channels
-                for channel_index = 1:number_channels
-                    
-                    % Repeating mask for the current channel
-                    repeating_mask ...
-                        = repeatingmask(mixture_spectrogram(:,time_range(1):time_range(2),channel_index),repeating_period);
-                    
-                    % High-pass filtering of the foreground
-                    repeating_mask(2:cutoff_frequency+1,:) = 1;
-                    
-                    % Mirror the frequency channels
-                    repeating_mask = cat(1,repeating_mask,repeating_mask(end-1:-1:2,:));
-                    
-                    % Estimated background STFT for the current channel
-                    background_stft(:,:,channel_index) ...
-                        = repeating_mask.*mixture_stft(:,time_range(1):time_range(2),channel_index);
-                    
-                    % Estimated background signal
-                    background_signal1 = istft(background_stft(:,:,channel_index),window_function,step_length);
-                    
-                    % Truncate to the true number of samples
-                    background_signal(:,channel_index) ...
-                        = background_signal1(1:sample_range(2)-sample_range(1)+1);
-                    
-                end
-                
-                % Plot the background signal and make it unable to capture
-                % mouse clicks
-                plot(backgroundsignal_axes, ...
-                    sample_range(1)/sample_rate:1/sample_rate:sample_range(2)/sample_rate,background_signal, ...
-                    'PickableParts','none');
-                
-                % Update the background signal axes properties
-                backgroundsignal_axes.XLim = [1,number_samples]/sample_rate;
-                backgroundsignal_axes.YLim = [-1,1];
-                backgroundsignal_axes.XGrid = 'on';
-                backgroundsignal_axes.Title.String = 'Background Signal';
-                backgroundsignal_axes.XLabel.String = 'Time (s)';
-                backgroundsignal_axes.Layer = 'top';
-                backgroundsignal_axes.UserData.PlotXLim = select_limits;
-                backgroundsignal_axes.UserData.SelectXLim = select_limits;
-                drawnow
-                
-                % Display the background spectrogram (in dB, averaged over
-                % the channels)
-                imagesc(backgroundspectrogram_axes, ...
-                    tim2sec([time_range(1),time_range(2)]), ...
-                    [1,window_length/2]/window_length*sample_rate, ...
-                    db(mean(abs(background_stft(2:window_length/2+1,:,:)),3)))
-                
-                % Update the mixture spectrogram axes properties
-                backgroundspectrogram_axes.XLim = [1,number_samples]/sample_rate;
-                backgroundspectrogram_axes.YDir = 'normal';
-                backgroundspectrogram_axes.XGrid = 'on';
-                backgroundspectrogram_axes.Colormap = jet;
-                backgroundspectrogram_axes.CLim = mixturespectrogram_axes.CLim;
-                backgroundspectrogram_axes.Title.String = 'Background Spectrogram';
-                backgroundspectrogram_axes.XLabel.String = 'Time (s)';
-                backgroundspectrogram_axes.YLabel.String = 'Frequency (Hz)';
-                drawnow
-                
-                % Corresponding foreground signal and STFT
-                foreground_signal = mixture_signal(sample_range(1):sample_range(2),:)-background_signal;
-                foreground_stft = mixture_stft(:,time_range(1):time_range(2),:)-background_stft;
-                
-                % Plot the foreground signal and make it unable to capture
-                % mouse clicks
-                plot(foregroundsignal_axes, ...
-                    sample_range(1)/sample_rate:1/sample_rate:sample_range(2)/sample_rate,foreground_signal, ...
-                    'PickableParts','none');
-                
-                % Update the foreground signal axes properties
-                foregroundsignal_axes.XLim = [1,number_samples]/sample_rate;
-                foregroundsignal_axes.YLim = [-1,1];
-                foregroundsignal_axes.XGrid = 'on';
-                foregroundsignal_axes.Title.String = 'Foreground Signal';
-                foregroundsignal_axes.XLabel.String = 'Time (s)';
-                foregroundsignal_axes.Layer = 'top';
-                foregroundsignal_axes.UserData.PlotXLim = select_limits;
-                foregroundsignal_axes.UserData.SelectXLim = select_limits;
-                drawnow
-                
-                % Display the foreground spectrogram (in dB, averaged over
-                % the channels)
-                imagesc(foregroundspectrogram_axes, ...
-                    tim2sec([time_range(1),time_range(2)]), ...
-                    [1,window_length/2]/window_length*sample_rate, ...
-                    db(mean(abs(foreground_stft(2:window_length/2+1,:,:)),3)))
-                
-                % Update the mixture spectrogram axes properties
-                foregroundspectrogram_axes.XLim = [1,number_samples]/sample_rate;
-                foregroundspectrogram_axes.YDir = 'normal';
-                foregroundspectrogram_axes.XGrid = 'on';
-                foregroundspectrogram_axes.Colormap = jet;
-                foregroundspectrogram_axes.CLim = mixturespectrogram_axes.CLim;
-                foregroundspectrogram_axes.Title.String = 'Foreground Spectrogram';
-                foregroundspectrogram_axes.XLabel.String = 'Time (s)';
-                foregroundspectrogram_axes.YLabel.String = 'Frequency (Hz)';
-                drawnow
-                
-                % Create objects for playing audio for the background and
-                % foreground signals
-                background_player = audioplayer(background_signal,sample_rate);
-                foreground_player = audioplayer(foreground_signal,sample_rate);
-                
-                % Add clicked callback functions to the play background and
-                % foreground toogle buttons
-                playbackground_toggle.ClickedCallback = {@playaudioclickedcallback,background_player,backgroundsignal_axes};
-                playforeground_toggle.ClickedCallback = {@playaudioclickedcallback,foreground_player,foregroundsignal_axes};
-                
-                % Set play lines and select lines on the background and
-                % foreground signal axes
-                selectline(backgroundsignal_axes)
-                playline(backgroundsignal_axes,background_player,playbackground_toggle);
-                selectline(foregroundsignal_axes)
-                playline(foregroundsignal_axes,foreground_player,playforeground_toggle);
-                
-            end
+            % Change the pointer symbol back
+            figure_object.Pointer = 'arrow';
             
             % Clicked callback function for the save background toggle
             % button
@@ -804,7 +637,7 @@ figure_object.Visible = 'on';
         setAxesPanConstraint(pan_object,foregroundsignal_axes,'x');
         
     end
-
+    
     % Close request callback function for the figure
     function figurecloserequestfcn(~,~)
         
@@ -887,16 +720,17 @@ image_data(2:8,7:8) = 0;
 image_data([2,3,5,7,8],9) = 0;
 image_data([2,3,7,8],10) = 0;
 
-image_data([11:13,15,16],2) = 0;
+image_data([11,12,15],2) = 0;
 image_data([10:13,15,16],3) = 0;
-image_data([10,11,13:16],4) = 0;
-image_data([10,11,13:15],5) = 0;
+image_data([10,13,16],4) = 0;
+image_data([10,11,13:16],5) = 0;
+image_data([11,14,15],6) = 0;
 
 image_data(10:16,8:9) = 0;
 
-image_data(10:16,12:13) = 0;
-image_data(11:12,14) = 0;
-image_data(10:16,15) = 0;
+image_data(10:16,11:12) = 0;
+image_data(11:12,13) = 0;
+image_data(10:16,14:15) = 0;
 
 % Make the image
 image_data = repmat(image_data,[1,1,3]);
@@ -1280,91 +1114,105 @@ audio_signal = audio_signal/sum(window_function(1:step_length:window_length));
 
 end
 
-% Autocorrelation using the Wiener–Khinchin theorem (faster than xcorr)
-function autocorrelation_matrix = acorr(data_matrix)
+% Self-similarity matrix using the cosine similarity (faster than pdist2)
+function similarity_matrix = selfsimilaritymatrix(data_matrix)
 
-% Number of points in each column
-number_points = size(data_matrix,1);
+% Divide each column by its Euclidean norm
+data_matrix = data_matrix./sqrt(sum(data_matrix.^2,1));
 
-% Power Spectral Density (PSD): PSD(X) = fft(X).*conj(fft(X)) (after
-% zero-padding for proper autocorrelation)
-data_matrix = abs(fft(data_matrix,2*number_points)).^2;
-
-% Wiener–Khinchin theorem: PSD(X) = fft(acorr(X))
-autocorrelation_matrix = ifft(data_matrix);
-
-% Discard the symmetric part
-autocorrelation_matrix = autocorrelation_matrix(1:number_points,:);
-
-% Unbiased autocorrelation (lag 0 to number_points-1)
-autocorrelation_matrix = autocorrelation_matrix./(number_points:-1:1)';
+% Multiply each normalized columns with each other
+similarity_matrix = data_matrix'*data_matrix;
 
 end
 
-% Beat spectrum using the autocorrelation
-function beat_spectrum = beatspectrum(audio_spectrogram)
+% Local maxima, values and indices (Matlab's findpeaks does not behave 
+% exactly like wanted)
+function [maximum_values,maximum_indices] = localmaxima(data_vector,minimum_value,minimum_distance,number_values)
 
-% Autocorrelation of the frequency channels
-beat_spectrum = acorr(audio_spectrogram');
+% Number of data points
+number_data = numel(data_vector);
 
-% Mean over the frequency channels
-beat_spectrum = mean(beat_spectrum,2);
+% Initialize maximum indices
+maximum_indices = [];
+
+% Loop over the data points
+for data_index = 1:number_data
+    
+    % The local maximum should be greater than the maximum value
+    if data_vector(data_index) >= minimum_value
+        
+        % The local maximum should be strictly greater than the neighboring 
+        % data points within +- minimum distance
+        if all(data_vector(data_index) > data_vector(max(data_index-minimum_distance,1):data_index-1)) ...
+                && all(data_vector(data_index) > data_vector(data_index+1:min(data_index+minimum_distance,number_data)))
+            
+            % Save the maximum index
+            maximum_indices = cat(1,maximum_indices,data_index);
+            
+        end
+    end
+end
+
+% Sort the maximum values in descending order
+maximum_values = data_vector(maximum_indices);
+[maximum_values,sort_indices] = sort(maximum_values,'descend');
+
+% Keep only the top maximum values and indices
+number_values = min(number_values,numel(maximum_values));
+maximum_values = maximum_values(1:number_values);
+maximum_indices = maximum_indices(sort_indices(1:number_values));
 
 end
 
-% Repeating period from the beat spectrum
-function repeating_period = repeatingperiod(beat_spectrum,period_range)
+% Similarity indices from the similarity matrix
+function similarity_indices = similarityindices(similarity_matrix,similarity_threshold,similarity_distance,similarity_number)
 
-% Update the maximum period so that the repeating period is at most a third
-% of the maximum lag, as at least three segments are needed for the median
-period_range(2) = min(period_range(2),floor((length(beat_spectrum)-1)/3));
+% Number of time frames
+number_times = size(similarity_matrix,1);
 
-% Update the minimum period to 1 lag if the maximum period is smaller than
-% the minimum period
-if period_range(2)<period_range(1)
-    period_range(1) = 1;
+% Initialize the similarity indices
+similarity_indices = cell(1,number_times);
+
+% Loop over the time frames
+for time_index = 1:number_times
+    
+    % Indices of the local maxima
+    [~,maximum_indices]...
+        = localmaxima(similarity_matrix(:,time_index),similarity_threshold,similarity_distance,similarity_number);
+    
+    % Similarity indices for the current time frame
+    similarity_indices{time_index} = maximum_indices;
+    
 end
 
-% The repeating period is the index of the maximum peak in the beat
-% spectrum given the period range (its does not account for lag 0)
-beat_spectrum = beat_spectrum(period_range(1)+1:period_range(2)+1);
-[~,repeating_period] = max(beat_spectrum.* ...
-    [0;(beat_spectrum(2:end-1)>=beat_spectrum(1:end-2)) ...
-    & (beat_spectrum(2:end-1)>=beat_spectrum(3:end));0]);
-repeating_period = repeating_period+period_range(1);
-
 end
 
-% Repeating mask using the repeating period
-function repeating_mask = repeatingmask(audio_spectrogram,repeating_period)
+% Repeating mask for REPET-SIM
+function repeating_mask = repeatingmask(audio_spectrogram,similarity_indices)
 
-% Number of frequency channels and time frames
+% Number of frequency bins and time frames
 [number_frequencies,number_times] = size(audio_spectrogram);
 
-% Number of repeating segments, including the last partial one
-number_segments = ceil(number_times/repeating_period);
+% Initialize the repeating spectrogram
+repeating_spectrogram = zeros(number_frequencies,number_times);
 
-% Pad the audio spectrogram to have an integer number of segments and
-% reshape it to a tensor
-audio_spectrogram = [audio_spectrogram,nan(number_frequencies,number_segments*repeating_period-number_times)];
-audio_spectrogram = reshape(audio_spectrogram,[number_frequencies,repeating_period,number_segments]);
+% Loop over the time frames
+for time_index = 1:number_times
+    
+    % Indices of the frames for the median filter
+    time_indices = similarity_indices{time_index};
+    
+    % Median filter on the current time frame
+    repeating_spectrogram(:,time_index) = median(audio_spectrogram(:,time_indices),2);
+    
+end
 
-% Derive the repeating segment by taking the median over the segments,
-% ignoring the nan parts
-repeating_segment = [median(audio_spectrogram(:,1:number_times-(number_segments-1)*repeating_period,:),3), ...
-    median(audio_spectrogram(:,number_times-(number_segments-1)*repeating_period+1:repeating_period,1:end-1),3)];
+% Make sure the energy in the repeating spectrogram is smaller than in the 
+% audio spectrogram, for every time-frequency bin
+repeating_spectrogram = min(audio_spectrogram,repeating_spectrogram);
 
-% Derive the repeating spectrogram by ensuring it has less energy than the
-% audio spectrogram
-repeating_spectrogram = min(audio_spectrogram,repeating_segment);
-
-% Derive the repeating mask by normalizing the repeating spectrogram by the
+% Derive the repeating mask by normalizing the repeating spectrogram by the 
 % audio spectrogram
 repeating_mask = (repeating_spectrogram+eps)./(audio_spectrogram+eps);
-
-% Reshape the repeating mask and truncate to the original number of time
-% frames
-repeating_mask = reshape(repeating_mask,[number_frequencies,number_segments*repeating_period]);
-repeating_mask = repeating_mask(:,1:number_times);
 
 end
