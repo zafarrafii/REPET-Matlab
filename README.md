@@ -845,7 +845,7 @@ Functionalities:
 ### REPET-SIM
 
 - Apply REPET-SIM to the mixture signal or the selected region of the mixture signal if any.
-- Compute the self-similarity matrix and estimate the repeating elements, and display them.
+- Compute the self-similarity matrix and display it, and estimate the repeating elements.
 - Derive the background and foreground estimates from the mixture signal or the selected region of the mixture signal, and display their signals and spectrograms; the select, zoom, and pan tools will work the same way on the background and foreground signal and spectrogram axes.
 
 <img src="images/repetsim_gui/repetsim.gif" width="1000">
