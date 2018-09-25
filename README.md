@@ -4,9 +4,7 @@ This repository includes a Matlab class and a Python module which implement a nu
 
 - [repet Matlab class](#repet-matlab-class)
 - [repet Python module](#repet-python-module)
-- [repet_demo_gui Matlab GUI](#repet_demo_gui-matlab-gui)
 - [repet_gui Matlab GUI](#repet_gui-matlab-gui)
-- [repet_sim_demo_gui Matlab GUI](#repet_sim_demo_gui-matlab-gui)
 - [repetsim_gui Matlab GUI](#repetsim_gui-matlab-gui)
 - [urepet Matlab GUI](#urepet-matlab-gui)
 - [audio_file](#audio_file)
@@ -710,11 +708,6 @@ plt.show()
 <img src="images/python/repet_simonline.png" width="1000">
 
 
-## repet_demo_gui Matlab GUI
-
-Operational but obsolete; use repet_gui below.
-
-
 ## repet_gui Matlab GUI
 
 REPET graphical user interface (GUI).
@@ -798,12 +791,6 @@ Functionalities:
 ### Play/Stop Foreground
 
 - Play or stop the foreground estimate (see [Play/Stop Mixture](#playstop-mixture)).
-
-
-## repet_sim_demo_gui Matlab GUI
-
-Operational but obsolete; use repetsim_gui below.
-
 
 ## repetsim_gui Matlab GUI
 
