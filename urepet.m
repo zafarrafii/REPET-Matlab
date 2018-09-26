@@ -112,7 +112,7 @@ figure_object.Visible = 'on';
         octave_resolution = 24;
         
         % Minimum and maximum frequency in Hz
-        minimum_frequency = 8*27.50;
+        minimum_frequency = 27.5;
         maximum_frequency = sample_rate/2;
         
         % Initialize the CQT and the spectrogram
@@ -129,45 +129,27 @@ figure_object.Visible = 'on';
         % Number of frequency channels and time frames
         [number_frequencies,number_times,~] = size(input_spectrogram);
         
-minimum_frequency*2.^([0,number_frequencies-1]/octave_resolution)
+        % True maximum frequency
+        maximum_frequency = minimum_frequency*2.^((number_frequencies-1)/octave_resolution);
         
-        % Display the input spectrogram (in dB, averaged over the
-        % channels)
+        % Display the input spectrogram (in dB, averaged over the channels)
+        % (compensating for the buggy padding that the log scale is adding)
         imagesc(spectrogram_axes, ...
             [1,number_times]/number_times*number_samples/sample_rate, ...
-            ([1,number_frequencies]-1)/(number_frequencies-1), ...
+            [(minimum_frequency*2*number_frequencies+maximum_frequency)/(2*number_frequencies+1), ...
+            (maximum_frequency*2*number_frequencies+minimum_frequency)/(2*number_frequencies+1)], ...
             db(mean(input_spectrogram,3)))
         
         % Update the mixture spectrogram axes properties
-        spectrogram_axes.YDir = 'normal';
         spectrogram_axes.YScale = 'log';
-        spectrogram_axes.YLim
+        spectrogram_axes.YDir = 'normal';
         spectrogram_axes.XGrid = 'on';
         spectrogram_axes.Colormap = jet;
-        spectrogram_axes.Title.String = 'Spectrogram';
+        spectrogram_axes.Title.String = 'Log-spectrogram';
         spectrogram_axes.XLabel.String = 'Time (s)';
         spectrogram_axes.YLabel.String = 'Frequency (Hz)';
         drawnow
-        
-        
-        
-%         set(gca, ...
-%             'CLim',[min(P(:)),max(P(:))], ...                               % Color limits for objects using colormap
-%             'XTick',round(m/(l/fs)):round(m/(l/fs)):m, ...                  % X-tick mark locations (every 1 second)
-%             'XTickLabel',1:round(l/fs), ...                                 % X-tick mark labels (every 1 second)
-%             'YDir','normal', ...                                            % Direction of increasing values along axis
-%             'YTick',1:B:n, ...                                              % Y-tick mark locations (every "A" Hz)
-%             'YTickLabel',fmin*2.^(0:ceil(n/B)-1))                           % Y-tick mark labels (every "A" Hz)
-%         title(filename, ...                                                 % Add title to current axes
-%             'Interpreter','none')                                           % Interpretation of text characters
-%         xlabel('time (s)')                                                  % Label x-axis
-%         ylabel('log-frequency (Hz)')                                        % Label y-axis
 
-        
-        
-        
-        
-        
         % Enable the save and parameters toggle buttons
         save_toggle.Enable = 'on';
         parameters_toggle.Enable = 'on';
