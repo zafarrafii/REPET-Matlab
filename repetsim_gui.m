@@ -47,7 +47,7 @@ function repetsim_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       09/24/18
+%       10/05/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -103,7 +103,7 @@ repetsim_toggle = uitoggletool(toolbar_object, ...
     'Separator','On', ...
     'CData',repetsimicon, ...
     'TooltipString','REPET-SIM', ...
-    'Enable','on');
+    'Enable','off');
 
 % Create save and play background and foreground toggle buttons on toolbar
 savebackground_toggle = uitoggletool(toolbar_object, ...
