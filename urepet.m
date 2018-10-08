@@ -29,7 +29,7 @@ function urepet
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       10/05/18
+%       10/08/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -220,9 +220,8 @@ figure_object.Visible = 'on';
         drawnow
         
         % Initialize the selection object as an array for graphic objects
-        number_lines = 4;
-        selection_object = gobjects(number_lines,1);
-
+        rectangle_object = gobjects(1,1);
+        
         % Create object for playing audio
         audio_player = audioplayer(audio_signal,sample_rate);
         
@@ -260,52 +259,63 @@ figure_object.Visible = 'on';
                 return
             end
             
-            % Current figure handle
-            figure_object = gcf;
-            
             % Mouse selection type
             selection_type = figure_object.SelectionType;
             
             % If click left mouse button
             if strcmp(selection_type,'normal')
                 
-                % If not empty, delete the selectiong object
-                if ~isempty(selection_object)
-                    delete(selection_object)
+                % If not empty, delete the rectangle object
+                if ~isempty(rectangle_object)
+                    delete(rectangle_object)
                 end
                 
-                % Create the lines for the selection object
-                for line_index = 1:number_lines
-                    selection_object(line_index) = line(spectrogram_axes, ...
-                        current_point(1,1)*[1,1],current_point(1,2)*[1,1], ...
-                        'Color','k', ...
-                        'ButtonDownFcn',@linebuttondownfcn);
-                end
+                % Create rectangle
+                rectangle_object = rectangle(spectrogram_axes, ...
+                    'Position',[current_point(1,1),current_point(1,2),0,0]);
                 
-                % Change the pointer when the mouse moves over the lines, 
-                % the spectrogram axes, and the figure object
+                % Change the pointer when the mouse moves over the 
+                % rectangle object, the spectrogram axes, and the figure 
+                % object
                 enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
-                for line_index = 1:number_lines 
-                    iptSetPointerBehavior(selection_object(line_index),enterFcn);
-                end
+                iptSetPointerBehavior(rectangle_object,enterFcn);
                 iptSetPointerBehavior(spectrogram_axes,enterFcn);
                 iptSetPointerBehavior(figure_object,enterFcn);
                 iptPointerManager(figure_object);
                 
                 % Add window button motion and up callback functions to the
                 % figure
-                figure_object.WindowButtonMotionFcn = {@figurewindowbuttonmotionfcn,select_line(1)};
-                figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
-
+                figure_object.WindowButtonMotionFcn = {@figurewindowbuttonmotionfcn,rectangle_object};
+%                 figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
+                
                 % Update the spectrogram axes' user data
                 spectrogram_axes.UserData = [current_point(1,1)*[1,1],current_point(1,2)*[1,1]];
                 
             end
             
-            % ...
-            function linebuttondownfcn(~,~)
+            % Window button motion callback function for the figure
+            function figurewindowbuttonmotionfcn(~,~,rectangle_object)
                 
-                rand
+                % Location of the mouse pointer
+                current_point = spectrogram_axes.CurrentPoint;
+                
+                % Size and location of the rectangle object
+                rectangle_position = rectangle_object.pos;
+                
+                % Update the size and location of the rectangle object
+                if current_point(1,1) < rectangle_position(1)
+                    rectangle_object.pos(1,1) = current_point(1,1);
+                else
+                    rectangle_object.pos(1,1) = current_point(1,2);
+                    
+                end
+                
+            end
+            
+            % Window button up callback function for the figure
+            function figurewindowbuttonupfcn(~,~)
+                
+                'figurewindowbuttonupfcn'
                 
             end
             
