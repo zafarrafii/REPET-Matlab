@@ -327,7 +327,7 @@ figure_object.Visible = 'on';
         % Clicked callback function for the REPET toggle button
         function repetclickedcallback(~,~)
             
-            % Change the repet toggle button state to off
+            % Change the REPET toggle button state to off
             repet_toggle.State = 'off';
             
             % Remove the figure's close request callback so that it allows

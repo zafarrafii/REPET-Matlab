@@ -3,16 +3,13 @@ function urepet
 % in time and frequency in mixtures of sounds
 %
 %   Toolbar:
-%       Open Mixture:                   Open mixture file (as .wav or .mp3)
-%       Play Mixture:                   Play/stop selected mixture audio
-%       Select:                         Select/deselect on signal axes (left/right mouse click)
-%       Zoom:                           Zoom on any axes
-%       Pan:                            Pan on any axes
-%       REPET:                          Process selected mixture using REPET
-%       Save Background:                Save background estimate of selected mixture (as .wav)
-%       Play Background:                Play/stop background audio of selected mixture
-%       Save Foreground:                Save foreground estimate of selected mixture (as .wav)
-%       Play Foreground:                Play/stop foreground audio of selected mixture
+%       Open:   Open audio file (as .wav or .mp3)
+%       Play:   Play/stop selected audio
+%       Select: Select/deselect on signal axes for playing and spectrogram axes for processing (left/right mouse click)
+%       Zoom:   Zoom on any axes
+%       Pan:    Pan on any axes
+%       uREPET: Process the audio using uREPET
+%       Save:   Save processed audio (as .wav)
 %
 %   See also http://zafarrafii.com/#REPET
 %
@@ -29,7 +26,7 @@ function urepet
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       10/08/18
+%       10/09/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -198,8 +195,8 @@ figure_object.Visible = 'on';
         time_range = [1,number_times]/number_times*number_samples/sample_rate;
         
         % Display the audio spectrogram (in dB, averaged over the channels)
-        % and make it unable to capture mouse clicks
-        % (compensating for the buggy padding that the log scale is adding)
+        % and make it unable to capture mouse clicks (compensate for the 
+        % buggy padding that the log scale will introduce)
         imagesc(spectrogram_axes, ...
             time_range, ...
             [(minimum_frequency*2*number_frequencies+maximum_frequency)/(2*number_frequencies+1), ...
@@ -215,12 +212,8 @@ figure_object.Visible = 'on';
         spectrogram_axes.Title.String = 'Log-spectrogram';
         spectrogram_axes.XLabel.String = 'Time (s)';
         spectrogram_axes.YLabel.String = 'Frequency (Hz)';
-        spectrogram_axes.UserData = NaN;
         spectrogram_axes.ButtonDownFcn = @spectrogramaxesbuttondownfcn;
         drawnow
-        
-        % Initialize the selection object as an array for graphic objects
-        rectangle_object = gobjects(1,1);
         
         % Create object for playing audio
         audio_player = audioplayer(audio_signal,sample_rate);
@@ -232,20 +225,29 @@ figure_object.Visible = 'on';
         % Add clicked callback function to the play toggle button
         play_toggle.ClickedCallback = {@playclickedcallback,audio_player,signal_axes};
         
-        % Enable the save and parameters toggle buttons
+        % Initialize the selection object as an array for graphic objects
+        rectangle_object = gobjects(0);
+        
+        % Add clicked callback function to the REPET toogle button
+        urepet_toggle.ClickedCallback = @urepetclickedcallback;
+        
+        % Enable the play, select, zoom, pan, uREPET, and save toggle 
+        % buttons
         play_toggle.Enable = 'on';
         select_toggle.Enable = 'on';
         zoom_toggle.Enable = 'on';
         pan_toggle.Enable = 'on';
+        urepet_toggle.Enable = 'on';
+        save_toggle.Enable = 'on';
         
         % Change the select toggle button states to on
         select_toggle.State = 'on';
         
-        % Add the figure's close request callback back
-        figure_object.CloseRequestFcn = @figurecloserequestfcn;
-        
         % Change the pointer symbol back
         figure_object.Pointer = 'arrow';
+        
+        % Add the figure's close request callback back
+        figure_object.CloseRequestFcn = @figurecloserequestfcn;
         
         % Mouse-click callback for the axes
         function spectrogramaxesbuttondownfcn(~,~)
@@ -259,96 +261,71 @@ figure_object.Visible = 'on';
                 return
             end
             
-            % Mouse selection type
-            selection_type = figure_object.SelectionType;
-            
             % If click left mouse button
-            if strcmp(selection_type,'normal')
+            if strcmp(figure_object.SelectionType,'normal')
                 
-                % If not empty, delete the rectangle object
-                if ~isempty(rectangle_object)
-                    delete(rectangle_object)
-                end
+                % Delete the current rectangle object
+                delete(rectangle_object)
                 
-                % Create rectangle
-                rectangle_object = rectangle(spectrogram_axes, ...
-                    'Position',[current_point(1,1),current_point(1,2),0,0]);
-                
-                % Change the pointer when the mouse moves over the 
-                % rectangle object, the spectrogram axes, and the figure 
-                % object
-                enterFcn = @(figure_handle, currentPoint) set(figure_handle,'Pointer','hand');
-                iptSetPointerBehavior(rectangle_object,enterFcn);
-                iptSetPointerBehavior(spectrogram_axes,enterFcn);
-                iptSetPointerBehavior(figure_object,enterFcn);
-                iptPointerManager(figure_object);
-                
-                % Add window button motion and up callback functions to the
-                % figure
-                figure_object.WindowButtonMotionFcn = {@figurewindowbuttonmotionfcn,rectangle_object};
-%                 figure_object.WindowButtonUpFcn = @figurewindowbuttonupfcn;
-                
-                % Update the spectrogram axes' user data
-                spectrogram_axes.UserData = [current_point(1,1)*[1,1],current_point(1,2)*[1,1]];
-                
-            end
-            
-            % Window button motion callback function for the figure
-            function figurewindowbuttonmotionfcn(~,~,rectangle_object)
-                
-                % Location of the mouse pointer
-                current_point = spectrogram_axes.CurrentPoint;
-                
-                % Size and location of the rectangle object
-                rectangle_position = rectangle_object.pos;
-                
-                % Update the size and location of the rectangle object
-                if current_point(1,1) < rectangle_position(1)
-                    rectangle_object.pos(1,1) = current_point(1,1);
-                else
-                    rectangle_object.pos(1,1) = current_point(1,2);
-                    
-                end
-                
-            end
-            
-            % Window button up callback function for the figure
-            function figurewindowbuttonupfcn(~,~)
-                
-                'figurewindowbuttonupfcn'
+                % Begin drawing ROI from specified point
+                rectangle_object = images.roi.Rectangle('Parent',spectrogram_axes, ...
+                    'DrawingArea',[time_range(1),minimum_frequency,diff(time_range),maximum_frequency-minimum_frequency]);
+                beginDrawingFromPoint(rectangle_object,current_point(1,1:2));
                 
             end
             
         end
         
-        
-
+        % Clicked callback function for the uREPET toggle button
+        function urepetclickedcallback(~,~)
+            
+            % Change the uREPET toggle button state to off
+            urepet_toggle.State = 'off';
+            
+            % Remove the figure's close request callback so that it allows
+            % all the other objects to get created before it can get closed
+            figure_object.CloseRequestFcn = '';
+            
+            % Change the pointer symbol while the figure is busy
+            figure_object.Pointer = 'watch';
+            
+            % The rectangle object is not empty
+            if ~isempty(rectangle_object)
+                
+                % Position of ROI
+                rectangle_position = rectangle_object.Position;
+                
+                % HERE!!!
+                
+                % 
+                time_index1 = rectangle_position(2)/(sample_rate*)*number_times
+                
+                % 
+                audio_rectangle = audio_spectrogram()
+                
+            end
+            
+            
+            % Add the figure's close request callback back
+            figure_object.CloseRequestFcn = @figurecloserequestfcn;
+            
+            % Change the pointer symbol back
+            figure_object.Pointer = 'arrow';
+            
+        end
         
         return
         
         
-        background_or_foreground = 'b';                                             % Initial recovering background (or foreground)
-        max_number_repetitions = 5;                                                 % Initial max number of repetitions
-        min_time_separation = 1;                                                    % Initial min time separation between repetitions (in seconds)
-        min_frequency_separation = 1;                                               % Initial min frequency separation between repetitions (in semitones)
+        background_or_foreground = 'b'; % Initial recovering background (or foreground)
+        max_number_repetitions = 5;     % Initial max number of repetitions
+        min_time_separation = 1;        % Initial min time separation between repetitions (in seconds)
+        min_frequency_separation = 1;   % Initial min frequency separation between repetitions (in semitones)
         
         
         
         while 1                                                             % Infinite loop
-            h = imrect(gca);                                                % Create draggable rectangle
-            if isempty(h)                                                   % Return if figure close
-                return
-            end
-            fcn = makeConstrainToRectFcn('imrect', ...
-                get(gca,'XLim'),get(gca,'YLim'));                           % Create rectangularly bounded drag constraint function
-            setPositionConstraintFcn(h,fcn);                                % Set position constraint function of ROI object
-            position = wait(h);                                             % Block MATLAB command line until ROI creation is finished
-            if isempty(position)                                            % Return if figure close
-                return
-            end
-            delete(h)                                                       % Remove files or objects
             
-            b = waitbar(0,'Please wait...');                                % Open wait bar dialog box
             j = round(position(1));                                         % X-position
             i = round(position(2));                                         % Y-position
             w = round(position(3));                                         % Width
