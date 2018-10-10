@@ -5,7 +5,8 @@ function urepet
 %   Toolbar:
 %       Open:   Open audio file (as .wav or .mp3)
 %       Play:   Play/stop selected audio
-%       Select: Select/deselect on signal axes for playing and spectrogram axes for processing (left/right mouse click)
+%       Select: Select/deselect on signal axes for playing and 
+%               spectrogram axes for processing (left/right mouse click)
 %       Zoom:   Zoom on any axes
 %       Pan:    Pan on any axes
 %       uREPET: Process the audio using uREPET
@@ -26,7 +27,7 @@ function urepet
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       10/09/18
+%       10/10/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -122,6 +123,7 @@ figure_object.Visible = 'on';
         
         % Change the pointer symbol while the figure is busy
         figure_object.Pointer = 'watch';
+        drawnow
         
         % Open file selection dialog box; return if cancel
         [audio_name,audio_path] = uigetfile({'*.wav';'*.mp3'}, ...
@@ -228,8 +230,13 @@ figure_object.Visible = 'on';
         % Initialize the selection object as an array for graphic objects
         rectangle_object = gobjects(0);
         
-        % Add clicked callback function to the REPET toogle button
+        % Add clicked callback function to the uREPET toogle button
         urepet_toggle.ClickedCallback = @urepetclickedcallback;
+        
+        % Functions to translate frequency value in Hz and time value in 
+        % second to frequency indices and time indices
+        hz2freq = @(frequency_value) round(octave_resolution*log2(frequency_value/minimum_frequency)+1);
+        sec2time = @(time_value) round(time_value/(number_samples/sample_rate)*number_times);
         
         % Enable the play, select, zoom, pan, uREPET, and save toggle 
         % buttons
@@ -282,29 +289,72 @@ figure_object.Visible = 'on';
             % Change the uREPET toggle button state to off
             urepet_toggle.State = 'off';
             
+            % If the rectangle object is empty, return
+            if isempty(rectangle_object)
+                return
+            end
+            
+            % Position of ROI
+            rectangle_position = rectangle_object.Position;
+            
+            % If the width and height of the rectangle object is 0, return
+            if all(~rectangle_position(3:4))
+                return
+            end
+            
             % Remove the figure's close request callback so that it allows
             % all the other objects to get created before it can get closed
             figure_object.CloseRequestFcn = '';
             
             % Change the pointer symbol while the figure is busy
             figure_object.Pointer = 'watch';
+            drawnow
             
-            % The rectangle object is not empty
-            if ~isempty(rectangle_object)
+            % Frequency and time indices
+            frequency_indices = hz2freq(rectangle_position(2)+[0,rectangle_position(4)]);
+            time_indices = sec2time(rectangle_position(1)+[0,rectangle_position(3)]);
+            
+            % Audio rectangle
+            audio_rectangle = audio_spectrogram(frequency_indices(1):frequency_indices(2), ...
+                time_indices(1):time_indices(2),:);
+            
+            % Normalized 2-D cross-correlation between the audio rectangle 
+            % and the audio spectrogram
+            audio_correlation = normxcorr2(mean(audio_rectangle,3),mean(audio_spectrogram,3));
+            
+            % Maximum number of repetitions, minimum frequency separation 
+            % (in semitones), and minimum time separation (in seconds)
+            number_repetitions = 5;
+            frequency_separation = 1;
+            time_separation = 1;
+            
+            
+            size(audio_rectangle)
+            size(audio_spectrogram)
+            size(audio_correlation)
+            
+            % Minimum frequency and time separation in frequency and time 
+            % indices
+            frequency_separation = frequency_separation*octave_resolution;
+            time_separation = sec2time(time_separation);
+            
+            % Loop over the repetitions
+            for repetition_index = 1:number_repetitions
                 
-                % Position of ROI
-                rectangle_position = rectangle_object.Position;
+                % Frequency and time indices of the peak
+                [~,maximum_index] = max(audio_correlation(:));
+                [frequency_index,time_index] = ind2sub(size(audio_correlation),maximum_index);
                 
-                % HERE!!!
+                % Zero the neighborhood around the peak given the minimum
+                % frequency and time separation
+                audio_correlation(max(frequency_index-frequency_separation,1):min(frequency_index+frequency_separation,size(audio_correlation,1)), ...
+                    max(time_index-time_separation,1):min(time_index+time_separation,size(audio_correlation,2))) = 0;
                 
-                % 
-                time_index1 = rectangle_position(2)/(sample_rate*)*number_times
+                % ...
+                audio_spectrogram(time_index-time_separation)
                 
-                % 
-                audio_rectangle = audio_spectrogram()
                 
             end
-            
             
             % Add the figure's close request callback back
             figure_object.CloseRequestFcn = @figurecloserequestfcn;
@@ -321,11 +371,8 @@ figure_object.Visible = 'on';
         max_number_repetitions = 5;     % Initial max number of repetitions
         min_time_separation = 1;        % Initial min time separation between repetitions (in seconds)
         min_frequency_separation = 1;   % Initial min frequency separation between repetitions (in semitones)
-        
-        
-        
+
         while 1                                                             % Infinite loop
-            
             j = round(position(1));                                         % X-position
             i = round(position(2));                                         % Y-position
             w = round(position(3));                                         % Width
