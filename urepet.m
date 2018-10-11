@@ -27,7 +27,7 @@ function urepet
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       10/10/18
+%       10/11/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -121,10 +121,6 @@ figure_object.Visible = 'on';
         % all the other objects to get created before it can get closed
         figure_object.CloseRequestFcn = '';
         
-        % Change the pointer symbol while the figure is busy
-        figure_object.Pointer = 'watch';
-        drawnow
-        
         % Open file selection dialog box; return if cancel
         [audio_name,audio_path] = uigetfile({'*.wav';'*.mp3'}, ...
             'Select WAVE or MP3 File to Open');
@@ -132,6 +128,10 @@ figure_object.Visible = 'on';
             figure_object.CloseRequestFcn = @figurecloserequestfcn;
             return
         end
+        
+        % Change the pointer symbol while the figure is busy
+        figure_object.Pointer = 'watch';
+        drawnow
         
         % Clear all the (old) axes and hide them
         cla(signal_axes)
@@ -181,7 +181,7 @@ figure_object.Visible = 'on';
         audio_spectrogram = [];
         
         % Compute the CQT object and the spectrogram for every channel
-        for channel_index = 1:number_channels
+        for channel_index = 1:number_channels %#ok<*FXUP>
             audio_cqt{channel_index} ...
                 = cqt(audio_signal(:,channel_index),octave_resolution,sample_rate,minimum_frequency,maximum_frequency);
             audio_spectrogram = cat(3,audio_spectrogram,abs(audio_cqt{channel_index}.c));
@@ -190,7 +190,7 @@ figure_object.Visible = 'on';
         % Number of frequency channels and time frames
         [number_frequencies,number_times,~] = size(audio_spectrogram);
         
-        % True maximum frequency in Hz
+        % Update the maximum frequency in Hz
         maximum_frequency = minimum_frequency*2.^((number_frequencies-1)/octave_resolution);
         
         % Time range in seconds
@@ -227,14 +227,14 @@ figure_object.Visible = 'on';
         % Add clicked callback function to the play toggle button
         play_toggle.ClickedCallback = {@playclickedcallback,audio_player,signal_axes};
         
-        % Initialize the selection object as an array for graphic objects
-        rectangle_object = gobjects(0);
-        
         % Add clicked callback function to the uREPET toogle button
         urepet_toggle.ClickedCallback = @urepetclickedcallback;
         
-        % Functions to translate frequency value in Hz and time value in 
-        % second to frequency indices and time indices
+        % Initialize the rectangle object as an array for graphic objects
+        rectangle_object = gobjects(0);
+        
+        % Functions to translate frequency value in Hz to frequency indices 
+        % and time value in second to time indices
         hz2freq = @(frequency_value) round(octave_resolution*log2(frequency_value/minimum_frequency)+1);
         sec2time = @(time_value) round(time_value/(number_samples/sample_rate)*number_times);
         
@@ -252,17 +252,18 @@ figure_object.Visible = 'on';
         
         % Change the pointer symbol back
         figure_object.Pointer = 'arrow';
+        drawnow
         
         % Add the figure's close request callback back
         figure_object.CloseRequestFcn = @figurecloserequestfcn;
         
-        % Mouse-click callback for the axes
+        % Mouse-click callback for the spectrogram axes
         function spectrogramaxesbuttondownfcn(~,~)
             
             % Location of the mouse pointer
             current_point = spectrogram_axes.CurrentPoint;
             
-            % If the current point is out of the plot limits, return
+            % If the current point is out of the spectrogram limits, return
             if current_point(1,1) < time_range(1) || current_point(1,1) > time_range(2) || ...
                     current_point(1,2) < minimum_frequency || current_point(1,2) > maximum_frequency
                 return
@@ -297,7 +298,8 @@ figure_object.Visible = 'on';
             % Position of ROI
             rectangle_position = rectangle_object.Position;
             
-            % If the width and height of the rectangle object is 0, return
+            % If the width and height of the rectangle object are both 0, 
+            % return
             if all(~rectangle_position(3:4))
                 return
             end
@@ -310,17 +312,23 @@ figure_object.Visible = 'on';
             figure_object.Pointer = 'watch';
             drawnow
             
-            % Frequency and time indices
+            % Frequency and time indices of the rectangle object
             frequency_indices = hz2freq(rectangle_position(2)+[0,rectangle_position(4)]);
             time_indices = sec2time(rectangle_position(1)+[0,rectangle_position(3)]);
             
-            % Audio rectangle
+            % Audio rectangle from the audio spectrogram
             audio_rectangle = audio_spectrogram(frequency_indices(1):frequency_indices(2), ...
                 time_indices(1):time_indices(2),:);
+            rectangle_size = size(audio_rectangle);
             
             % Normalized 2-D cross-correlation between the audio rectangle 
-            % and the audio spectrogram
+            % and the audio spectrogram averaged over the channels
             audio_correlation = normxcorr2(mean(audio_rectangle,3),mean(audio_spectrogram,3));
+            
+            % Remove the parts added by the zero-padding
+            audio_correlation = audio_correlation(rectangle_size(1):end-rectangle_size(1)+1, ...
+                rectangle_size(2):end-rectangle_size(2)+1);
+            correlation_size = size(audio_correlation);
             
             % Maximum number of repetitions, minimum frequency separation 
             % (in semitones), and minimum time separation (in seconds)
@@ -328,34 +336,66 @@ figure_object.Visible = 'on';
             frequency_separation = 1;
             time_separation = 1;
             
-            
-            size(audio_rectangle)
-            size(audio_spectrogram)
-            size(audio_correlation)
-            
             % Minimum frequency and time separation in frequency and time 
             % indices
             frequency_separation = frequency_separation*octave_resolution;
             time_separation = sec2time(time_separation);
             
-            % Loop over the repetitions
-            for repetition_index = 1:number_repetitions
+            % Zero the neighborhood around the first self-similar 
+            % repetition given the minimum frequency and time separation
+            audio_correlation(max(frequency_indices(1)-frequency_separation,1):min(frequency_indices(1)+frequency_separation,correlation_size(1)), ...
+                max(time_indices(1)-time_separation,1):min(time_indices(1)+time_separation,correlation_size(2))) = 0;
+            
+            % Loop over the other repetitions
+            for repetition_index = 2:number_repetitions
                 
-                % Frequency and time indices of the peak
+                % Frequency and time indices of the maximum
                 [~,maximum_index] = max(audio_correlation(:));
                 [frequency_index,time_index] = ind2sub(size(audio_correlation),maximum_index);
                 
-                % Zero the neighborhood around the peak given the minimum
-                % frequency and time separation
-                audio_correlation(max(frequency_index-frequency_separation,1):min(frequency_index+frequency_separation,size(audio_correlation,1)), ...
-                    max(time_index-time_separation,1):min(time_index+time_separation,size(audio_correlation,2))) = 0;
+                % Zero the neighborhood around the maximum given the 
+                % minimum frequency and time separation
+                audio_correlation(max(frequency_index-frequency_separation,1):min(frequency_index+frequency_separation,correlation_size(1)), ...
+                    max(time_index-time_separation,1):min(time_index+time_separation,correlation_size(2))) = 0;
                 
-                % ...
-                audio_spectrogram(time_index-time_separation)
-                
+                % Save the similar rectangles
+                audio_rectangle = cat(4,audio_rectangle, ...
+                    audio_spectrogram(frequency_index:frequency_index+rectangle_size(1)-1, ...
+                    time_index:time_index+rectangle_size(2)-1,:));
                 
             end
             
+            % Time-frequency mask for the audio rectangle
+            audio_mask = (min(median(audio_rectangle,4),audio_rectangle(:,:,:,1))+eps)./(audio_rectangle(:,:,:,1)+eps); 
+            
+            % Apply the time-frequency mask to the ...
+            for channel_index = 1:number_channels
+                audio_cqt{channel_index}.c(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2)) ...
+                    = audio_mask(:,:,channel_index).*audio_cqt{channel_index}.c(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2));
+            end
+            
+            
+            
+            spectrogram_axes.Children
+            
+            % ...
+%             spectrogram_axes.CData(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2)) ...
+%                 = db(mean(abs(audio_cqt{channel_index}.c(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2))),3));
+%             drawnow
+            
+            
+%             P = getimage(gca);                                              % Image data from axes
+%             P(i:i+h-1,j:j+w-1) = 0;
+%             for k = 1:p                                                     % Loop over the channels
+%                 Xcqk = Xcq{k};
+%                 Xcqk.c(i:i+h-1,j:j+w-1) = Xcqk.c(i:i+h-1,j:j+w-1,:).*M(:,:,k);  % Apply time-frequency mask to CQT
+%                 Xcq{k} = Xcqk;
+%                 P(i:i+h-1,j:j+w-1) = P(i:i+h-1,j:j+w-1)+Xcqk.c(i:i+h-1,j:j+w-1);
+%             end
+%             P(i:i+h-1,j:j+w-1) = db(P(i:i+h-1,j:j+w-1)/p);                  % Update rectangle in image
+%             set(get(gca,'Children'),'CData',P)                              % Update image in axes
+            
+
             % Add the figure's close request callback back
             figure_object.CloseRequestFcn = @figurecloserequestfcn;
             
