@@ -27,7 +27,7 @@ function urepet
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       10/11/18
+%       10/15/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -349,12 +349,12 @@ figure_object.Visible = 'on';
             % Loop over the other repetitions
             for repetition_index = 2:number_repetitions
                 
-                % Frequency and time indices of the maximum
+                % Frequency and time indices of the maximum repetition
                 [~,maximum_index] = max(audio_correlation(:));
-                [frequency_index,time_index] = ind2sub(size(audio_correlation),maximum_index);
+                [frequency_index,time_index] = ind2sub(correlation_size,maximum_index);
                 
-                % Zero the neighborhood around the maximum given the 
-                % minimum frequency and time separation
+                % Zero the neighborhood around the maximum repetition given 
+                % the minimum frequency and time separation
                 audio_correlation(max(frequency_index-frequency_separation,1):min(frequency_index+frequency_separation,correlation_size(1)), ...
                     max(time_index-time_separation,1):min(time_index+time_separation,correlation_size(2))) = 0;
                 
@@ -365,37 +365,32 @@ figure_object.Visible = 'on';
                 
             end
             
-            % Time-frequency mask for the audio rectangle
-            audio_mask = (min(median(audio_rectangle,4),audio_rectangle(:,:,:,1))+eps)./(audio_rectangle(:,:,:,1)+eps); 
+            % Audio mask for the audio rectangle
+            audio_mask = (min(median(audio_rectangle,4),audio_rectangle(:,:,:,1))+eps)./(audio_rectangle(:,:,:,1)+eps);
             
-            % Apply the time-frequency mask to the ...
+            % Apply the mask to the CQT object and the spectrogram, and
+            % update the audio signal
+            audio_signal = zeros(number_samples,number_channels);
             for channel_index = 1:number_channels
                 audio_cqt{channel_index}.c(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2)) ...
                     = audio_mask(:,:,channel_index).*audio_cqt{channel_index}.c(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2));
+                audio_spectrogram(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2),channel_index) ...
+                    = audio_mask(:,:,channel_index).*audio_spectrogram(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2),channel_index);
+                audio_signali = icqt(audio_cqt{channel_index});
+                audio_signal(:,channel_index) = audio_signali(1:number_samples);
             end
             
+            % Update the signal axes and the spectrogram axes
+            signal_axes.Children(1:end).YData = audio_signal(:,end:-1:1);
+            spectrogram_axes.Children(end).CData(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2)) ...
+                = db(mean(audio_spectrogram(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2),:),3));
+            drawnow
+            
+            % Update the audio player
+            audio_player = audioplayer(audio_signal,sample_rate);
             
             
-            spectrogram_axes.Children
             
-            % ...
-%             spectrogram_axes.CData(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2)) ...
-%                 = db(mean(abs(audio_cqt{channel_index}.c(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2))),3));
-%             drawnow
-            
-            
-%             P = getimage(gca);                                              % Image data from axes
-%             P(i:i+h-1,j:j+w-1) = 0;
-%             for k = 1:p                                                     % Loop over the channels
-%                 Xcqk = Xcq{k};
-%                 Xcqk.c(i:i+h-1,j:j+w-1) = Xcqk.c(i:i+h-1,j:j+w-1,:).*M(:,:,k);  % Apply time-frequency mask to CQT
-%                 Xcq{k} = Xcqk;
-%                 P(i:i+h-1,j:j+w-1) = P(i:i+h-1,j:j+w-1)+Xcqk.c(i:i+h-1,j:j+w-1);
-%             end
-%             P(i:i+h-1,j:j+w-1) = db(P(i:i+h-1,j:j+w-1)/p);                  % Update rectangle in image
-%             set(get(gca,'Children'),'CData',P)                              % Update image in axes
-            
-
             % Add the figure's close request callback back
             figure_object.CloseRequestFcn = @figurecloserequestfcn;
             
