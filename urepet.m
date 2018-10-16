@@ -27,7 +27,7 @@ function urepet
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       10/15/18
+%       10/16/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -322,7 +322,7 @@ figure_object.Visible = 'on';
             rectangle_size = size(audio_rectangle);
             
             % Normalized 2-D cross-correlation between the audio rectangle 
-            % and the audio spectrogram averaged over the channels
+            % and the audio spectrogram, averaged over the channels
             audio_correlation = normxcorr2(mean(audio_rectangle,3),mean(audio_spectrogram,3));
             
             % Remove the parts added by the zero-padding
@@ -332,17 +332,18 @@ figure_object.Visible = 'on';
             
             % Maximum number of repetitions, minimum frequency separation 
             % (in semitones), and minimum time separation (in seconds)
-            number_repetitions = 5;
+            number_repetitions = 10;
             frequency_separation = 1;
             time_separation = 1;
+%             component_selection = 'background';
+            component_selection = 'foreground';
             
-            % Minimum frequency and time separation in frequency and time 
-            % indices
+            % Frequency and time separation in frequency and time indices
             frequency_separation = frequency_separation*octave_resolution;
             time_separation = sec2time(time_separation);
             
-            % Zero the neighborhood around the first self-similar 
-            % repetition given the minimum frequency and time separation
+            % Zero the region around the first self-similar repetition 
+            % given the frequency and time separation
             audio_correlation(max(frequency_indices(1)-frequency_separation,1):min(frequency_indices(1)+frequency_separation,correlation_size(1)), ...
                 max(time_indices(1)-time_separation,1):min(time_indices(1)+time_separation,correlation_size(2))) = 0;
             
@@ -353,8 +354,8 @@ figure_object.Visible = 'on';
                 [~,maximum_index] = max(audio_correlation(:));
                 [frequency_index,time_index] = ind2sub(correlation_size,maximum_index);
                 
-                % Zero the neighborhood around the maximum repetition given 
-                % the minimum frequency and time separation
+                % Zero the region around the maximum repetition given the 
+                % frequency and time separation
                 audio_correlation(max(frequency_index-frequency_separation,1):min(frequency_index+frequency_separation,correlation_size(1)), ...
                     max(time_index-time_separation,1):min(time_index+time_separation,correlation_size(2))) = 0;
                 
@@ -365,8 +366,13 @@ figure_object.Visible = 'on';
                 
             end
             
-            % Audio mask for the audio rectangle
+            % Compute the mask from the rectangles for the spectrogram
             audio_mask = (min(median(audio_rectangle,4),audio_rectangle(:,:,:,1))+eps)./(audio_rectangle(:,:,:,1)+eps);
+            
+            % If the component selection is 'foreground', invert the mask
+            if strcmp(component_selection,'foreground')
+                audio_mask = audio_mask-1;
+            end
             
             % Apply the mask to the CQT object and the spectrogram, and
             % update the audio signal
@@ -381,7 +387,9 @@ figure_object.Visible = 'on';
             end
             
             % Update the signal axes and the spectrogram axes
-            signal_axes.Children(1:end).YData = audio_signal(:,end:-1:1);
+            for channel_index = 1:number_channels
+                signal_axes.Children(number_channels-channel_index+1).YData = audio_signal(:,channel_index)';
+            end
             spectrogram_axes.Children(end).CData(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2)) ...
                 = db(mean(audio_spectrogram(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2),:),3));
             drawnow
@@ -389,7 +397,13 @@ figure_object.Visible = 'on';
             % Update the audio player
             audio_player = audioplayer(audio_signal,sample_rate);
             
+            % Update the play line on the signal axes
+            playline(signal_axes,audio_player,play_toggle);
             
+            % Update clicked callback function of the play toggle button
+            play_toggle.ClickedCallback = {@playclickedcallback,audio_player,signal_axes};
+            
+            ...
             
             % Add the figure's close request callback back
             figure_object.CloseRequestFcn = @figurecloserequestfcn;
@@ -398,55 +412,6 @@ figure_object.Visible = 'on';
             figure_object.Pointer = 'arrow';
             
         end
-        
-        return
-        
-        
-        background_or_foreground = 'b'; % Initial recovering background (or foreground)
-        max_number_repetitions = 5;     % Initial max number of repetitions
-        min_time_separation = 1;        % Initial min time separation between repetitions (in seconds)
-        min_frequency_separation = 1;   % Initial min frequency separation between repetitions (in semitones)
-
-        while 1                                                             % Infinite loop
-            j = round(position(1));                                         % X-position
-            i = round(position(2));                                         % Y-position
-            w = round(position(3));                                         % Width
-            h = round(position(4));                                         % Height
-            R = V(i:i+h-1,j:j+w-1,:);                                       % Selected rectangle
-            C = normxcorr2(mean(R,3),mean(V,3));                            % Normalized 2-D cross-correlation
-            V = padarray(V,[h-1,w-1,0],'replicate');                        % Pad array for finding peaks
-            
-            np = max_number_repetitions;                                    % Maximum number of peaks
-            mpd = [min_frequency_separation*2, ...
-                min_time_separation*round(m/(l/fs))];                       % Minimum peak separation
-            k = 1;                                                          % Initialize peak counter
-            while k <= np                                                   % Repeat execution of statements while condition is true
-                [~,I] = max(C(:));                                          % Linear index of peak
-                [I,J] = ind2sub([n+h-1,m+w-1],I);                           % Subscripts from linear index
-                C(max(1,I-mpd(1)+1):min(n+h-1,I+mpd(1)+1), ...
-                    max(1,J-mpd(2)+1):min(m+w-1,J+mpd(2)+1)) = 0;           % Zero neighborhood around peak
-                R = cat(4,R,V(I:I+h-1,J:J+w-1,:));                          % Concatenate similar rectangles
-                waitbar(k/np,b)                                             % Update wait bar dialog box
-                k = k+1;                                                    % Update peak counter
-            end
-            close(b)                                                        % Close wait bar dialog box
-            
-            V = V(h:n+h-1,w:m+w-1,:);                                       % Remove pad array
-            M = (min(median(R,4),R(:,:,:,1))+eps)./(R(:,:,:,1)+eps);        % Time-frequency mask of the underlying repeating structure
-            if strcmp(background_or_foreground,'f')                         % If recovering foreground
-                M = 1-M;
-            end
-            P = getimage(gca);                                              % Image data from axes
-            P(i:i+h-1,j:j+w-1) = 0;
-            for k = 1:p                                                     % Loop over the channels
-                Xcqk = Xcq{k};
-                Xcqk.c(i:i+h-1,j:j+w-1) = Xcqk.c(i:i+h-1,j:j+w-1,:).*M(:,:,k);  % Apply time-frequency mask to CQT
-                Xcq{k} = Xcqk;
-                P(i:i+h-1,j:j+w-1) = P(i:i+h-1,j:j+w-1)+Xcqk.c(i:i+h-1,j:j+w-1);
-            end
-            P(i:i+h-1,j:j+w-1) = db(P(i:i+h-1,j:j+w-1)/p);                  % Update rectangle in image
-            set(get(gca,'Children'),'CData',P)                              % Update image in axes
-       end
         
     end
 
