@@ -27,7 +27,7 @@ function urepet
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       10/16/18
+%       10/18/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -48,12 +48,16 @@ toolbar_object = uitoolbar(figure_object);
 play_icon = playicon;
 stop_icon = stopicon;
 
-% Create the open and play toggle buttons on toolbar
-open_toggle = uitoggletool(toolbar_object, ...
+% Create the open, save, and play toggle buttons on toolbar
+open_toggle = uipushtool(toolbar_object, ...
     'CData',iconread('file_open.png'), ...
     'TooltipString','Open', ...
     'Enable','on', ...
     'ClickedCallback',@openclickedcallback);
+save_toggle = uitoggletool(toolbar_object, ...
+    'CData',iconread('file_save.png'), ...
+    'TooltipString','Save', ...
+    'Enable','off');
 play_toggle = uitoggletool(toolbar_object, ...
     'CData',play_icon, ...
     'TooltipString','Play', ...
@@ -78,15 +82,15 @@ pan_toggle = uitoggletool(toolbar_object, ...
     'Enable','off',...
     'ClickedCallBack',@panclickedcallback);
 
-% Create uREPET and save toggle button on toolbar
+% Create uREPET and Undo toggle button on toolbar
 urepet_toggle = uitoggletool(toolbar_object, ...
     'Separator','On', ...
     'CData',urepeticon, ...
     'TooltipString','uREPET', ...
     'Enable','off');
-save_toggle = uitoggletool(toolbar_object, ...
-    'CData',iconread('file_save.png'), ...
-    'TooltipString','Save', ...
+undo_toggle = uitoggletool(toolbar_object, ...
+    'CData',undoicon, ...
+    'TooltipString','Undo', ...
     'Enable','off');
 
 % Create the signal and spectrogram axes
@@ -138,6 +142,7 @@ figure_object.Visible = 'on';
         signal_axes.Visible = 'off';
         cla(spectrogram_axes)
         spectrogram_axes.Visible = 'off';
+        drawnow
         
         % Build full file name
         audio_file = fullfile(audio_path,audio_name);
@@ -238,14 +243,12 @@ figure_object.Visible = 'on';
         hz2freq = @(frequency_value) round(octave_resolution*log2(frequency_value/minimum_frequency)+1);
         sec2time = @(time_value) round(time_value/(number_samples/sample_rate)*number_times);
         
-        % Enable the play, select, zoom, pan, uREPET, and save toggle 
-        % buttons
+        % Enable the play, select, zoom, pan, and uREPET toggle buttons
         play_toggle.Enable = 'on';
         select_toggle.Enable = 'on';
         zoom_toggle.Enable = 'on';
         pan_toggle.Enable = 'on';
         urepet_toggle.Enable = 'on';
-        save_toggle.Enable = 'on';
         
         % Change the select toggle button states to on
         select_toggle.State = 'on';
@@ -404,6 +407,15 @@ figure_object.Visible = 'on';
             play_toggle.ClickedCallback = {@playclickedcallback,audio_player,signal_axes};
             
             ...
+                
+        
+            % Enable the save and undo toggle buttons
+            play_toggle.Enable = 'on';
+            select_toggle.Enable = 'on';
+            zoom_toggle.Enable = 'on';
+            pan_toggle.Enable = 'on';
+            urepet_toggle.Enable = 'on';
+            save_toggle.Enable = 'on';
             
             % Add the figure's close request callback back
             figure_object.CloseRequestFcn = @figurecloserequestfcn;
@@ -614,6 +626,41 @@ image_data([10,11,15,16],10) = 0;
 
 image_data(10:11,12:15) = 0;
 image_data(12:16,13:14) = 0;
+
+% Make the image
+image_data = repmat(image_data,[1,1,3]);
+
+end
+
+% Create Undo icon
+function image_data = undoicon
+
+% Create a matrix with NaN's
+image_data = nan(16,16,1);
+
+% Create black U, n, d, and o letters
+image_data(2:7,3) = 0;
+image_data(2:8,4) = 0;
+image_data(7:8,5) = 0;
+image_data(2:8,6) = 0;
+image_data(2:7,7) = 0;
+
+image_data(4:8,9) = 0;
+image_data(5:8,10) = 0;
+image_data(4:5,11) = 0;
+image_data(4:8,12) = 0;
+image_data(5:8,13) = 0;
+
+image_data(13:15,3) = 0;
+image_data(12:16,4) = 0;
+image_data([12,13,15,16],5) = 0;
+image_data(10:16,6:7) = 0;
+
+image_data(13:15,9) = 0;
+image_data(12:16,10) = 0;
+image_data([12,13,15,16],11) = 0;
+image_data(12:16,12) = 0;
+image_data(13:15,13) = 0;
 
 % Make the image
 image_data = repmat(image_data,[1,1,3]);
