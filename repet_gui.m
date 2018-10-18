@@ -49,7 +49,7 @@ function repet_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       09/24/18
+%       10/18/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -193,6 +193,7 @@ figure_object.Visible = 'on';
         
         % Change the pointer symbol while the figure is busy
         figure_object.Pointer = 'watch';
+        drawnow
         
         % Open file selection dialog box; return if cancel
         [mixture_name,mixture_path] = uigetfile({'*.wav';'*.mp3'}, ...
@@ -217,6 +218,7 @@ figure_object.Visible = 'on';
         foregroundsignal_axes.Visible = 'off';
         cla(foregroundspectrogram_axes)
         foregroundspectrogram_axes.Visible = 'off';
+        drawnow
         
         % Build full file name
         mixture_file = fullfile(mixture_path,mixture_name);
@@ -323,6 +325,7 @@ figure_object.Visible = 'on';
         
         % Change the pointer symbol back
         figure_object.Pointer = 'arrow';
+        drawnow
         
         % Clicked callback function for the REPET toggle button
         function repetclickedcallback(~,~)
@@ -336,6 +339,7 @@ figure_object.Visible = 'on';
             
             % Change the pointer symbol while the figure is busy
             figure_object.Pointer = 'watch';
+            drawnow
             
             % Select limits from the mixture signal axes' user data
             select_limits = mixturesignal_axes.UserData.SelectXLim;
@@ -385,6 +389,7 @@ figure_object.Visible = 'on';
             beatspectrum_axes.Title.String = ['Beat Spectrum: repeating period = ', ...
                 num2str(round(tim2sec(repeating_period),3)),' seconds'];
             beatspectrum_axes.XLabel.String = 'Lag (s)';
+            drawnow
             
             % Initialize the beat lines as an array for graphic objects
             number_lines = floor((number_lags-1)/repeating_period);
@@ -447,6 +452,7 @@ figure_object.Visible = 'on';
             
             % Change the pointer symbol back
             figure_object.Pointer = 'arrow';
+            drawnow
             
             % Mouse-click callback function for the beat spectrum axes
             function beatspectrumaxesbuttondownfcn(~,~)
