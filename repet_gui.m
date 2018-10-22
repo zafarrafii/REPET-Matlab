@@ -184,6 +184,13 @@ figure_object.Visible = 'on';
     % Clicked callback function for the open mixture toggle button
     function openmixtureclickedcallback(~,~)
         
+        % Open file selection dialog box; return if cancel
+        [mixture_name,mixture_path] = uigetfile({'*.wav';'*.mp3'}, ...
+            'Select WAVE or MP3 File to Open');
+        if isequal(mixture_name,0) || isequal(mixture_path,0)
+            return
+        end
+        
         % Remove the figure's close request callback so that it allows
         % all the other objects to get created before it can get closed
         figure_object.CloseRequestFcn = '';
@@ -191,21 +198,6 @@ figure_object.Visible = 'on';
         % Change the pointer symbol while the figure is busy
         figure_object.Pointer = 'watch';
         drawnow
-        
-        % Open file selection dialog box; return if cancel
-        [mixture_name,mixture_path] = uigetfile({'*.wav';'*.mp3'}, ...
-            'Select WAVE or MP3 File to Open');
-        if isequal(mixture_name,0) || isequal(mixture_path,0)
-            
-            % Add the figure's close request callback back
-            figure_object.CloseRequestFcn = @figurecloserequestfcn;
-            
-            % Change the pointer symbol back
-            figure_object.Pointer = 'arrow';
-            drawnow
-            
-            return
-        end
         
         % If any audio is playing, stop it
         if isplaying(mixture_player)
