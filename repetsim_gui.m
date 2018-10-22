@@ -187,8 +187,8 @@ figure_object.Visible = 'on';
             return
         end
         
-        % Remove the figure's close request callback so that it allows
-        % all the other objects to get created before it can get closed
+        % Remove the figure's close request callback so that it allows all 
+        % the other objects to get created before it can get closed
         figure_object.CloseRequestFcn = '';
         
         % Change the pointer symbol while the figure is busy
