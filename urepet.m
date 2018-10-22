@@ -27,7 +27,7 @@ function urepet
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       10/18/18
+%       10/22/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -44,54 +44,62 @@ figure_object = figure( ...
 % Create a toolbar on figure
 toolbar_object = uitoolbar(figure_object);
 
-% Play and stop icons for the play audio toggle buttons
+% Play and stop icons for the play buttons
 play_icon = playicon;
 stop_icon = stopicon;
 
-% Create the open, save, and play toggle buttons on toolbar
-open_toggle = uipushtool(toolbar_object, ...
+% Create the open, save, and play push buttons on toolbar
+open_button = uipushtool(toolbar_object, ...
     'CData',iconread('file_open.png'), ...
     'TooltipString','Open', ...
     'Enable','on', ...
-    'ClickedCallback',@openclickedcallback);
-save_toggle = uitoggletool(toolbar_object, ...
+    'ClickedCallback',@openclickedcallback); %#ok<*NASGU>
+save_button = uipushtool(toolbar_object, ...
     'CData',iconread('file_save.png'), ...
     'TooltipString','Save', ...
     'Enable','off');
-play_toggle = uitoggletool(toolbar_object, ...
+play_button = uitoggletool(toolbar_object, ...
     'CData',play_icon, ...
     'TooltipString','Play', ...
     'Enable','off', ...
     'UserData',struct('PlayIcon',play_icon,'StopIcon',stop_icon));
 
 % Create the pointer, zoom, and hand toggle buttons on toolbar
-select_toggle = uitoggletool(toolbar_object, ...
+select_button = uitoggletool(toolbar_object, ...
     'Separator','On', ...
     'CData',iconread('tool_pointer.png'), ...
     'TooltipString','Select', ...
     'Enable','off', ...
     'ClickedCallBack',@selectclickedcallback);
-zoom_toggle = uitoggletool(toolbar_object, ...
+zoom_button = uitoggletool(toolbar_object, ...
     'CData',iconread('tool_zoom_in.png'), ...
     'TooltipString','Zoom', ...
     'Enable','off',...
     'ClickedCallBack',@zoomclickedcallback);
-pan_toggle = uitoggletool(toolbar_object, ...
+pan_button = uitoggletool(toolbar_object, ...
     'CData',iconread('tool_hand.png'), ...
     'TooltipString','Pan', ...
     'Enable','off',...
     'ClickedCallBack',@panclickedcallback);
 
-% Create uREPET and Undo toggle button on toolbar
-urepet_toggle = uitoggletool(toolbar_object, ...
+% Create uREPET and Undo push buttons on toolbar
+urepet_button = uipushtool(toolbar_object, ...
     'Separator','On', ...
     'CData',urepeticon, ...
     'TooltipString','uREPET', ...
     'Enable','off');
-undo_toggle = uitoggletool(toolbar_object, ...
-    'CData',undoicon, ...
+undo_icon = iconread('tool_rotate_3d.png');
+undo_icon(6:12,6:12,:) = NaN;
+undo_button = uipushtool(toolbar_object, ...
+    'CData',undo_icon, ...
     'TooltipString','Undo', ...
     'Enable','off');
+parameters_button = uitoggletool(toolbar_object, ...
+    'CData',iconread('tool_hand.png'), ...
+    'TooltipString','Parameters', ...
+    'Enable','off');
+
+
 
 % Create the signal and spectrogram axes
 signal_axes = axes( ...
@@ -115,27 +123,28 @@ audio_player = audioplayer(0,80);
 % Make the figure visible
 figure_object.Visible = 'on';
 
-    % Clicked callback function for the open toggle button
+    % Clicked callback function for the open button
     function openclickedcallback(~,~)
-        
-        % Change the toggle button state to off
-        open_toggle.State = 'off';
-        
-        % Remove the figure's close request callback so that it allows
-        % all the other objects to get created before it can get closed
-        figure_object.CloseRequestFcn = '';
         
         % Open file selection dialog box; return if cancel
         [audio_name,audio_path] = uigetfile({'*.wav';'*.mp3'}, ...
             'Select WAVE or MP3 File to Open');
         if isequal(audio_name,0) || isequal(audio_path,0)
-            figure_object.CloseRequestFcn = @figurecloserequestfcn;
             return
         end
+        
+        % Remove the figure's close request callback so that it allows all 
+        % the other objects to get created before it can get closed
+        figure_object.CloseRequestFcn = '';
         
         % Change the pointer symbol while the figure is busy
         figure_object.Pointer = 'watch';
         drawnow
+        
+        % If any audio is playing, stop it
+        if isplaying(audio_player)
+            stop(audio_player)
+        end
         
         % Clear all the (old) axes and hide them
         cla(signal_axes)
@@ -227,13 +236,13 @@ figure_object.Visible = 'on';
         
         % Set a play line and a select line on the signal axes
         selectline(signal_axes)
-        playline(signal_axes,audio_player,play_toggle);
+        playline(signal_axes,audio_player,play_button);
         
-        % Add clicked callback function to the play toggle button
-        play_toggle.ClickedCallback = {@playclickedcallback,audio_player,signal_axes};
+        % Add clicked callback function to the play button
+        play_button.ClickedCallback = {@playclickedcallback,audio_player,signal_axes};
         
-        % Add clicked callback function to the uREPET toogle button
-        urepet_toggle.ClickedCallback = @urepetclickedcallback;
+        % Add clicked callback function to the uREPET button
+        urepet_button.ClickedCallback = @urepetclickedcallback;
         
         % Initialize the rectangle object as an array for graphic objects
         rectangle_object = gobjects(0);
@@ -243,15 +252,12 @@ figure_object.Visible = 'on';
         hz2freq = @(frequency_value) round(octave_resolution*log2(frequency_value/minimum_frequency)+1);
         sec2time = @(time_value) round(time_value/(number_samples/sample_rate)*number_times);
         
-        % Enable the play, select, zoom, pan, and uREPET toggle buttons
-        play_toggle.Enable = 'on';
-        select_toggle.Enable = 'on';
-        zoom_toggle.Enable = 'on';
-        pan_toggle.Enable = 'on';
-        urepet_toggle.Enable = 'on';
-        
-        % Change the select toggle button states to on
-        select_toggle.State = 'on';
+        % Enable the play, select, zoom, pan, and uREPET buttons
+        play_button.Enable = 'on';
+        select_button.Enable = 'on';
+        zoom_button.Enable = 'on';
+        pan_button.Enable = 'on';
+        urepet_button.Enable = 'on';
         
         % Change the pointer symbol back
         figure_object.Pointer = 'arrow';
@@ -287,11 +293,8 @@ figure_object.Visible = 'on';
             
         end
         
-        % Clicked callback function for the uREPET toggle button
+        % Clicked callback function for the uREPET button
         function urepetclickedcallback(~,~)
-            
-            % Change the uREPET toggle button state to off
-            urepet_toggle.State = 'off';
             
             % If the rectangle object is empty, return
             if isempty(rectangle_object)
@@ -427,14 +430,14 @@ figure_object.Visible = 'on';
         
     end
 
-    % Clicked callback function for the select toggle button
+    % Clicked callback function for the select button
     function selectclickedcallback(~,~)
         
-        % Keep the select toggle button state to on and change the zoom and
-        % pan toggle button states to off
-        select_toggle.State = 'on';
-        zoom_toggle.State = 'off';
-        pan_toggle.State = 'off';
+        % Keep the select button state to on and change the zoom and pan 
+        % button states to off
+        select_button.State = 'on';
+        zoom_button.State = 'off';
+        pan_button.State = 'off';
         
         % Turn the zoom off
         zoom off
@@ -444,14 +447,14 @@ figure_object.Visible = 'on';
         
     end
 
-    % Clicked callback function for the zoom toggle button
+    % Clicked callback function for the zoom button
     function zoomclickedcallback(~,~)
         
-        % Keep the zoom toggle button state to on and change the select and
-        % pan toggle button states to off
-        select_toggle.State = 'off';
-        zoom_toggle.State = 'on';
-        pan_toggle.State = 'off';
+        % Keep the zoom button state to on and change the select and pan 
+        % button states to off
+        select_button.State = 'off';
+        zoom_button.State = 'on';
+        pan_button.State = 'off';
         
         % Make the zoom enable on the figure
         zoom_object = zoom(figure_object);
@@ -465,14 +468,14 @@ figure_object.Visible = 'on';
         
     end
 
-    % Clicked callback function for the pan toggle button
+    % Clicked callback function for the pan button
     function panclickedcallback(~,~)
         
-        % Keep the pan toggle button state to on and change the select and
-        % zoom toggle button states to off
-        select_toggle.State = 'off';
-        zoom_toggle.State = 'off';
-        pan_toggle.State = 'on';
+        % Keep the pan button state to on and change the select and zoom 
+        % button states to off
+        select_button.State = 'off';
+        zoom_button.State = 'off';
+        pan_button.State = 'on';
         
         % Turn the zoom off
         zoom off
@@ -626,41 +629,6 @@ image_data([10,11,15,16],10) = 0;
 
 image_data(10:11,12:15) = 0;
 image_data(12:16,13:14) = 0;
-
-% Make the image
-image_data = repmat(image_data,[1,1,3]);
-
-end
-
-% Create Undo icon
-function image_data = undoicon
-
-% Create a matrix with NaN's
-image_data = nan(16,16,1);
-
-% Create black U, n, d, and o letters
-image_data(2:7,3) = 0;
-image_data(2:8,4) = 0;
-image_data(7:8,5) = 0;
-image_data(2:8,6) = 0;
-image_data(2:7,7) = 0;
-
-image_data(4:8,9) = 0;
-image_data(5:8,10) = 0;
-image_data(4:5,11) = 0;
-image_data(4:8,12) = 0;
-image_data(5:8,13) = 0;
-
-image_data(13:15,3) = 0;
-image_data(12:16,4) = 0;
-image_data([12,13,15,16],5) = 0;
-image_data(10:16,6:7) = 0;
-
-image_data(13:15,9) = 0;
-image_data(12:16,10) = 0;
-image_data([12,13,15,16],11) = 0;
-image_data(12:16,12) = 0;
-image_data(13:15,13) = 0;
 
 % Make the image
 image_data = repmat(image_data,[1,1,3]);
@@ -872,11 +840,11 @@ signal_axes.ButtonDownFcn = @signalaxesbuttondownfcn;
 end
 
 % Set a play line on the signal axes using the audio player
-function playline(signal_axes,audio_player,play_toggle)
+function playline(signal_axes,audio_player,play_button)
 
-% Play and stop icons from the play toggle buttons' user data
-play_icon = play_toggle.UserData.PlayIcon;
-stop_icon = play_toggle.UserData.StopIcon;
+% Play and stop icons from the play buttons' user data
+play_icon = play_button.UserData.PlayIcon;
+stop_icon = play_button.UserData.StopIcon;
 
 % Sample rate in Hz from the audio player
 sample_rate = audio_player.SampleRate;
@@ -895,10 +863,10 @@ audio_player.TimerFcn = @audioplayertimerfcn;
     % Function to execute one time when the playback starts
     function audioplayerstartfcn(~,~)
         
-        % Change the play toggle button icon to a stop icon and the tooltip 
-        % to 'Stop'
-        play_toggle.CData = stop_icon;
-        play_toggle.TooltipString = 'Stop';
+        % Change the play button icon to a stop icon and the tooltip to 
+        % 'Stop'
+        play_button.CData = stop_icon;
+        play_button.TooltipString = 'Stop';
         
         % Get the select limits from the signal axes' user data
         select_limits = signal_axes.UserData.SelectXLim;
@@ -911,10 +879,10 @@ audio_player.TimerFcn = @audioplayertimerfcn;
     % Function to execute one time when playback stops
     function audioplayerstopfcn(~,~)
         
-        % Change the play toggle button icon to a play icon and the tooltip 
-        % to 'Play'
-        play_toggle.CData = play_icon;
-        play_toggle.TooltipString = 'Play';
+        % Change the play button icon to a play icon and the tooltip to 
+        % 'Play'
+        play_button.CData = play_icon;
+        play_button.TooltipString = 'Play';
         
         % Delete the play line
         delete(play_line)
@@ -940,11 +908,8 @@ audio_player.TimerFcn = @audioplayertimerfcn;
 
 end
 
-% Clicked callback function for the play toggle button
-function playclickedcallback(object_handle,~,audio_player,signal_axes)
-
-% Change the toggle button state to off
-object_handle.State = 'off';
+% Clicked callback function for the play button
+function playclickedcallback(~,~,audio_player,signal_axes)
 
 % If the playback is in progress
 if isplaying(audio_player)
