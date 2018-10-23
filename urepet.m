@@ -3,14 +3,17 @@ function urepet
 % in time and frequency in mixtures of sounds
 %
 %   Toolbar:
-%       Open:   Open audio file (as .wav or .mp3)
-%       Play:   Play/stop selected audio
-%       Select: Select/deselect on signal axes for playing and 
-%               spectrogram axes for processing (left/right mouse click)
-%       Zoom:   Zoom on any axes
-%       Pan:    Pan on any axes
-%       uREPET: Process the audio using uREPET
-%       Save:   Save processed audio (as .wav)
+%       Open:       Open audio file (as .wav or .mp3)
+%       Save:       Save processed audio (as .wav)
+%       Play:       Play/stop selected audio
+%       Select:     Select/deselect on signal axes for playing and on
+%                   spectrogram axes for processing (left/right click)
+%       Zoom:       Zoom on any axes
+%       Pan:        Pan on any axes
+%       uREPET:     Process the selected region using uREPET
+%       Background: Select to estimate the background (default) or deselect
+%                   to estimate the foreground
+%       Undo:       Undo the last changes
 %
 %   See also http://zafarrafii.com/#REPET
 %
@@ -27,7 +30,7 @@ function urepet
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       10/22/18
+%       10/23/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -58,7 +61,7 @@ save_button = uipushtool(toolbar_object, ...
     'CData',iconread('file_save.png'), ...
     'TooltipString','Save', ...
     'Enable','off');
-play_button = uitoggletool(toolbar_object, ...
+play_button = uipushtool(toolbar_object, ...
     'CData',play_icon, ...
     'TooltipString','Play', ...
     'Enable','off', ...
@@ -82,24 +85,23 @@ pan_button = uitoggletool(toolbar_object, ...
     'Enable','off',...
     'ClickedCallBack',@panclickedcallback);
 
-% Create uREPET and Undo push buttons on toolbar
+% Create uREPET, parameters, and undo push buttons on toolbar
 urepet_button = uipushtool(toolbar_object, ...
     'Separator','On', ...
     'CData',urepeticon, ...
     'TooltipString','uREPET', ...
     'Enable','off');
+background_button = uitoggletool(toolbar_object, ...
+    'CData',iconread('tool_font_bold.png'), ...
+    'TooltipString','Background', ...
+    'Enable','off', ...
+    'ClickedCallBack',@backgroundclickedcallback);
 undo_icon = iconread('tool_rotate_3d.png');
 undo_icon(6:12,6:12,:) = NaN;
 undo_button = uipushtool(toolbar_object, ...
     'CData',undo_icon, ...
     'TooltipString','Undo', ...
     'Enable','off');
-parameters_button = uitoggletool(toolbar_object, ...
-    'CData',iconread('tool_hand.png'), ...
-    'TooltipString','Parameters', ...
-    'Enable','off');
-
-
 
 % Create the signal and spectrogram axes
 signal_axes = axes( ...
@@ -115,6 +117,13 @@ linkaxes([signal_axes,spectrogram_axes],'x')
 % Change the pointer when the mouse moves over the signal axes
 enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','ibeam');
 iptSetPointerBehavior(signal_axes,enterFcn);
+iptPointerManager(figure_object);
+
+% Change the pointer when the mouse moves over the figure object and the 
+% spectrogram axes
+enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','arrow');
+iptSetPointerBehavior(figure_object,enterFcn)
+iptSetPointerBehavior(spectrogram_axes,enterFcn)
 iptPointerManager(figure_object);
 
 % Initialize the audio player (for the figure's close request callback)
@@ -231,6 +240,9 @@ figure_object.Visible = 'on';
         spectrogram_axes.ButtonDownFcn = @spectrogramaxesbuttondownfcn;
         drawnow
         
+        % Color limits
+        color_limits = spectrogram_axes.CLim;
+        
         % Create object for playing audio
         audio_player = audioplayer(audio_signal,sample_rate);
         
@@ -240,6 +252,9 @@ figure_object.Visible = 'on';
         
         % Add clicked callback function to the play button
         play_button.ClickedCallback = {@playclickedcallback,audio_player,signal_axes};
+        
+        % Add key-press callback functions to the figure
+        figure_object.KeyPressFcn  = @keypressfcncallback;
         
         % Add clicked callback function to the uREPET button
         urepet_button.ClickedCallback = @urepetclickedcallback;
@@ -258,6 +273,11 @@ figure_object.Visible = 'on';
         zoom_button.Enable = 'on';
         pan_button.Enable = 'on';
         urepet_button.Enable = 'on';
+        background_button.Enable = 'on';
+        background_button.State = 'on';
+        
+        % Change the select button state to on
+        select_button.State = 'on';
         
         % Change the pointer symbol back
         figure_object.Pointer = 'arrow';
@@ -265,6 +285,46 @@ figure_object.Visible = 'on';
         
         % Add the figure's close request callback back
         figure_object.CloseRequestFcn = @figurecloserequestfcn;
+        
+        % Key-press callback function to the figure
+        function keypressfcncallback(~,~)
+            
+            % If the current character is the space character
+            if ~strcmp(' ',figure_object.CurrentCharacter)
+                return
+            end
+            
+            % If the playback is in progress
+            if isplaying(audio_player)
+                
+                % Stop the audio
+                stop(audio_player)
+                
+            else
+                
+                % Sample rate and number of samples from the audio player
+                sample_rate = audio_player.SampleRate;
+                number_samples = audio_player.TotalSamples;
+                
+                % Plot and select limits from the signal axes' user data
+                plot_limits = signal_axes.UserData.PlotXLim;
+                select_limits = signal_axes.UserData.SelectXLim;
+                
+                % Derive the sample range for the audio player
+                if select_limits(1) == select_limits(2)
+                    % If it is a select line
+                    sample_range = [round((select_limits(1)-plot_limits(1))*sample_rate)+1,number_samples];
+                else
+                    % If it is a select region
+                    sample_range = round((select_limits-plot_limits(1))*sample_rate+1);
+                end
+                
+                % Play the audio given the sample range
+                play(audio_player,sample_range)
+                
+            end
+            
+        end
         
         % Mouse-click callback for the spectrogram axes
         function spectrogramaxesbuttondownfcn(~,~)
@@ -318,6 +378,15 @@ figure_object.Visible = 'on';
             figure_object.Pointer = 'watch';
             drawnow
             
+            % If any audio is playing, stop it
+            if isplaying(audio_player)
+                stop(audio_player)
+            end
+            
+            % Store the original audio signal and CQT in case of undo
+            audio_signal0 = audio_signal;
+            audio_cqt0 = audio_cqt;
+            
             % Frequency and time indices of the rectangle object
             frequency_indices = hz2freq(rectangle_position(2)+[0,rectangle_position(4)]);
             time_indices = sec2time(rectangle_position(1)+[0,rectangle_position(3)]);
@@ -341,8 +410,6 @@ figure_object.Visible = 'on';
             number_repetitions = 10;
             frequency_separation = 1;
             time_separation = 1;
-%             component_selection = 'background';
-            component_selection = 'foreground';
             
             % Frequency and time separation in frequency and time indices
             frequency_separation = frequency_separation*octave_resolution;
@@ -375,8 +442,8 @@ figure_object.Visible = 'on';
             % Compute the mask from the rectangles for the spectrogram
             audio_mask = (min(median(audio_rectangle,4),audio_rectangle(:,:,:,1))+eps)./(audio_rectangle(:,:,:,1)+eps);
             
-            % If the component selection is 'foreground', invert the mask
-            if strcmp(component_selection,'foreground')
+            % If the background button is off, invert the mask
+            if strcmp(background_button.State,'off')
                 audio_mask = audio_mask-1;
             end
             
@@ -392,39 +459,99 @@ figure_object.Visible = 'on';
                 audio_signal(:,channel_index) = audio_signali(1:number_samples);
             end
             
-            % Update the signal axes and the spectrogram axes
-            for channel_index = 1:number_channels
-                signal_axes.Children(number_channels-channel_index+1).YData = audio_signal(:,channel_index)';
+            % Update the signal axes
+            channel_index = number_channels;
+            for children_index = 1:numel(signal_axes.Children)
+                if numel(signal_axes.Children(children_index).YData) == number_samples
+                    signal_axes.Children(children_index).YData = audio_signal(:,channel_index)';
+                    channel_index = channel_index-1;
+                end
             end
-            spectrogram_axes.Children(end).CData(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2)) ...
-                = db(mean(audio_spectrogram(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2),:),3));
             drawnow
             
-            % Update the audio player
+            % Update the spectrogram axes
+            spectrogram_axes.Children(end).CData(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2)) ...
+                = db(mean(audio_spectrogram(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2),:),3));
+            spectrogram_axes.CLim = color_limits;
+            drawnow
+            
+            % Update the audio player, and the play line and clicked 
+            % callback function of the play button
             audio_player = audioplayer(audio_signal,sample_rate);
+            playline(signal_axes,audio_player,play_button);
+            play_button.ClickedCallback = {@playclickedcallback,audio_player,signal_axes};
             
-            % Update the play line on the signal axes
-            playline(signal_axes,audio_player,play_toggle);
+            % Add clicked callback functions to the save and undo buttons
+            save_button.ClickedCallback = @saveclickedcallback;
+            undo_button.ClickedCallback = @undoclickedcallback;
             
-            % Update clicked callback function of the play toggle button
-            play_toggle.ClickedCallback = {@playclickedcallback,audio_player,signal_axes};
-            
-            ...
-                
-        
-            % Enable the save and undo toggle buttons
-            play_toggle.Enable = 'on';
-            select_toggle.Enable = 'on';
-            zoom_toggle.Enable = 'on';
-            pan_toggle.Enable = 'on';
-            urepet_toggle.Enable = 'on';
-            save_toggle.Enable = 'on';
+            % Enable the save and undo buttons
+            save_button.Enable = 'on';
+            undo_button.Enable = 'on';
             
             % Add the figure's close request callback back
             figure_object.CloseRequestFcn = @figurecloserequestfcn;
             
             % Change the pointer symbol back
             figure_object.Pointer = 'arrow';
+            
+            % Clicked callback function for the save button
+            function saveclickedcallback(~,~)
+                
+                % Open dialog box for saving files; return if cancel
+                [audio_name,audio_path] = uiputfile('*.wav*', ...
+                    'Save Audio as WAVE File','urepet_file.wav');
+                if isequal(audio_name,0) || isequal(audio_path,0)
+                    return
+                end
+                
+                % Build full file name
+                audio_file = fullfile(audio_path,audio_name);
+                
+                % Write the audio file
+                audiowrite(audio_file,audio_signal,sample_rate)
+                
+            end
+            
+            % Clicked callback function for the undo button
+            function undoclickedcallback(~,~)
+                
+                % Disable the button
+                undo_button.Enable = 'off';
+                
+                % Restore the audio signal and CQT
+                audio_signal = audio_signal0;
+                audio_cqt = audio_cqt0;
+                
+                % Restore the audio spectrogram
+                audio_spectrogram = [];
+                for channel_index = 1:number_channels
+                    audio_spectrogram = cat(3,audio_spectrogram,abs(audio_cqt{channel_index}.c));
+                end
+                
+                % Update the signal axes
+                channel_index = number_channels;
+                for children_index = 1:numel(signal_axes.Children)
+                    if numel(signal_axes.Children(children_index).YData) == number_samples
+                        signal_axes.Children(children_index).YData = audio_signal(:,channel_index)';
+                        channel_index = channel_index-1;
+                    end
+                end
+                drawnow
+                
+                % Update the spectrogram axes
+                spectrogram_axes.Children(end).CData(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2)) ...
+                    = db(mean(audio_spectrogram(frequency_indices(1):frequency_indices(2),time_indices(1):time_indices(2),:),3));
+                spectrogram_axes.CLim = color_limits;
+                drawnow
+                
+                % Update the audio player, and the play line and clicked
+                % callback function of the play button
+                audio_player = audioplayer(audio_signal,sample_rate);
+                playline(signal_axes,audio_player,play_button);
+                play_button.ClickedCallback = {@playclickedcallback,audio_player,signal_axes};
+                
+            end
             
         end
         
@@ -488,7 +615,19 @@ figure_object.Visible = 'on';
         setAxesPanConstraint(pan_object,signal_axes,'x');
         
     end
-    
+
+    % Clicked callback function for the background button
+    function backgroundclickedcallback(~,~)
+        
+        % Change the tooltip string depending on the state of the button
+        if strcmp(background_button.State,'on')
+            background_button.TooltipString = 'Background';
+        elseif strcmp(background_button.State,'off')
+            background_button.TooltipString = 'Foreground';
+        end
+        
+    end
+
     % Close request callback function for the figure
     function figurecloserequestfcn(~,~)
         
@@ -508,56 +647,6 @@ figure_object.Visible = 'on';
         end
         
     end
-
-
-%     function saveclickedcallback(~,~)
-%         
-%         if isempty(x)                                                       % Return if no input/output
-%             return
-%         end
-%         
-%         [filename2,pathname] = uiputfile( ...                               % Open standard dialog box for saving files
-%             {'*.wav', 'WAVE files (*.wav)'; ...
-%             '*.mp3', 'MP3 files (*.mp3)'}, ...
-%             'Save the audio file');
-%         if isequal(filename2,0)                                             % Return if user selects Cancel
-%             return
-%         end
-%         
-%         p = size(x,2);                                                      % Number of channels
-%         x = [];
-%         for k = 1:p                                                         % Loop over the channels
-%             Xcqk = Xcq{k};
-%             x = cat(2,x,icqt(Xcqk));
-%         end
-%         file = fullfile(pathname,filename2);                                % Build full file name from parts
-%         audiowrite(file,x,fs)                                               % Write audio file
-%         
-%     end
-% 
-%     function parametersclickedcallback(~,~)
-%         
-%         prompt = {'Recovering background (b) or foreground (f):', ...
-%             'Max number of repetitions:', ...
-%             'Min time separation between repetitions (in seconds):', ...
-%             'Min frequency separation between repetitions (in semitones):'};
-%         dlg_title = 'Parameters';
-%         num_lines = 1;
-%         def = {background_or_foreground, ...
-%             num2str(max_number_repetitions), ...
-%             num2str(min_time_separation), ...
-%             num2str(min_frequency_separation)};
-%         answer = inputdlg(prompt,dlg_title,num_lines,def);                  % Create and open input dialog box
-%         if isempty(answer)                                                  % Return if user selects Cancel
-%             return
-%         end
-%         
-%         background_or_foreground = answer{1};
-%         max_number_repetitions = str2double(answer{2});
-%         min_time_separation = str2double(answer{3});
-%         min_frequency_separation = str2double(answer{4});
-%         
-%     end
 
 end
 
