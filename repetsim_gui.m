@@ -47,7 +47,7 @@ function repetsim_gui
 %       http://zafarrafii.com
 %       https://github.com/zafarrafii
 %       https://www.linkedin.com/in/zafarrafii/
-%       10/22/18
+%       10/23/18
 
 % Get screen size
 screen_size = get(0,'ScreenSize');
@@ -166,6 +166,13 @@ enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','ibeam');
 iptSetPointerBehavior(mixturesignal_axes,enterFcn);
 iptSetPointerBehavior(backgroundsignal_axes,enterFcn);
 iptSetPointerBehavior(foregroundsignal_axes,enterFcn);
+iptPointerManager(figure_object);
+
+% Change the pointer when the mouse moves over the figure object and the 
+% spectrogram axes
+enterFcn = @(figure_handle,currentPoint) set(figure_handle,'Pointer','arrow');
+iptSetPointerBehavior(figure_object,enterFcn)
+iptSetPointerBehavior(mixturespectrogram_axes,enterFcn)
 iptPointerManager(figure_object);
 
 % Initialize the audio players for the mixture, background, and foreground
@@ -305,6 +312,9 @@ figure_object.Visible = 'on';
         zoom_button.Enable = 'on';
         pan_button.Enable = 'on';
         repetsim_button.Enable = 'on';
+        
+        % Change the select button state to on
+        select_button.State = 'on';
         
         % Add the figure's close request callback back
         figure_object.CloseRequestFcn = @figurecloserequestfcn;
