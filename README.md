@@ -891,7 +891,7 @@ Functionalities:
 - If a left mouse click and drag is done on the signal axes or on a selection line, a selection region is created; the audio will be played from the start to the end of the selection region.
 - If a left mouse click and drag is done on the left or right boundary of a selection region, the selection region is resized.
 - If a right mouse click is done on the signal axes, any selection line or region is removed.
-- BLAH BLAH...
+- If a left mouse click and drag is done on the spectrogram axes, a customizable rectangle is created; the region-of-interest (ROI) can then be processed by clicking on the uREPET button; the rectangle can be resized and moved, and also deleted by doing a right mouse click on it.
 
 ### Zoom
 
@@ -905,15 +905,15 @@ Functionalities:
 
 ### uREPET
 
-- BLAH BLAH...
+- Apply uREPET to the audio, after selecting an ROI on the spectrogram axes, by searching for similar regions repeating in time and frequency and recovering the common background if the background button is selected, or the common foreground if the background button is deselected.
 
 ### Background
 
-- BLAH BLAH...
+- If selected, uREPET will recover the repeating background in the ROI (default); if deselected, uREPET will recover the non-repeating foreground in the ROI.
 
 ### Undo
 
-- BLAH BLAH...
+- Undo the last changes done by uREPET.
 
 
 ## audio_file
