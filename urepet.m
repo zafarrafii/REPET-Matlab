@@ -1,6 +1,6 @@
 function urepet
-% UREPET a simple user interface system for recovering patterns repeating 
-% in time and frequency in mixtures of sounds
+% UREPET Simple user interface system for recovering patterns repeating in 
+% time and frequency in mixtures of sounds
 %
 %   Toolbar:
 %       Open:       Open audio file (as .wav or .mp3)
@@ -356,8 +356,8 @@ figure_object.Visible = 'on';
         % Clicked callback function for the uREPET button
         function urepetclickedcallback(~,~)
             
-            % If the rectangle object is empty, return
-            if isempty(rectangle_object)
+            % If the rectangle object is empty or not valid, return
+            if isempty(rectangle_object) || ~isvalid(rectangle_object)
                 return
             end
             
