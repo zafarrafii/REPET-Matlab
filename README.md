@@ -893,7 +893,7 @@ Functionalities:
 - If a right mouse click is done on the signal axes, any selection line or region is removed.
 - If a left mouse click and drag is done on the spectrogram axes, a customizable rectangle is created; the region-of-interest (ROI) can then be processed by clicking on the uREPET button; the rectangle can be resized and moved, and also deleted by doing a right mouse click on it.
 
-<img src="images/urepet/play_select.gif" width="1000">
+<img src="images/urepet/open_play_select.gif" width="1000">
 
 ### Zoom
 
