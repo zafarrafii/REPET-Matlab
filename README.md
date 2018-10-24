@@ -856,7 +856,35 @@ Functionalities:
 
 ## urepet Matlab GUI
 
-Coming soon...
+Simple user interface system for recovering patterns repeating in time and frequency in mixtures of sounds.
+
+Functionalities:
+
+- [Open](#open)
+- [Save](#save)
+- [Play](#play)
+- [Select](#select)
+- [Zoom](#zoom-2)
+- [Pan](#pan-2)
+- [uREPET](#urepet)
+- [Background](#background)
+- [Undo](#undo)
+
+### Open
+
+- Open the mixture (see [Open Mixture](#open-mixture)).
+
+### Save
+
+- Save the foreground estimate (see [Save Background](#save-background)).
+
+### Play
+### Select
+### Zoom
+### Pan
+### uREPET
+### Background
+### Undo
 
 
 ## audio_file
