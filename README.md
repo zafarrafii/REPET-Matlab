@@ -893,6 +893,8 @@ Functionalities:
 - If a right mouse click is done on the signal axes, any selection line or region is removed.
 - If a left mouse click and drag is done on the spectrogram axes, a customizable rectangle is created; the region-of-interest (ROI) can then be processed by clicking on the uREPET button; the rectangle can be resized and moved, and also deleted by doing a right mouse click on it.
 
+<img src="images/urepet/open_play_select.gif" width="1000">
+
 ### Zoom
 
 - Turn zooming on or off or magnify by factor (see https://mathworks.com/help/matlab/ref/zoom.html)
@@ -902,6 +904,8 @@ Functionalities:
 
 - Pan view of graph interactively (see https://www.mathworks.com/help/matlab/ref/pan.html)
 - If used on the signal axes, pan horizontally only; the x-axis limits of the signal axes and the spectrogram axes will stay synchronized.
+
+<img src="images/urepet/zoom_pan.gif" width="1000">
 
 ### uREPET
 
@@ -915,6 +919,7 @@ Functionalities:
 
 - Undo the last changes done by uREPET.
 
+<img src="images/urepet/select_urepet_background_undo_save.gif" width="1000">
 
 ## audio_file
 
