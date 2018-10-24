@@ -872,19 +872,48 @@ Functionalities:
 
 ### Open
 
-- Open the mixture (see [Open Mixture](#open-mixture)).
+- Select a WAVE or MP3 to open; the audio can be mono or stereo.
+- Display the audio signal and the audio spectrogram; the x-axis limits of the signal axes and the spectrogram axes will be synchronized (and will stay synchronized if a zoom or pan is applied on one of them).
 
 ### Save
 
-- Save the foreground estimate (see [Save Background](#save-background)).
+- Save the processed audio as a WAVE file; the default name is "urepet_file.wav."
 
 ### Play
+
+- Play the audio if the playback is not in progress; stop the audio if the playback is in progress; a playback line will be displayed as the playback is in progress.
+- If there is no selection line or region, the audio will be played from the start to the end; if there is a selection line, the audio will be played from the selection line to the end of the audio; if there is a selection region, the audio will be played from the start to the end of the selection region.
+- Pressing the space key will also play and stop the audio.
+
 ### Select
+
+- If a left mouse click is done on the signal axes, a selection line is created; the audio will be played from the selection line to the end of the audio.
+- If a left mouse click and drag is done on the signal axes or on a selection line, a selection region is created; the audio will be played from the start to the end of the selection region.
+- If a left mouse click and drag is done on the left or right boundary of a selection region, the selection region is resized.
+- If a right mouse click is done on the signal axes, any selection line or region is removed.
+- BLAH BLAH...
+
 ### Zoom
+
+- Turn zooming on or off or magnify by factor (see https://mathworks.com/help/matlab/ref/zoom.html)
+- If used on the signal axes, zoom horizontally only; the x-axis limits of the signal axes and the spectrogram axes will stay synchronized.
+
 ### Pan
+
+- Pan view of graph interactively (see https://www.mathworks.com/help/matlab/ref/pan.html)
+- If used on the signal axes, pan horizontally only; the x-axis limits of the signal axes and the spectrogram axes will stay synchronized.
+
 ### uREPET
+
+- BLAH BLAH...
+
 ### Background
+
+- BLAH BLAH...
+
 ### Undo
+
+- BLAH BLAH...
 
 
 ## audio_file
