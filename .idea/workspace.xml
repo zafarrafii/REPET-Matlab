@@ -2,9 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2c064c27-6abd-46a9-9723-94fb04eb319a" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/repet.m" beforeDir="false" afterPath="$PROJECT_DIR$/repet.m" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/repet.py" beforeDir="false" afterPath="$PROJECT_DIR$/repet.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/repet_demo_gui.m" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -18,11 +16,8 @@
       <file leaf-file-name="repet.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/repet.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="884">
-              <caret line="52" column="9" selection-start-line="52" selection-start-column="9" selection-end-line="52" selection-end-column="9" />
-              <folding>
-                <element signature="e#3028#3046#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="-374">
+              <caret line="41" lean-forward="true" selection-start-line="41" selection-end-line="41" />
             </state>
           </provider>
         </entry>
@@ -109,7 +104,7 @@
       <window_info anchor="bottom" id="TODO" order="6" weight="0.32890132" />
       <window_info anchor="bottom" id="Event Log" order="7" side_tool="true" weight="0.32996634" />
       <window_info anchor="bottom" id="Version Control" order="7" weight="0.32890132" />
-      <window_info active="true" anchor="bottom" id="Python Console" order="7" visible="true" weight="0.27151856" />
+      <window_info active="true" anchor="bottom" id="Python Console" order="7" visible="true" weight="0.18194541" />
       <window_info anchor="bottom" id="Run" order="2" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="bottom" id="Terminal" order="7" weight="0.32890132" />
@@ -127,15 +122,15 @@
     <layout-to-restore>
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.34335443" />
-      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
+      <window_info anchor="bottom" id="Run" order="2" />
       <window_info anchor="right" id="Data View" order="3" />
       <window_info id="Structure" order="1" weight="0.25" />
       <window_info anchor="right" id="Commander" order="0" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="bottom" id="TODO" order="6" weight="0.32949308" />
       <window_info anchor="bottom" id="Version Control" order="8" weight="0.32949308" />
-      <window_info anchor="bottom" id="Run" order="2" />
       <window_info anchor="bottom" id="Find" order="1" />
+      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Terminal" order="10" weight="0.32949308" />
       <window_info anchor="bottom" id="Event Log" order="7" side_tool="true" weight="0.32996634" />
@@ -156,11 +151,22 @@
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/repet.py">
       <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="493">
+          <caret line="29" column="79" selection-start-line="29" selection-start-column="79" selection-end-line="29" selection-end-column="79" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/repet.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="884">
+          <caret line="52" column="9" selection-start-line="52" selection-start-column="9" selection-end-line="52" selection-end-column="9" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/repet.py">
+      <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="11764">
           <caret line="692" column="41" selection-start-line="692" selection-start-column="41" selection-end-line="692" selection-end-column="41" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -168,9 +174,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="17425">
           <caret line="1025" column="27" selection-start-line="1025" selection-start-column="27" selection-end-line="1025" selection-end-column="27" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -178,9 +181,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="9486">
           <caret line="558" lean-forward="true" selection-start-line="558" selection-end-line="558" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -188,9 +188,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="4148">
           <caret line="244" column="39" lean-forward="true" selection-start-line="244" selection-start-column="39" selection-end-line="244" selection-end-column="39" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -198,9 +195,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="8279">
           <caret line="487" column="59" selection-start-line="487" selection-start-column="59" selection-end-line="487" selection-end-column="59" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -208,9 +202,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="7871">
           <caret line="463" lean-forward="true" selection-start-line="463" selection-end-line="463" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -218,9 +209,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="6171">
           <caret line="363" column="38" lean-forward="true" selection-start-line="363" selection-start-column="38" selection-end-line="363" selection-end-column="38" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -228,9 +216,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="7242">
           <caret line="426" column="46" selection-start-line="426" selection-start-column="46" selection-end-line="426" selection-end-column="46" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -238,9 +223,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="7225">
           <caret line="425" lean-forward="true" selection-start-line="425" selection-end-line="425" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -248,9 +230,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="6613">
           <caret line="389" column="57" lean-forward="true" selection-start-line="389" selection-start-column="57" selection-end-line="389" selection-end-column="57" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -258,9 +237,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="6290">
           <caret line="370" lean-forward="true" selection-start-line="370" selection-end-line="370" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -268,9 +244,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="3077">
           <caret line="181" column="19" lean-forward="true" selection-start-line="181" selection-start-column="19" selection-end-line="181" selection-end-column="19" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -278,9 +251,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="493">
           <caret line="29" column="118" lean-forward="true" selection-start-line="29" selection-start-column="118" selection-end-line="29" selection-end-column="118" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -288,9 +258,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="3332">
           <caret line="283" lean-forward="true" selection-start-line="283" selection-end-line="283" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -298,9 +265,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2516">
           <caret line="150" column="57" lean-forward="true" selection-start-line="150" selection-start-column="57" selection-end-line="150" selection-end-column="57" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -315,9 +279,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1972">
           <caret line="118" column="22" lean-forward="true" selection-start-line="118" selection-start-column="22" selection-end-line="118" selection-end-column="22" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -332,9 +293,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="3570">
           <caret line="210" selection-start-line="210" selection-end-line="210" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -349,9 +307,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="3536">
           <caret line="210" lean-forward="true" selection-start-line="210" selection-end-line="210" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -366,9 +321,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="493">
           <caret line="29" column="28" selection-start-line="29" selection-start-column="28" selection-end-line="29" selection-end-column="28" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -383,9 +335,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="697">
           <caret line="41" lean-forward="true" selection-start-line="41" selection-end-line="41" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -503,11 +452,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/repet.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="884">
-          <caret line="52" column="9" selection-start-line="52" selection-start-column="9" selection-end-line="52" selection-end-column="9" />
-          <folding>
-            <element signature="e#3028#3046#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="-374">
+          <caret line="41" lean-forward="true" selection-start-line="41" selection-end-line="41" />
         </state>
       </provider>
     </entry>
