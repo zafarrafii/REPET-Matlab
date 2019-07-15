@@ -12,7 +12,7 @@ This repository includes a Matlab class and a Python module which implement a nu
 
 ## repet Matlab class
 
-<img src="images/repet.png" width="750">
+<img src="images/repet/repet.png" width="750">
 
 Repetition is a fundamental element in generating and perceiving structure. In audio, mixtures are often composed of structures where a repeating background signal is superimposed with a varying foreground signal (e.g., a singer overlaying varying vocals on a repeating accompaniment or a varying speech signal mixed up with a repeating background noise). On this basis, we present the REpeating Pattern Extraction Technique (REPET), a simple approach for separating the repeating background from the non-repeating foreground in an audio mixture. The basic idea is to find the repeating elements in the mixture, derive the underlying repeating models, and extract the repeating  background by comparing the models to the mixture. Unlike other separation approaches, REPET does not depend on special parameterizations, does not rely on complex frameworks, and does not require external information. Because it is only based on repetition, it has the advantage of being simple, fast, blind, and therefore completely and easily automatable.
 
@@ -25,7 +25,7 @@ repet Methods:
 
 ### REPET (original)
 
-<img src="images/repet_original_overview.png" width="750">
+<img src="images/repet/repet_original_overview.png" width="750">
 
 The original REPET aims at identifying and extracting the repeating patterns in an audio mixture, by estimating a period of the underlying repeating structure and modeling a segment of the periodically repeating background.
 
@@ -151,7 +151,7 @@ colormap(jet)
 
 ### Adaptive REPET
 
-<img src="images/repet_adaptive_overview.png" width="750">
+<img src="images/repet/repet_adaptive_overview.png" width="750">
 
 The original REPET works well when the repeating background is relatively stable (e.g., a verse or the chorus in a song); however, the repeating background can also vary over time (e.g., a verse followed by the chorus in the song). The adaptive REPET is an extension of the original REPET that can handle varying repeating structures, by estimating the time-varying repeating periods and extracting the repeating background locally, without the need for segmentation or windowing.
 
@@ -215,7 +215,7 @@ colormap(jet)
 
 ### REPET-SIM
 
-<img src="images/repet_sim_overview.png" width="750">
+<img src="images/repet/repet_sim_overview.png" width="750">
 
 The REPET methods work well when the repeating background has periodically repeating patterns (e.g., jackhammer noise); however, the repeating patterns can also happen intermittently or without a global or local periodicity (e.g., frogs by a pond). REPET-SIM is a generalization of REPET that can also handle non-periodically repeating structures, by using a similarity matrix to identify the repeating elements.
 
