@@ -6,7 +6,6 @@ This repository includes a Matlab class and a Python module which implement a nu
 - [repet Python module](#repet-python-module)
 - [repet_gui Matlab GUI](#repet_gui-matlab-gui)
 - [repetsim_gui Matlab GUI](#repetsim_gui-matlab-gui)
-- [audio_file](#audio_file)
 - [References](#references)
 - [Author](#author)
 
@@ -851,11 +850,6 @@ Functionalities:
 ### Play/Stop Foreground
 
 - Play or stop the foreground estimate (see [Play/Stop Foreground](#playstop-foreground)).
-
-
-## audio_file
-
-- Tamy - Que Pena / Tanto Faz (excerpt)
 
 
 ## References
