@@ -85,7 +85,7 @@ set(gca,'FontSize',30)
 colormap(jet)
 ```
 
-<img src="images/matlab/repet_original.png" width="1000">
+<img src="images/repet_matlab/repet_original.png" width="1000">
 
 ### REPET extended
 
@@ -147,7 +147,7 @@ set(gca,'FontSize',30)
 colormap(jet)
 ```
 
-<img src="images/matlab/repet_extended.png" width="1000">
+<img src="images/repet_matlab/repet_extended.png" width="1000">
 
 ### Adaptive REPET
 
@@ -211,7 +211,7 @@ set(gca,'FontSize',30)
 colormap(jet)
 ```
 
-<img src="images/matlab/repet_adaptive.png" width="1000">
+<img src="images/repet_matlab/repet_adaptive.png" width="1000">
 
 ### REPET-SIM
 
@@ -275,7 +275,7 @@ set(gca,'FontSize',30)
 colormap(jet)
 ```
 
-<img src="images/matlab/repet_sim.png" width="1000">
+<img src="images/repet_matlab/repet_sim.png" width="1000">
 
 ### Online REPET-SIM
 
@@ -337,7 +337,7 @@ set(gca,'FontSize',30)
 colormap(jet)
 ```
 
-<img src="images/matlab/repet_simonline.png" width="1000">
+<img src="images/repet_matlab/repet_simonline.png" width="1000">
 
 
 ## repet Python module
@@ -419,7 +419,7 @@ plt.ylabel('Frequency (kHz)')
 plt.show()
 ```
 
-<img src="images/python/repet_original.png" width="1000">
+<img src="images/repet_python/repet_original.png" width="1000">
 
 ### REPET extended
 `background_signal = repet.extended(audio_signal, sample_rate)`
@@ -490,7 +490,7 @@ plt.ylabel('Frequency (kHz)')
 plt.show()
 ```
 
-<img src="images/python/repet_extended.png" width="1000">
+<img src="images/repet_python/repet_extended.png" width="1000">
 
 ### Adaptive REPET
 `background_signal = repet.adaptive(audio_signal, sample_rate)`
@@ -561,7 +561,7 @@ plt.ylabel('Frequency (kHz)')
 plt.show()
 ```
 
-<img src="images/python/repet_adaptive.png" width="1000">
+<img src="images/repet_python/repet_adaptive.png" width="1000">
 
 ### REPET-SIM
 `background_signal = repet.sim(audio_signal, sample_rate)`
@@ -632,7 +632,7 @@ plt.ylabel('Frequency (kHz)')
 plt.show()
 ```
 
-<img src="images/python/repet_sim.png" width="1000">
+<img src="images/repet_python/repet_sim.png" width="1000">
 
 ### Online REPET-SIM
 `background_signal = repet.simonline(audio_signal, sample_rate)`
@@ -703,7 +703,7 @@ plt.ylabel('Frequency (kHz)')
 plt.show()
 ```
 
-<img src="images/python/repet_simonline.png" width="1000">
+<img src="images/repet_python/repet_simonline.png" width="1000">
 
 
 ## repet_gui Matlab GUI
