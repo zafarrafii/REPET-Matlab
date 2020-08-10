@@ -1,6 +1,6 @@
 # REpeating Pattern Extraction Technique (REPET)
 
-This repository includes a Matlab class and a Python module which implement a number of methods/functions for the different algorithms of the REpeating Pattern Extraction Technique (REPET), and Matlab GUIs to demo the original REPET and REPET-SIM.
+This repository includes a Matlab class and a Python module which implement a number of methods/functions for the different algorithms of the REpeating Pattern Extraction Technique (REPET).
 
 - [repet Matlab class](#repet-matlab-class)
 - [repet Python module](#repet-python-module)
