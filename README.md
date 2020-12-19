@@ -25,6 +25,10 @@ Functions:
 - [`sim`](#sim) - Compute REPET-SIM.
 - [`simonline`](#simonline) - Compute the online REPET-SIM.
 
+Other:
+- `sigplot` - Plot a signal in seconds.
+- `specshow` - Display a spectrogram in dB, seconds, and Hz.
+
 ### original
 
 Compute the original REPET.
