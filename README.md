@@ -26,7 +26,8 @@ Functions:
 - [`simonline`](#simonline) - Compute the online REPET-SIM.
 
 Other:
-- `sigplot` - Plot a signal in seconds.
+- `wavread` - Read a WAVE file (using SciPy).
+- `wavwrite` - Write a WAVE file (using SciPy).
 - `specshow` - Display a spectrogram in dB, seconds, and Hz.
 
 ### original
