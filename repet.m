@@ -1,5 +1,5 @@
 classdef repet
-    % repet REpeating Pattern Extraction Technique (REPET) class
+    % repet This Matlab class a number of functions for the REpeating 
     %   Repetition is a fundamental element in generating and perceiving 
     %   structure. In audio, mixtures are often composed of structures 
     %   where a repeating background signal is superimposed with a varying 
@@ -10,177 +10,90 @@ classdef repet
     %   for separating the repeating background from the non-repeating 
     %   foreground in an audio mixture. The basic idea is to find the 
     %   repeating elements in the mixture, derive the underlying repeating 
-    %   models, and extract the repeating  background by comparing the 
+    %   models, and extract the repeating background by comparing the 
     %   models to the mixture. Unlike other separation approaches, REPET 
     %   does not depend on special parameterizations, does not rely on 
     %   complex frameworks, and does not require external information. 
     %   Because it is only based on repetition, it has the advantage of 
     %   being simple, fast, blind, and therefore completely and easily 
     %   automatable.
-    % 
+    %   
     % repet Methods:
-    %   original - REPET (original)
-    %   extended - REPET extended
-    %   adaptive - Adaptive REPET
-    %   sim - REPET-SIM
-    %   simonline - Online REPET-SIM
+    %   original - Compute the original REPET.
+    %   extended - Compute REPET extended.
+    %   adaptive - Compute the adaptive REPET.
+    %   sim - Compute REPET-SIM.
+    %   simonline - Compute REPET-SIM.
     % 
-    % See also http://zafarrafii.com/#REPET
+    % repet Other:
+    %   specshow - Display an spectrogram in dB, seconds, and Hz.
     % 
-    % References:
-    %   Zafar Rafii, Antoine Liutkus, and Bryan Pardo. "REPET for 
-    %   Background/Foreground Separation in Audio," Blind Source 
-    %   Separation, chapter 14, pages 395-411, Springer Berlin Heidelberg, 
-    %   2014.
-    %   
-    %   Zafar Rafii and Bryan Pardo. "Online REPET-SIM for Real-time Speech 
-    %   Enhancement," 38th International Conference on Acoustics, Speech 
-    %   and Signal Processing, Vancouver, BC, Canada, May 26-31, 2013.
-    %   
-    %   Zafar Rafii and Bryan Pardo. "Audio Separation System and Method," 
-    %   US 20130064379 A1, March 2013.
-    %   
-    %   Zafar Rafii and Bryan Pardo. "REpeating Pattern Extraction 
-    %   Technique (REPET): A Simple Method for Music/Voice Separation," 
-    %   IEEE Transactions on Audio, Speech, and Language Processing, volume 
-    %   21, number 1, pages 71-82, January, 2013.
-    %   
-    %   Zafar Rafii and Bryan Pardo. "Music/Voice Separation using the 
-    %   Similarity Matrix," 13th International Society on Music Information 
-    %   Retrieval, Porto, Portugal, October 8-12, 2012.
-    %   
-    %   Antoine Liutkus, Zafar Rafii, Roland Badeau, Bryan Pardo, and Gaël 
-    %   Richard. "Adaptive Filtering for Music/Voice Separation Exploiting 
-    %   the Repeating Musical Structure," 37th International Conference on 
-    %   Acoustics, Speech and Signal Processing, Kyoto, Japan, March 25-30, 
-    %   2012.
-    %       
-    %   Zafar Rafii and Bryan Pardo. "A Simple Music/Voice Separation 
-    %   Method based on the Extraction of the Repeating Musical Structure," 
-    %   36th International Conference on Acoustics, Speech and Signal 
-    %   Processing, Prague, Czech Republic, May 22-27, 2011.
-    %   
     % Author:
     %   Zafar Rafii
     %   zafarrafii@gmail.com
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   07/12/18
+    %   01/21/21
     
-    % Defined properties
-    properties (Access = private, Constant = true, Hidden = true)
+    % Define the properties
+    properties (Access = private, Constant = true)
         
-        % Window length in samples (audio stationary around 40 ms; power of 
-        % 2 for fast FFT and constant overlap-add)
-        windowlength = @(sample_rate) 2.^nextpow2(0.04*sample_rate);
-        
-        % Window function ('periodic' Hamming window for constant 
-        % overlap-add)
-        windowfunction = @(window_length) hamming(window_length,'periodic');
-        
-        % Step function (half the (even) window length for constant 
-        % overlap-add)
-        steplength = @(window_length) round(window_length/2);
-        
-        % Cutoff frequency in Hz for the dual high-pass filter of the
-        % foreground (vocals are rarely below 100 Hz)
+        % Define the cutoff frequency in Hz for the dual high-pass filter 
+        % of the foreground (vocals are rarely below 100 Hz)
         cutoff_frequency = 100;
         
-        % Period range in seconds for the beat spectrum (for REPET, REPET 
-        % extented, and adaptive REPET)
+        % Define the period range in seconds for the beat spectrum (for the
+        % original REPET, REPET extented, and the adaptive REPET)
         period_range = [1,10];
         
-        % Segment length and step in seconds (for REPET extented and 
-        % adaptive REPET)
+        % Define the segment length and step in seconds (for REPET extented 
+        % and the adaptive REPET)
         segment_length = 10;
         segment_step = 5;
         
-        % Filter order for the median filter (for adaptive REPET)
+        % Define the filter order for the median filter (for the adaptive 
+        % REPET)
         filter_order = 5;
         
-        % Minimal threshold for two similar frames in [0,1], minimal 
-        % distance between two similar frames in seconds, and maximal 
-        % number of similar frames for one frame (for REPET-SIM and online 
-        % REPET-SIM)
+        % Define the minimal threshold for two similar frames in [0,1], 
+        % minimal distance between two similar frames in seconds, and 
+        % maximal number of similar frames for every frame (for REPET-SIM 
+        % and the online REPET-SIM)
         similarity_threshold = 0;
         similarity_distance = 1;
         similarity_number = 100;
         
-        % Buffer length in seconds (for online REPET-SIM)
+        % Define the buffer length in seconds (for the online REPET-SIM)
         buffer_length = 10;
             
     end
     
-    % Main methods
-    methods (Access = public, Hidden = false, Static = true)
+    % Define the public methods
+    methods (Access = public, Static = true)
         
-        function background_signal = original(audio_signal,sample_rate)
-            % original REPET (original)
+        function background_signal = original(audio_signal,sampling_frequency)
+            % original Compute the original REPET.
             %   The original REPET aims at identifying and extracting the 
             %   repeating patterns in an audio mixture, by estimating a 
             %   period of the underlying repeating structure and modeling a 
             %   segment of the periodically repeating background.
             %   
-            %   background_signal = repet.original(audio_signal,sample_rate);
+            %   background_signal = repet.original(audio_signal,sampling_frequency)
             %   
-            %   Arguments:
+            %   Inputs:
             %       audio_signal: audio signal [number_samples,number_channels]
-            %       sample_rate: sample rate in Hz
+            %       sampling_frequency: sampling frequency in Hz
+            %   Output:
             %       background_signal: background signal [number_samples,number_channels]
             %   
-            %   Example: Estimate the background and foreground signals, and display their spectrograms
-            %       % Read the audio signal and return the sample rate
-            %       [audio_signal,sample_rate] = audioread('audio_file.wav');
-            %       
-            %       % Estimate the background signal and infer the foreground signal
-            %       background_signal = repet.original(audio_signal,sample_rate);
-            %       foreground_signal = audio_signal-background_signal;
-            %       
-            %       % Write the background and foreground signals
-            %       audiowrite('background_signal.wav',background_signal,sample_rate)
-            %       audiowrite('foreground_signal.wav',foreground_signal,sample_rate)
-            %       
-            %       % Compute the audio, background, and foreground spectrograms
-            %       window_length = 2^nextpow2(0.04*sample_rate);
-            %       window_function = hamming(window_length,'periodic');
-            %       step_length = window_length/2;
-            %       audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_function,window_length-step_length));
-            %       background_spectrogram = abs(spectrogram(mean(background_signal,2),window_function,window_length-step_length));
-            %       foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_function,window_length-step_length));
-            %       
-            %       % Display the audio, background, and foreground spectrograms (up to 5kHz)
-            %       figure
-            %       subplot(3,1,1), imagesc(db(audio_spectrogram(2:window_length/8,:))), axis xy
-            %       title('Audio Spectrogram (dB)')
-            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
-            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
-            %       set(gca,'FontSize',30)
-            %       subplot(3,1,2), imagesc(db(background_spectrogram(2:window_length/8,:))), axis xy
-            %       title('Background Spectrogram (dB)')
-            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
-            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
-            %       set(gca,'FontSize',30)
-            %       subplot(3,1,3), imagesc(db(foreground_spectrogram(2:window_length/8,:))), axis xy
-            %       title('Foreground Spectrogram (dB)')
-            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
-            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
-            %       set(gca,'FontSize',30)
-            %       colormap(jet)
-            %       
-            %   See also repet.extended, repet.adaptive, repet.sim, repet.simonline
+            %   Example: Estimate the background and foreground signals, and display their spectrograms.
             
-            % Number of samples and channels
+            % Get the number of samples and channels in the audio signal
             [number_samples,number_channels] = size(audio_signal);
             
             % Window length, window function, and step length for the STFT
-            window_length = repet.windowlength(sample_rate);
+            window_length = repet.windowlength(sampling_frequency);
             window_function = repet.windowfunction(window_length);
             step_length = repet.steplength(window_length);
             
@@ -208,14 +121,14 @@ classdef repet
             beat_spectrum = repet.beatspectrum(mean(audio_spectrogram,3).^2);
             
             % Period range in time frames for the beat spectrum
-            period_range = round(repet.period_range*sample_rate/step_length);
+            period_range = round(repet.period_range*sampling_frequency/step_length);
             
             % Repeating period in time frames given the period range
             repeating_period = repet.periods(beat_spectrum,period_range);
             
             % Cutoff frequency in frequency channels for the dual high-pass 
             % filtering of the foreground
-            cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sample_rate);
+            cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sampling_frequency);
             
             % Initialize the background signal
             background_signal = zeros(number_samples,number_channels);
@@ -243,72 +156,28 @@ classdef repet
             
         end
         
-        function background_signal = extended(audio_signal,sample_rate)
-            % extended REPET extended
+        function background_signal = extended(audio_signal,sampling_frequency)
+            % extended Compute REPET extended.
             %   The original REPET can be easily extended to handle varying 
             %   repeating structures, by simply applying the method along 
             %   time, on individual segments or via a sliding window.
             %   
-            %   background_signal = repet.extended(audio_signal,sample_rate);
+            %   background_signal = repet.extended(audio_signal,sampling_frequency)
             %   
-            %   Arguments:
+            %   Inputs:
             %       audio_signal: audio signal [number_samples,number_channels]
-            %       sample_rate: sample rate in Hz
+            %       sampling_frequency: sampling frequency in Hz
+            %   Output:
             %       background_signal: background signal [number_samples,number_channels]
             %   
-            %   Example: Compute and display the spectrogram of an audio file
-            %       % Read the audio signal and return the sample rate
-            %       [audio_signal,sample_rate] = audioread('audio_file.wav');
-            %       
-            %       % Estimate the background signal and infer the foreground signal
-            %       background_signal = repet.extended(audio_signal,sample_rate);
-            %       foreground_signal = audio_signal-background_signal;
-            %       
-            %       % Write the background and foreground signals
-            %       audiowrite('background_signal.wav',background_signal,sample_rate)
-            %       audiowrite('foreground_signal.wav',foreground_signal,sample_rate)
-            %       
-            %       % Compute the audio, background, and foreground spectrograms
-            %       window_length = 2^nextpow2(0.04*sample_rate);
-            %       step_length = window_length/2;
-            %       window_function = hamming(window_length,'periodic');
-            %       audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_length,window_length-step_length));
-            %       background_spectrogram = abs(spectrogram(mean(background_signal,2),window_length,window_length-step_length));
-            %       foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_length,window_length-step_length));
-            %       
-            %       % Display the audio, background, and foreground spectrograms (up to 5kHz)
-            %       figure
-            %       subplot(3,1,1), imagesc(db(audio_spectrogram(2:window_length/8,:))), axis xy
-            %       title('Audio Spectrogram (dB)')
-            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
-            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
-            %       set(gca,'FontSize',30)
-            %       subplot(3,1,2), imagesc(db(background_spectrogram(2:window_length/8,:))), axis xy
-            %       title('Background Spectrogram (dB)')
-            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
-            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
-            %       set(gca,'FontSize',30)
-            %       subplot(3,1,3), imagesc(db(foreground_spectrogram(2:window_length/8,:))), axis xy
-            %       title('Foreground Spectrogram (dB)')
-            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
-            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
-            %       set(gca,'FontSize',30)
-            %       colormap(jet)
-            %
-            %   See also repet.original, repet.adaptive, repet.sim, repet.simonline
+            %   Example: Estimate the background and foreground signals, and display their spectrograms.
             
-            % Number of samples and channels
+            % Get the number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
             
             % Segmentation length, step, and overlap in samples
-            segment_length = round(repet.segment_length*sample_rate);
-            segment_step = round(repet.segment_step*sample_rate);
+            segment_length = round(repet.segment_length*sampling_frequency);
+            segment_step = round(repet.segment_step*sampling_frequency);
             segment_overlap = segment_length-segment_step;
             
             % One segment if the signal is too short
@@ -325,16 +194,16 @@ classdef repet
             end
             
             % Window length, window function, and step length for the STFT
-            window_length = repet.windowlength(sample_rate);
+            window_length = repet.windowlength(sampling_frequency);
             window_function = repet.windowfunction(window_length);
             step_length = repet.steplength(window_length);
             
             % Period range in time frames for the beat spectrum
-            period_range = round(repet.period_range*sample_rate/step_length);
+            period_range = round(repet.period_range*sampling_frequency/step_length);
             
             % Cutoff frequency in frequency channels for the dual high-pass 
             % filter of the foreground
-            cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sample_rate);
+            cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sampling_frequency);
             
             % Initialize background signal
             background_signal = zeros(number_samples,number_channels);
@@ -452,8 +321,8 @@ classdef repet
             
         end
         
-        function background_signal = adaptive(audio_signal,sample_rate)
-            % adaptive Adaptive REPET
+        function background_signal = adaptive(audio_signal,sampling_frequency)
+            % adaptive Compute the adaptive REPET.
             %   The original REPET works well when the repeating background 
             %   is relatively stable (e.g., a verse or the chorus in a 
             %   song); however, the repeating background can also vary over 
@@ -464,65 +333,21 @@ classdef repet
             %   repeating background locally, without the need for 
             %   segmentation or windowing.
             %   
-            %   background_signal = repet.adaptive(audio_signal,sample_rate);
+            %   background_signal = repet.adaptive(audio_signal,sampling_frequency)
             %   
-            %   Arguments:
+            %   Inputs:
             %       audio_signal: audio signal [number_samples,number_channels]
-            %       sample_rate: sample rate in Hz
+            %       sampling_frequency: sampling frequency in Hz
+            %   Output:
             %       background_signal: background signal [number_samples,number_channels]
             %   
-            %   Example: Compute and display the spectrogram of an audio file
-            %       % Read the audio signal and return the sample rate
-            %       [audio_signal,sample_rate] = audioread('audio_file.wav');
-            %       
-            %       % Estimate the background signal and infer the foreground signal
-            %       background_signal = repet.adaptive(audio_signal,sample_rate);
-            %       foreground_signal = audio_signal-background_signal;
-            %       
-            %       % Write the background and foreground signals
-            %       audiowrite('background_signal.wav',background_signal,sample_rate)
-            %       audiowrite('foreground_signal.wav',foreground_signal,sample_rate)
-            %       
-            %       % Compute the audio, background, and foreground spectrograms
-            %       window_length = 2^nextpow2(0.04*sample_rate);
-            %       step_length = window_length/2;
-            %       window_function = hamming(window_length,'periodic');
-            %       audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_length,window_length-step_length));
-            %       background_spectrogram = abs(spectrogram(mean(background_signal,2),window_length,window_length-step_length));
-            %       foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_length,window_length-step_length));
-            %       
-            %       % Display the audio, background, and foreground spectrograms (up to 5kHz)
-            %       figure
-            %       subplot(3,1,1), imagesc(db(audio_spectrogram(2:window_length/8,:))), axis xy
-            %       title('Audio Spectrogram (dB)')
-            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
-            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
-            %       set(gca,'FontSize',30)
-            %       subplot(3,1,2), imagesc(db(background_spectrogram(2:window_length/8,:))), axis xy
-            %       title('Background Spectrogram (dB)')
-            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
-            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
-            %       set(gca,'FontSize',30)
-            %       subplot(3,1,3), imagesc(db(foreground_spectrogram(2:window_length/8,:))), axis xy
-            %       title('Foreground Spectrogram (dB)')
-            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
-            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
-            %       set(gca,'FontSize',30)
-            %       colormap(jet)
-            %
-            %   See also repet.original, repet.extended, repet.sim, repet.simonline
+            %   Example: Estimate the background and foreground signals, and display their spectrograms.
             
-            % Number of samples and channels
+            % Get the number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
             
             % Window length, window function, and step length for the STFT
-            window_length = repet.windowlength(sample_rate);
+            window_length = repet.windowlength(sampling_frequency);
             window_function = repet.windowfunction(window_length);
             step_length = repet.steplength(window_length);
             
@@ -547,22 +372,22 @@ classdef repet
             
             % Segment length and step in time frames for the beat 
             % spectrogram
-            segment_length = round(repet.segment_length*sample_rate/step_length);
-            segment_step = round(repet.segment_step*sample_rate/step_length);
+            segment_length = round(repet.segment_length*sampling_frequency/step_length);
+            segment_step = round(repet.segment_step*sampling_frequency/step_length);
             
             % Beat spectrogram of the spectrograms averaged over the 
             % channels (squared to emphasize peaks of periodicitiy)
             beat_spectrogram = repet.beatspectrogram(mean(audio_spectrogram,3).^2,segment_length,segment_step);
             
             % Period range in time frames for the beat spectrogram 
-            period_range = round(repet.period_range*sample_rate/step_length);
+            period_range = round(repet.period_range*sampling_frequency/step_length);
             
             % Repeating periods in time frames given the period range
             repeating_periods = repet.periods(beat_spectrogram,period_range);
             
             % Cutoff frequency in frequency channels for the dual high-pass 
             % filter of the foreground
-            cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sample_rate);
+            cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sampling_frequency);
             
             % Initialize the background signal
             background_signal = zeros(number_samples,number_channels);
@@ -590,7 +415,7 @@ classdef repet
             
         end
         
-        function background_signal = sim(audio_signal,sample_rate)
+        function background_signal = sim(audio_signal,sampling_frequency)
             % sim REPET-SIM
             %   The REPET methods work well when the repeating background 
             %   has periodically repeating patterns (e.g., jackhammer 
@@ -601,65 +426,21 @@ classdef repet
             %   structures, by using a similarity matrix to identify the 
             %   repeating elements.
             %   
-            %   background_signal = repet.sim(audio_signal,sample_rate);
+            %   background_signal = repet.sim(audio_signal,sampling_frequency)
             %   
-            %   Arguments:
+            %   Inputs:
             %       audio_signal: audio signal [number_samples,number_channels]
-            %       sample_rate: sample rate in Hz
+            %       sampling_frequency: sampling frequency in Hz
+            %   Output:
             %       background_signal: background signal [number_samples,number_channels]
             %   
-            %   Example: Compute and display the spectrogram of an audio file
-            %       % Read the audio signal and return the sample rate
-            %       [audio_signal,sample_rate] = audioread('audio_file.wav');
-            %       
-            %       % Estimate the background signal and infer the foreground signal
-            %       background_signal = repet.sim(audio_signal,sample_rate);
-            %       foreground_signal = audio_signal-background_signal;
-            %       
-            %       % Write the background and foreground signals
-            %       audiowrite('background_signal.wav',background_signal,sample_rate)
-            %       audiowrite('foreground_signal.wav',foreground_signal,sample_rate)
-            %       
-            %       % Compute the audio, background, and foreground spectrograms
-            %       window_length = 2^nextpow2(0.04*sample_rate);
-            %       step_length = window_length/2;
-            %       window_function = hamming(window_length,'periodic');
-            %       audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_length,window_length-step_length));
-            %       background_spectrogram = abs(spectrogram(mean(background_signal,2),window_length,window_length-step_length));
-            %       foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_length,window_length-step_length));
-            %       
-            %       % Display the audio, background, and foreground spectrograms (up to 5kHz)
-            %       figure
-            %       subplot(3,1,1), imagesc(db(audio_spectrogram(2:window_length/8,:))), axis xy
-            %       title('Audio Spectrogram (dB)')
-            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
-            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
-            %       set(gca,'FontSize',30)
-            %       subplot(3,1,2), imagesc(db(background_spectrogram(2:window_length/8,:))), axis xy
-            %       title('Background Spectrogram (dB)')
-            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
-            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
-            %       set(gca,'FontSize',30)
-            %       subplot(3,1,3), imagesc(db(foreground_spectrogram(2:window_length/8,:))), axis xy
-            %       title('Foreground Spectrogram (dB)')
-            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
-            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
-            %       set(gca,'FontSize',30)
-            %       colormap(jet)
-            %
-            %   See also repet.original, repet.extended, repet.adaptive, repet.simonline
+            %   Example: Estimate the background and foreground signals, and display their spectrograms.
             
-            % Number of samples and channels
+            % Get the number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
             
             % Window length, window function, and step length for the STFT
-            window_length = repet.windowlength(sample_rate);
+            window_length = repet.windowlength(sampling_frequency);
             window_function = repet.windowfunction(window_length);
             step_length = repet.steplength(window_length);
             
@@ -687,7 +468,7 @@ classdef repet
             similarity_matrix = repet.selfsimilaritymatrix(mean(audio_spectrogram,3));
             
             % Similarity distance in time frames
-            similarity_distance = round(repet.similarity_distance*sample_rate/step_length);
+            similarity_distance = round(repet.similarity_distance*sampling_frequency/step_length);
             
             % Similarity indices for all the frames
             similarity_indices ...
@@ -695,7 +476,7 @@ classdef repet
             
             % Cutoff frequency in frequency channels for the dual high-pass 
             % filter of the foreground
-            cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sample_rate);
+            cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sampling_frequency);
             
             % Initialize the background signal
             background_signal = zeros(number_samples,number_channels);
@@ -722,7 +503,7 @@ classdef repet
             
         end
         
-        function background_signal = simonline(audio_signal,sample_rate)
+        function background_signal = simonline(audio_signal,sampling_frequency)
             % simonline Online REPET-SIM
             %   REPET-SIM can be easily implemented online to handle 
             %   real-time computing, particularly for real-time speech 
@@ -730,65 +511,21 @@ classdef repet
             %   frames of the mixture one after the other given a buffer 
             %   that temporally stores past frames.
             %   
-            %   background_signal = repet.simonline(audio_signal,sample_rate);
+            %   background_signal = repet.simonline(audio_signal,sampling_frequency)
             %   
-            %   Arguments:
+            %   Inputs:
             %       audio_signal: audio signal [number_samples,number_channels]
-            %       sample_rate: sample rate in Hz
+            %       sampling_frequency: sampling frequency in Hz
+            %   Output:
             %       background_signal: background signal [number_samples,number_channels]
             %   
-            %   Example: Compute and display the spectrogram of an audio file
-            %       % Read the audio signal and return the sample rate
-            %       [audio_signal,sample_rate] = audioread('audio_file.wav');
-            %       
-            %       % Estimate the background signal and infer the foreground signal
-            %       background_signal = repet.simonline(audio_signal,sample_rate);
-            %       foreground_signal = audio_signal-background_signal;
-            %       
-            %       % Write the background and foreground signals
-            %       audiowrite('background_signal.wav',background_signal,sample_rate)
-            %       audiowrite('foreground_signal.wav',foreground_signal,sample_rate)
-            %       
-            %       % Compute the audio, background, and foreground spectrograms
-            %       window_length = 2^nextpow2(0.04*sample_rate);
-            %       step_length = window_length/2;
-            %       window_function = hamming(window_length,'periodic');
-            %       audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_length,window_length-step_length));
-            %       background_spectrogram = abs(spectrogram(mean(background_signal,2),window_length,window_length-step_length));
-            %       foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_length,window_length-step_length));
-            %       
-            %       % Display the audio, background, and foreground spectrograms (up to 5kHz)
-            %       figure
-            %       subplot(3,1,1), imagesc(db(audio_spectrogram(2:window_length/8,:))), axis xy
-            %       title('Audio Spectrogram (dB)')
-            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
-            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
-            %       set(gca,'FontSize',30)
-            %       subplot(3,1,2), imagesc(db(background_spectrogram(2:window_length/8,:))), axis xy
-            %       title('Background Spectrogram (dB)')
-            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
-            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
-            %       set(gca,'FontSize',30)
-            %       subplot(3,1,3), imagesc(db(foreground_spectrogram(2:window_length/8,:))), axis xy
-            %       title('Foreground Spectrogram (dB)')
-            %       xticks(round((1:floor(length(audio_signal)/sample_rate))*sample_rate/step_length))
-            %       xticklabels(1:floor(length(audio_signal)/sample_rate)), xlabel('Time (s)')
-            %       yticks(round((1e3:1e3:sample_rate/8)/sample_rate*window_length))
-            %       yticklabels(1:sample_rate/8*1e-3), ylabel('Frequency (kHz)')
-            %       set(gca,'FontSize',30)
-            %       colormap(jet)
-            %
-            %   See also repet.original, repet.extended, repet.adaptive, repet.sim
+            %   Example: Estimate the background and foreground signals, and display their spectrograms.
             
-            % Number of samples and channels
+            % Get the number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
             
             % Window length, window function, and step length for the STFT
-            window_length = repet.windowlength(sample_rate);
+            window_length = repet.windowlength(sampling_frequency);
             window_function = repet.windowfunction(window_length);
             step_length = repet.steplength(window_length);
             
@@ -796,7 +533,7 @@ classdef repet
             number_times = ceil((number_samples-window_length)/step_length+1);
             
             % Buffer length in time frames
-            buffer_length = round((repet.buffer_length*sample_rate-window_length)/step_length+1);
+            buffer_length = round((repet.buffer_length*sampling_frequency-window_length)/step_length+1);
             
             % Initialize the buffer spectrogram
             buffer_spectrogram = zeros(window_length/2+1,buffer_length,number_channels);
@@ -831,11 +568,11 @@ classdef repet
             audio_signal = [audio_signal;zeros((number_times-1)*step_length+window_length-number_samples,number_channels)];
             
             % Similarity distance in time frames
-            similarity_distance = round(repet.similarity_distance*sample_rate/step_length);
+            similarity_distance = round(repet.similarity_distance*sampling_frequency/step_length);
             
             % Cutoff frequency in frequency channels for the dual high-pass 
             % filter of the foreground
-            cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sample_rate);
+            cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sampling_frequency);
             
             % Initialize the background signal
             background_signal = zeros((number_times-1)*step_length+window_length,number_channels);
@@ -921,72 +658,90 @@ classdef repet
         
     end
     
-    % Other methods
-    methods (Access = private, Hidden = true, Static = true)
+    % Define the private methods
+    methods (Access = private, Static = true)
         
-        % Short-time Fourier transform (STFT) (with zero-padding at the 
-        % edges)
         function audio_stft = stft(audio_signal,window_function,step_length)
+            %   audio_stft = repet.stft(audio_signal,window_function,step_length)
+            %   
+            %   Inputs:
+            %       audio_signal: audio signal [number_samples,1]
+            %       window_function: window function [window_length,1]
+            %       step_length: step length in samples
+            %   Output:
+            %       audio_stft: audio STFT [window_length,number_frames]
             
-            % Number of samples and window length
+            % Get the number of samples and the window length in samples
             number_samples = length(audio_signal);
             window_length = length(window_function);
             
-            % Number of time frames
-            number_times = ceil((window_length-step_length+number_samples)/step_length);
+            % Derive the zero-padding length at the start and at the end of the signal to center the windows
+            padding_length = floor(window_length/2);
             
-            % Zero-padding at the start and end to center the windows 
-            audio_signal = [zeros(window_length-step_length,1);audio_signal; ...
-                zeros(number_times*step_length-number_samples,1)];
+            % Compute the number of time frames given the zero-padding at the start and at the end of the signal
+            number_times = ceil(((number_samples+2*padding_length)-window_length)/step_length)+1;
+            
+            % Zero-pad the start and the end of the signal to center the windows
+            audio_signal = [zeros(padding_length,1);audio_signal; ...
+                zeros((number_times*step_length+(window_length-step_length)-padding_length)-number_samples,1)];
             
             % Initialize the STFT
             audio_stft = zeros(window_length,number_times);
             
             % Loop over the time frames
-            for time_index = 1:number_times
+            i = 0;
+            for j = 1:number_times
                 
                 % Window the signal
-                sample_index = step_length*(time_index-1);
-                audio_stft(:,time_index) = audio_signal(1+sample_index:window_length+sample_index).*window_function;
+                audio_stft(:,j) = audio_signal(i+1:i+window_length).*window_function;
+                i = i+step_length;
                 
             end
             
-            % Fourier transform of the frames
+            % Compute the Fourier transform of the frames using the FFT
             audio_stft = fft(audio_stft);
             
         end
         
-        % Inverse short-time Fourier transform (STFT)
         function audio_signal = istft(audio_stft,window_function,step_length)
+            % istft Compute the inverse short-time Fourier transform (STFT).
+            %   audio_signal = zaf.istft(audio_stft,window_function,step_length)
+            %   
+            %   Inputs:
+            %       audio_stft: audio STFT [window_length,number_frames]
+            %       window_function: window function [window_length,1]
+            %       step_length: step length in samples
+            %   Output:
+            %       audio_signal: audio signal [number_samples,1]
             
-            % Window length and number of time frames
+            % Get the window length in samples and the number of time frames
             [window_length,number_times] = size(audio_stft);
             
-            % Number of samples for the signal
-            number_samples = (number_times-1)*step_length+window_length;
+            % Compute the number of samples for the signal
+            number_samples = number_times*step_length+(window_length-step_length);
             
             % Initialize the signal
             audio_signal = zeros(number_samples,1);
             
-            % Inverse Fourier transform of the frames and real part to 
-            % ensure real values
+            % Compute the inverse Fourier transform of the frames and real part to ensure real values
             audio_stft = real(ifft(audio_stft));
             
             % Loop over the time frames
-            for time_index = 1:number_times
+            i = 0;
+            for j = 1:number_times
                 
-                % Inverse Fourier transform of the signal (normalized 
-                % overlap-add if proper window and step)
-                sample_index = step_length*(time_index-1);
-                audio_signal(1+sample_index:window_length+sample_index) ...
-                    = audio_signal(1+sample_index:window_length+sample_index)+audio_stft(:,time_index);
+                % Perform a constant overlap-add (COLA) of the signal 
+                % (with proper window function and step length)
+                audio_signal(i+1:i+window_length) ...
+                    = audio_signal(i+1:i+window_length)+audio_stft(:,j);
+                i = i+step_length;
                 
             end
             
-            % Remove the zero-padding at the start and the end
+            % Remove the zero-padding at the start and at the end of the signal
             audio_signal = audio_signal(window_length-step_length+1:number_samples-(window_length-step_length));
             
-            % Un-window the signal (just in case)
+            % Normalize the signal by the gain introduced by the COLA (if any)
             audio_signal = audio_signal/sum(window_function(1:step_length:window_length));
             
         end
