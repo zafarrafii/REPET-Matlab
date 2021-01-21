@@ -98,7 +98,7 @@ set(gca,'FontSize',30)
 colormap(jet)
 ```
 
-<img src="images/repet_matlab/repet_original.png" width="1000">
+<img src="images/repet_original.png" width="1000">
 
 
 ### extended
@@ -165,7 +165,7 @@ set(gca,'FontSize',30)
 colormap(jet)
 ```
 
-<img src="images/repet_matlab/repet_extended.png" width="1000">
+<img src="images/repet_extended.png" width="1000">
 
 
 ### adaptive
@@ -234,7 +234,7 @@ set(gca,'FontSize',30)
 colormap(jet)
 ```
 
-<img src="images/repet_matlab/repet_adaptive.png" width="1000">
+<img src="images/repet_adaptive.png" width="1000">
 
 
 ### sim
@@ -303,7 +303,7 @@ set(gca,'FontSize',30)
 colormap(jet)
 ```
 
-<img src="images/repet_matlab/repet_sim.png" width="1000">
+<img src="images/repet_sim.png" width="1000">
 
 
 ### simonline
@@ -370,7 +370,7 @@ set(gca,'FontSize',30)
 colormap(jet)
 ```
 
-<img src="images/repet_matlab/repet_simonline.png" width="1000">
+<img src="images/repet_simonline.png" width="1000">
 
 
 ## audio_file.wav
