@@ -34,7 +34,7 @@ classdef repet
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   01/21/21
+    %   01/22/21
     
     % Define the properties
     properties (Access = private, Constant = true)
@@ -92,42 +92,44 @@ classdef repet
             % Get the number of samples and channels in the audio signal
             [number_samples,number_channels] = size(audio_signal);
             
-            % Window length, window function, and step length for the STFT
-            window_length = repet.windowlength(sampling_frequency);
-            window_function = repet.windowfunction(window_length);
-            step_length = repet.steplength(window_length);
+            % Set the parameters for the STFT 
+            % (audio stationary around 40 ms, power of 2 for fast FFT and constant overlap-add (COLA),
+            % periodic Hamming window for COLA, and step equal to half the window length for COLA)
+            window_length = 2^nextpow2(0.04*sampling_frequency);
+            window_function = hamming(window_length,'periodic');
+            step_length = window_length/2;
             
-            % Number of time frames
-            number_times = ceil((window_length-step_length+number_samples)/step_length);
+            % Derive the number of time frames
+            number_times = ceil(((number_samples+2*floor(window_length/2))-window_length) ...
+                /step_length)+1;
             
             % Initialize the STFT
             audio_stft = zeros(window_length,number_times,number_channels);
             
             % Loop over the channels
-            for channel_index = 1:number_channels
+            for i = 1:number_channels
                 
-                % STFT of the current channel
-                audio_stft(:,:,channel_index) ...
-                    = repet.stft(audio_signal(:,channel_index),window_function,step_length);
+                % Compute the STFT of the current channel
+                audio_stft(:,:,i) = repet.stft(audio_signal(:,i),window_function,step_length);
                 
             end
             
-            % Magnitude spectrogram (with DC component and without mirrored 
-            % frequencies)
+            % Derive the magnitude spectrogram
+            % (with the DC component and without the mirrored frequencies)
             audio_spectrogram = abs(audio_stft(1:window_length/2+1,:,:));
             
-            % Beat spectrum of the spectrograms averaged over the channels 
-            % (squared to emphasize peaks of periodicitiy)
+            % Compute the beat spectrum of the spectrograms averaged over 
+            % the channels (take the square to emphasize periodicity peaks)
             beat_spectrum = repet.beatspectrum(mean(audio_spectrogram,3).^2);
             
-            % Period range in time frames for the beat spectrum
+            % Get the period range in time frames for the beat spectrum
             period_range = round(repet.period_range*sampling_frequency/step_length);
             
             % Repeating period in time frames given the period range
             repeating_period = repet.periods(beat_spectrum,period_range);
             
-            % Cutoff frequency in frequency channels for the dual high-pass 
-            % filtering of the foreground
+            % Get the cutoff frequency in frequency channels for the dual 
+            % high-pass filtering of the foreground
             cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sampling_frequency);
             
             % Initialize the background signal
@@ -136,16 +138,18 @@ classdef repet
             % Loop over the channels
             for channel_index = 1:number_channels
                 
-                % Repeating mask for the current channel
+                % Compute the repeating mask for the current channel given 
+                % the repeating period
                 repeating_mask = repet.mask(audio_spectrogram(:,:,channel_index),repeating_period);
                 
-                % High-pass filtering of the dual foreground
+                % Perform a high-pass filtering of the dual foreground
                 repeating_mask(2:cutoff_frequency+1,:) = 1;
                 
-                % Mirror the frequency channels
+                % Recover the mirrored frequencies
                 repeating_mask = cat(1,repeating_mask,repeating_mask(end-1:-1:2,:));
                 
-                % Estimated repeating background for the current channel
+                % Synthesize the repeating background for the current 
+                % channel
                 background_signal1 ...
                     = repet.istft(repeating_mask.*audio_stft(:,:,channel_index),window_function,step_length);
                 
