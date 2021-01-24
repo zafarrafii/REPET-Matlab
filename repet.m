@@ -88,7 +88,41 @@ classdef repet
             %       background_signal: background signal [number_samples,number_channels]
             %   
             %   Example: Estimate the background and foreground signals, and display their spectrograms.
-            
+            %       % Read the audio signal with its sampling frequency in Hz
+            %       [audio_signal,sampling_frequency] = audioread('audio_file.wav');
+            % 
+            %       % Estimate the background signal, and the foreground signal
+            %       background_signal = repet.original(audio_signal,sampling_frequency);
+            %       foreground_signal = audio_signal-background_signal;
+            % 
+            %       % Write the background and foreground signals
+            %       audiowrite('background_signal.wav',background_signal,sampling_frequency)
+            %       audiowrite('foreground_signal.wav',foreground_signal,sampling_frequency)
+            % 
+            %       % Compute the mixture, background, and foreground spectrograms
+            %       window_length = 2^nextpow2(0.04*sampling_frequency);
+            %       window_function = hamming(window_length,'periodic');
+            %       step_length = window_length/2;
+            %       audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_length,window_length-step_length));
+            %       background_spectrogram = abs(spectrogram(mean(background_signal,2),window_length,window_length-step_length));
+            %       foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_length,window_length-step_length));
+            % 
+            %       % Display the mixture, background, and foreground spectrograms in dB, seconds, and Hz
+            %       time_duration = length(audio_signal)/sampling_frequency;
+            %       maximum_frequency = sampling_frequency/8;
+            %       xtick_step = 1;
+            %       ytick_step = 1000;
+            %       figure
+            %       subplot(3,1,1)
+            %       repet.specshow(audio_spectrogram(1:window_length/8,:),time_duration,maximum_frequency,xtick_step,ytick_step)
+            %       title('Audio spectrogram (dB)')
+            %       subplot(3,1,2)
+            %       repet.specshow(background_spectrogram(1:window_length/8,:),time_duration,maximum_frequency,xtick_step,ytick_step)
+            %       title('Background spectrogram (dB)')
+            %       subplot(3,1,3)
+            %       repet.specshow(foreground_spectrogram(1:window_length/8,:),time_duration,maximum_frequency,xtick_step,ytick_step)
+            %       title('Foreground spectrogram (dB)')
+
             % Get the number of samples and channels in the audio signal
             [number_samples,number_channels] = size(audio_signal);
             
@@ -174,6 +208,40 @@ classdef repet
             %       background_signal: background signal [number_samples,number_channels]
             %   
             %   Example: Estimate the background and foreground signals, and display their spectrograms.
+            %       % Read the audio signal with its sampling frequency in Hz
+            %       [audio_signal,sampling_frequency] = audioread('audio_file.wav');
+            % 
+            %       % Estimate the background signal, and the foreground signal
+            %       background_signal = repet.extended(audio_signal,sampling_frequency);
+            %       foreground_signal = audio_signal-background_signal;
+            % 
+            %       % Write the background and foreground signals
+            %       audiowrite('background_signal.wav',background_signal,sampling_frequency)
+            %       audiowrite('foreground_signal.wav',foreground_signal,sampling_frequency)
+            % 
+            %       % Compute the mixture, background, and foreground spectrograms
+            %       window_length = 2^nextpow2(0.04*sampling_frequency);
+            %       window_function = hamming(window_length,'periodic');
+            %       step_length = window_length/2;
+            %       audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_length,window_length-step_length));
+            %       background_spectrogram = abs(spectrogram(mean(background_signal,2),window_length,window_length-step_length));
+            %       foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_length,window_length-step_length));
+            % 
+            %       % Display the mixture, background, and foreground spectrograms in dB, seconds, and Hz
+            %       time_duration = length(audio_signal)/sampling_frequency;
+            %       maximum_frequency = sampling_frequency/8;
+            %       xtick_step = 1;
+            %       ytick_step = 1000;
+            %       figure
+            %       subplot(3,1,1)
+            %       repet.specshow(audio_spectrogram(1:window_length/8,:),time_duration,maximum_frequency,xtick_step,ytick_step)
+            %       title('Audio spectrogram (dB)')
+            %       subplot(3,1,2)
+            %       repet.specshow(background_spectrogram(1:window_length/8,:),time_duration,maximum_frequency,xtick_step,ytick_step)
+            %       title('Background spectrogram (dB)')
+            %       subplot(3,1,3)
+            %       repet.specshow(foreground_spectrogram(1:window_length/8,:),time_duration,maximum_frequency,xtick_step,ytick_step)
+            %       title('Foreground spectrogram (dB)')
             
             % Get the number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
@@ -345,6 +413,40 @@ classdef repet
             %       background_signal: background signal [number_samples,number_channels]
             %   
             %   Example: Estimate the background and foreground signals, and display their spectrograms.
+            %       % Read the audio signal with its sampling frequency in Hz
+            %       [audio_signal,sampling_frequency] = audioread('audio_file.wav');
+            % 
+            %       % Estimate the background signal, and the foreground signal
+            %       background_signal = repet.adaptive(audio_signal,sampling_frequency);
+            %       foreground_signal = audio_signal-background_signal;
+            % 
+            %       % Write the background and foreground signals
+            %       audiowrite('background_signal.wav',background_signal,sampling_frequency)
+            %       audiowrite('foreground_signal.wav',foreground_signal,sampling_frequency)
+            % 
+            %       % Compute the mixture, background, and foreground spectrograms
+            %       window_length = 2^nextpow2(0.04*sampling_frequency);
+            %       window_function = hamming(window_length,'periodic');
+            %       step_length = window_length/2;
+            %       audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_length,window_length-step_length));
+            %       background_spectrogram = abs(spectrogram(mean(background_signal,2),window_length,window_length-step_length));
+            %       foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_length,window_length-step_length));
+            % 
+            %       % Display the mixture, background, and foreground spectrograms in dB, seconds, and Hz
+            %       time_duration = length(audio_signal)/sampling_frequency;
+            %       maximum_frequency = sampling_frequency/8;
+            %       xtick_step = 1;
+            %       ytick_step = 1000;
+            %       figure
+            %       subplot(3,1,1)
+            %       repet.specshow(audio_spectrogram(1:window_length/8,:),time_duration,maximum_frequency,xtick_step,ytick_step)
+            %       title('Audio spectrogram (dB)')
+            %       subplot(3,1,2)
+            %       repet.specshow(background_spectrogram(1:window_length/8,:),time_duration,maximum_frequency,xtick_step,ytick_step)
+            %       title('Background spectrogram (dB)')
+            %       subplot(3,1,3)
+            %       repet.specshow(foreground_spectrogram(1:window_length/8,:),time_duration,maximum_frequency,xtick_step,ytick_step)
+            %       title('Foreground spectrogram (dB)')
             
             % Get the number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
@@ -438,6 +540,40 @@ classdef repet
             %       background_signal: background signal [number_samples,number_channels]
             %   
             %   Example: Estimate the background and foreground signals, and display their spectrograms.
+            %       % Read the audio signal with its sampling frequency in Hz
+            %       [audio_signal,sampling_frequency] = audioread('audio_file.wav');
+            % 
+            %       % Estimate the background signal, and the foreground signal
+            %       background_signal = repet.sim(audio_signal,sampling_frequency);
+            %       foreground_signal = audio_signal-background_signal;
+            % 
+            %       % Write the background and foreground signals
+            %       audiowrite('background_signal.wav',background_signal,sampling_frequency)
+            %       audiowrite('foreground_signal.wav',foreground_signal,sampling_frequency)
+            % 
+            %       % Compute the mixture, background, and foreground spectrograms
+            %       window_length = 2^nextpow2(0.04*sampling_frequency);
+            %       window_function = hamming(window_length,'periodic');
+            %       step_length = window_length/2;
+            %       audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_length,window_length-step_length));
+            %       background_spectrogram = abs(spectrogram(mean(background_signal,2),window_length,window_length-step_length));
+            %       foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_length,window_length-step_length));
+            % 
+            %       % Display the mixture, background, and foreground spectrograms in dB, seconds, and Hz
+            %       time_duration = length(audio_signal)/sampling_frequency;
+            %       maximum_frequency = sampling_frequency/8;
+            %       xtick_step = 1;
+            %       ytick_step = 1000;
+            %       figure
+            %       subplot(3,1,1)
+            %       repet.specshow(audio_spectrogram(1:window_length/8,:),time_duration,maximum_frequency,xtick_step,ytick_step)
+            %       title('Audio spectrogram (dB)')
+            %       subplot(3,1,2)
+            %       repet.specshow(background_spectrogram(1:window_length/8,:),time_duration,maximum_frequency,xtick_step,ytick_step)
+            %       title('Background spectrogram (dB)')
+            %       subplot(3,1,3)
+            %       repet.specshow(foreground_spectrogram(1:window_length/8,:),time_duration,maximum_frequency,xtick_step,ytick_step)
+            %       title('Foreground spectrogram (dB)')
             
             % Get the number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
@@ -523,6 +659,40 @@ classdef repet
             %       background_signal: background signal [number_samples,number_channels]
             %   
             %   Example: Estimate the background and foreground signals, and display their spectrograms.
+            %       % Read the audio signal with its sampling frequency in Hz
+            %       [audio_signal,sampling_frequency] = audioread('audio_file.wav');
+            % 
+            %       % Estimate the background signal, and the foreground signal
+            %       background_signal = repet.simonline(audio_signal,sampling_frequency);
+            %       foreground_signal = audio_signal-background_signal;
+            % 
+            %       % Write the background and foreground signals
+            %       audiowrite('background_signal.wav',background_signal,sampling_frequency)
+            %       audiowrite('foreground_signal.wav',foreground_signal,sampling_frequency)
+            % 
+            %       % Compute the mixture, background, and foreground spectrograms
+            %       window_length = 2^nextpow2(0.04*sampling_frequency);
+            %       window_function = hamming(window_length,'periodic');
+            %       step_length = window_length/2;
+            %       audio_spectrogram = abs(spectrogram(mean(audio_signal,2),window_length,window_length-step_length));
+            %       background_spectrogram = abs(spectrogram(mean(background_signal,2),window_length,window_length-step_length));
+            %       foreground_spectrogram = abs(spectrogram(mean(foreground_signal,2),window_length,window_length-step_length));
+            % 
+            %       % Display the mixture, background, and foreground spectrograms in dB, seconds, and Hz
+            %       time_duration = length(audio_signal)/sampling_frequency;
+            %       maximum_frequency = sampling_frequency/8;
+            %       xtick_step = 1;
+            %       ytick_step = 1000;
+            %       figure
+            %       subplot(3,1,1)
+            %       repet.specshow(audio_spectrogram(1:window_length/8,:),time_duration,maximum_frequency,xtick_step,ytick_step)
+            %       title('Audio spectrogram (dB)')
+            %       subplot(3,1,2)
+            %       repet.specshow(background_spectrogram(1:window_length/8,:),time_duration,maximum_frequency,xtick_step,ytick_step)
+            %       title('Background spectrogram (dB)')
+            %       subplot(3,1,3)
+            %       repet.specshow(foreground_spectrogram(1:window_length/8,:),time_duration,maximum_frequency,xtick_step,ytick_step)
+            %       title('Foreground spectrogram (dB)')
             
             % Get the number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
