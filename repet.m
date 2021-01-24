@@ -34,7 +34,7 @@ classdef repet
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   01/22/21
+    %   01/23/21
     
     % Define the properties
     properties (Access = private, Constant = true)
@@ -118,14 +118,15 @@ classdef repet
             % (with the DC component and without the mirrored frequencies)
             audio_spectrogram = abs(audio_stft(1:window_length/2+1,:,:));
             
-            % Compute the beat spectrum of the spectrograms averaged over 
-            % the channels (take the square to emphasize periodicity peaks)
+            % Compute the beat spectrum of the spectrograms averaged over the channels 
+            % (take the square to emphasize periodicity peaks)
             beat_spectrum = repet.beatspectrum(mean(audio_spectrogram,3).^2);
             
             % Get the period range in time frames for the beat spectrum
             period_range = round(repet.period_range*sampling_frequency/step_length);
             
-            % Repeating period in time frames given the period range
+            % Estimate the repeating period in time frames given the period 
+            % range
             repeating_period = repet.periods(beat_spectrum,period_range);
             
             % Get the cutoff frequency in frequency channels for the dual 
@@ -138,8 +139,7 @@ classdef repet
             % Loop over the channels
             for channel_index = 1:number_channels
                 
-                % Compute the repeating mask for the current channel given 
-                % the repeating period
+                % Compute the repeating mask for the current channel given the repeating period
                 repeating_mask = repet.mask(audio_spectrogram(:,:,channel_index),repeating_period);
                 
                 % Perform a high-pass filtering of the dual foreground
@@ -148,8 +148,7 @@ classdef repet
                 % Recover the mirrored frequencies
                 repeating_mask = cat(1,repeating_mask,repeating_mask(end-1:-1:2,:));
                 
-                % Synthesize the repeating background for the current 
-                % channel
+                % Synthesize the repeating background for the current channel
                 background_signal1 ...
                     = repet.istft(repeating_mask.*audio_stft(:,:,channel_index),window_function,step_length);
                 
@@ -660,6 +659,55 @@ classdef repet
             
         end
         
+        function specshow(audio_spectrogram, number_samples, sampling_frequency, xtick_step, ytick_step)
+            % specshow Display a spectrogram in dB, seconds, and Hz.
+            %   repet.specshow(audio_spectrogram, number_samples, sampling_frequency, xtick_step, ytick_step)
+            %   
+            %   Inputs:
+            %       audio_spectrogram: audio spectrogram (without DC and mirrored frequencies) [number_frequencies, number_times]
+            %       number_samples: number of samples from the original signal
+            %       sampling_frequency: sampling frequency from the original signal in Hz
+            %       xtick_step: step for the x-axis ticks in seconds (default: 1 second)
+            %       ytick_step: step for the y-axis ticks in Hz (default: 1000 Hz)
+            
+            % Set the default values for xtick_step and ytick_step
+            if nargin <= 3
+                xtick_step = 1;
+                ytick_step = 1000;
+            end
+            
+            % Get the number of frequency channels and time frames
+            [number_frequencies,number_times] = size(audio_spectrogram);
+            
+            % Derive the number of Hertz and seconds
+            number_hertz = sampling_frequency/2;
+            number_seconds = number_samples/sampling_frequency;
+            
+            % Derive the number of time frames per second and the number of frequency channels per Hz
+            time_resolution = number_times/number_seconds;
+            frequency_resolution = number_frequencies/number_hertz;
+            
+            % Prepare the tick locations and labels for the x-axis
+            xtick_locations = xtick_step*time_resolution:xtick_step*time_resolution:number_times;
+            xtick_labels = xtick_step:xtick_step:number_seconds;
+            
+            % Prepare the tick locations and labels for the y-axis
+            ytick_locations = ytick_step*frequency_resolution:ytick_step*frequency_resolution:number_frequencies;
+            ytick_labels = ytick_step:ytick_step:number_hertz;
+            
+            % Display the spectrogram in dB, seconds, and Hz
+            imagesc(db(audio_spectrogram))
+            axis xy
+            colormap(jet)
+            xticks(xtick_locations)
+            xticklabels(xtick_labels)
+            yticks(ytick_locations)
+            yticklabels(ytick_labels)
+            xlabel('Time (s)')
+            ylabel('Frequency (Hz)')
+            
+        end
+        
     end
     
     % Define the private methods
@@ -709,7 +757,7 @@ classdef repet
         
         function audio_signal = istft(audio_stft,window_function,step_length)
             % istft Compute the inverse short-time Fourier transform (STFT).
-            %   audio_signal = zaf.istft(audio_stft,window_function,step_length)
+            %   audio_signal = repet.istft(audio_stft,window_function,step_length)
             %   
             %   Inputs:
             %       audio_stft: audio STFT [window_length,number_frames]
@@ -750,35 +798,47 @@ classdef repet
             
         end
         
-        % Autocorrelation using the Wiener–Khinchin theorem (faster than 
-        % using xcorr)
         function autocorrelation_matrix = acorr(data_matrix)
+            % acorr Compute the autocorrelation of the columns in a matrix using the Wiener–Khinchin theorem.
+            %   autocorrelation_matrix = repet.acorr(data_matrix)
+            %   
+            %   Input:
+            %       data_matrix: data matrix [number_rows,number_columns]
+            %   Output:
+            %       autocorrelation_matrix: autocorrelation matrix [number_lags,number_columns]
             
-            % Number of points in each column
-            number_points = size(data_matrix,1);
+            % Get the number of rows in each column
+            number_rows = size(data_matrix,1);
             
-            % Power Spectral Density (PSD): PSD(X) = fft(X).*conj(fft(X))
-            % (after zero-padding for proper autocorrelation)
-            data_matrix = abs(fft(data_matrix,2*number_points)).^2;
+            % Compute the power spectral density (PSD) of the columns
+            % (with zero-padding for proper autocorrelation)
+            data_matrix = abs(fft(data_matrix,2*number_rows)).^2;
             
-            % Wiener–Khinchin theorem: PSD(X) = fft(acorr(X))
-            autocorrelation_matrix = ifft(data_matrix); 
+            % Compute the autocorrelation using the Wiener–Khinchin theorem
+            % (the PSD equals the Fourier transform of the autocorrelation)
+            autocorrelation_matrix = real(ifft(data_matrix)); 
             
             % Discard the symmetric part
-            autocorrelation_matrix = autocorrelation_matrix(1:number_points,:);
+            autocorrelation_matrix = autocorrelation_matrix(1:number_rows,:);
             
-            % Unbiased autocorrelation (lag 0 to number_points-1)
-            autocorrelation_matrix = autocorrelation_matrix./(number_points:-1:1)';
+            % Derive the unbiased autocorrelation
+            autocorrelation_matrix = autocorrelation_matrix./(number_rows:-1:1)';
             
         end
         
-        % Beat spectrum using the autocorrelation
         function beat_spectrum = beatspectrum(audio_spectrogram)
+            % beatspectrum Compute the beat spectrum using autocorrelation.
+            %   autocorrelation_matrix = repet.acorr(data_matrix)
+            %   
+            %   Input:
+            %       audio_spectrogram: audio spectrogram [number_frequencies,number_times]
+            %   Output:
+            %       beat_spectrum: beat spectrum [number_lags,1]
             
-            % Autocorrelation of the frequency channels
+            % Compute the autocorrelation of the frequency channels
             beat_spectrum = repet.acorr(audio_spectrogram');
             
-            % Mean over the frequency channels
+            % Take the mean over the frequency channels
             beat_spectrum = mean(beat_spectrum,2);
             
         end
@@ -845,16 +905,20 @@ classdef repet
             
         end
         
-        % Repeating periods from the beat spectra (spectrum or spectrogram)
-        function repeating_periods = periods(beat_spectra,period_range)
+        function repeating_periods = periods(beat_spectrogram,period_range)
+            % periods Compute the repeating period(s) from the beat spectrogram(spectrum) given a period range.
+            %   repeating_periods = repet.periods(beat_spectrogram)
+            %   
+            %   Input:
+            %       beat_spectrogram: beat spectrogram (or spectrum) [number_lags,number_times] (or [number_lags,1])
+            %   Output:
+            %       repeating_periods: repeating period(s) in lags [number_periods,1] (or scalar)
             
-            % The repeating periods are the indices of the maxima in the 
-            % beat spectra for the period range (they do not account for 
-            % lag 0 and should be shorter than a third of the length as at 
-            % least three segments are needed for the median)
-            [~,repeating_periods] = max(beat_spectra(period_range(1)+1:min(period_range(2),floor(size(beat_spectra,1)/3)),:),[],1);
+            % Compute the repeating periods as the argmax for all the time frames given the period range
+            %(should be less than a third of the length to have at least 3 segments for the median filter)
+            [~,repeating_periods] = max(beat_spectrogram(period_range(1)+1:min(period_range(2),floor(size(beat_spectrogram,1)/3)),:),[],1);
             
-            % Re-adjust the index or indices
+            % Re-adjust the indices
             repeating_periods = repeating_periods+period_range(1);
             
         end
@@ -931,35 +995,39 @@ classdef repet
             
         end
         
-        % Repeating mask for REPET
         function repeating_mask = mask(audio_spectrogram,repeating_period)
+            % mask Compute the repeating mask for REPET.
+            %   repeating_period = repet.mask(audio_spectrogram,repeating_period)
+            %   
+            %   Input:
+            %       audio_spectrogram: audio spectrogram [number_frequencies,number_times]
+            %   Output:
+            %       repeating_period: repeating period in lag
             
-            % Number of frequency channels and time frames
+            % Get the number of frequency channels and time frames
             [number_frequencies,number_times] = size(audio_spectrogram);
             
-            % Number of repeating segments, including the last partial one
+            % Estimate the number of segments (including the last partial one)
             number_segments = ceil(number_times/repeating_period);
             
-            % Pad the audio spectrogram to have an integer number of 
-            % segments and reshape it to a tensor
+            % Pad the end of the spectrogram to have a full last segment
             audio_spectrogram = [audio_spectrogram,nan(number_frequencies,number_segments*repeating_period-number_times)];
+            
+            % Reshape the padded spectrogram to a tensor of size [number_frequencies,number_times,number_segments]
             audio_spectrogram = reshape(audio_spectrogram,[number_frequencies,repeating_period,number_segments]);
             
-            % Derive the repeating segment by taking the median over the 
-            % segments, ignoring the nan parts
+            % Compute the repeating segment by taking the median over the segments, not accounting for the last nans
             repeating_segment = [median(audio_spectrogram(:,1:number_times-(number_segments-1)*repeating_period,:),3), ... 
                 median(audio_spectrogram(:,number_times-(number_segments-1)*repeating_period+1:repeating_period,1:end-1),3)];
             
-            % Derive the repeating spectrogram by making sure it has less 
-            % energy than the audio spectrogram
+            % DDerive the repeating spectrogram by ensuring it has less energy than the original spectrogram
             repeating_spectrogram = min(audio_spectrogram,repeating_segment);
             
-            % Derive the repeating mask by normalizing the repeating 
-            % spectrogram by the audio spectrogram
+            % e the repeating mask by normalizing the repeating spectrogram by the original spectrogram
             repeating_mask = (repeating_spectrogram+eps)./(audio_spectrogram+eps);
             
-            % Reshape the repeating mask and truncate to the original
-            % number of time frames
+            % Reshape the repeating mask into [number_frequencies,number_times] 
+            % and truncate to the original number of time frames
             repeating_mask = reshape(repeating_mask,[number_frequencies,number_segments*repeating_period]);
             repeating_mask = repeating_mask(:,1:number_times);
             
