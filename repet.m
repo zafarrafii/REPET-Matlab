@@ -34,7 +34,7 @@ classdef repet
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   01/23/21
+    %   01/25/21
     
     % Define the properties
     properties (Access = private, Constant = true)
@@ -153,19 +153,18 @@ classdef repet
             audio_spectrogram = abs(audio_stft(1:window_length/2+1,:,:));
             
             % Compute the beat spectrum of the spectrograms averaged over the channels 
-            % (take the square to emphasize periodicity peaks)
+            % (take the square to emphasize peaks of periodicitiy)
             beat_spectrum = repet.beatspectrum(mean(audio_spectrogram,3).^2);
             
             % Get the period range in time frames for the beat spectrum
-            period_range = round(repet.period_range*sampling_frequency/step_length);
+            period_range2 = round(repet.period_range*sampling_frequency/step_length);
             
-            % Estimate the repeating period in time frames given the period 
-            % range
-            repeating_period = repet.periods(beat_spectrum,period_range);
+            % Estimate the repeating period in time frames given the period range
+            repeating_period = repet.periods(beat_spectrum,period_range2);
             
-            % Get the cutoff frequency in frequency channels for the dual 
-            % high-pass filtering of the foreground
-            cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sampling_frequency);
+            % Get the cutoff frequency in frequency channels 
+            % for the dual high-pass filtering of the foreground
+            cutoff_frequency2 = round(repet.cutoff_frequency*window_length/sampling_frequency);
             
             % Initialize the background signal
             background_signal = zeros(number_samples,number_channels);
@@ -177,7 +176,7 @@ classdef repet
                 repeating_mask = repet.mask(audio_spectrogram(:,:,channel_index),repeating_period);
                 
                 % Perform a high-pass filtering of the dual foreground
-                repeating_mask(2:cutoff_frequency+1,:) = 1;
+                repeating_mask(2:cutoff_frequency2+1,:) = 1;
                 
                 % Recover the mirrored frequencies
                 repeating_mask = cat(1,repeating_mask,repeating_mask(end-1:-1:2,:));
@@ -246,149 +245,155 @@ classdef repet
             % Get the number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
             
-            % Segmentation length, step, and overlap in samples
-            segment_length = round(repet.segment_length*sampling_frequency);
-            segment_step = round(repet.segment_step*sampling_frequency);
-            segment_overlap = segment_length-segment_step;
+            % Get the segment length, step, and overlap in samples
+            segment_length2 = round(repet.segment_length*sampling_frequency);
+            segment_step2 = round(repet.segment_step*sampling_frequency);
+            segment_overlap2 = segment_length2-segment_step2;
             
-            % One segment if the signal is too short
-            if number_samples < segment_length+segment_step
+            % Get the number of segments
+            if number_samples < segment_length2+segment_step2
+                
+                % Use a single segment if the signal is too short
                 number_segments = 1;
+                
             else
                 
-                % Number of segments (the last one could be longer)
-                number_segments = 1+floor((number_samples-segment_length)/segment_step);
+                % Use multiple segments if the signal is long enough
+                % (the last segment could be longer)
+                number_segments = 1+floor((number_samples-segment_length2)/segment_step2);
                 
-                % Triangular window for the overlapping parts
-                segment_window = triang(2*segment_overlap);
+                % Use a triangular window for the overlapping parts
+                segment_window = triang(2*segment_overlap2);
                 
             end
             
-            % Window length, window function, and step length for the STFT
-            window_length = repet.windowlength(sampling_frequency);
-            window_function = repet.windowfunction(window_length);
-            step_length = repet.steplength(window_length);
+            % Set the parameters for the STFT 
+            % (audio stationary around 40 ms, power of 2 for fast FFT and constant overlap-add (COLA),
+            % periodic Hamming window for COLA, and step equal to half the window length for COLA)
+            window_length = 2^nextpow2(0.04*sampling_frequency);
+            window_function = hamming(window_length,'periodic');
+            step_length = window_length/2;
             
-            % Period range in time frames for the beat spectrum
-            period_range = round(repet.period_range*sampling_frequency/step_length);
+            % Get the period range in time frames for the beat spectrum
+            period_range2 = round(repet.period_range*sampling_frequency/step_length);
             
-            % Cutoff frequency in frequency channels for the dual high-pass 
-            % filter of the foreground
-            cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sampling_frequency);
+            % Get the cutoff frequency in frequency channels 
+            % for the dual high-pass filter of the foreground
+            cutoff_frequency2 = round(repet.cutoff_frequency*window_length/sampling_frequency);
             
-            % Initialize background signal
+            % Initialize the background signal
             background_signal = zeros(number_samples,number_channels);
             
-            % Open wait bar
-            wait_bar = waitbar(0,'REPET extended');
-            
             % Loop over the segments
-            for segment_index = 1:number_segments
+            k = 0;
+            for j = 1:number_segments
                 
-                % Case one segment
+                % Check if there is a single segment or multiple ones
                 if number_segments == 1
+                    
+                    % Use the whole signal as the segment
                     audio_segment = audio_signal;
-                    segment_length = number_samples;
+                    segment_length2 = number_samples;
+                    
                 else
                     
-                    % Sample index for the segment
-                    sample_index = (segment_index-1)*segment_step;
-                    
-                    % Case first segments (same length)
-                    if segment_index < number_segments
-                        audio_segment = audio_signal(sample_index+1:sample_index+segment_length,:);
-                        
-                    % Case last segment (could be longer)
-                    elseif segment_index == number_segments
-                        audio_segment = audio_signal(sample_index+1:number_samples,:);
-                        segment_length = length(audio_segment);
+                    % Check if it is one of the first segments (same length) 
+                    % or the last one (could be longer)
+                    if j < number_segments
+                        audio_segment = audio_signal(k+1:k+segment_length2,:);
+                    elseif j == number_segments
+                        audio_segment = audio_signal(k+1:number_samples,:);
+                        segment_length2 = length(audio_segment);
                     end
                     
                 end
                 
-                % Number of time frames
-                number_times = ceil((window_length-step_length+segment_length)/step_length);
+                % Get the number of time frames
+                number_times = ceil((window_length-step_length+segment_length2)/step_length);
                 
                 % Initialize the STFT
                 audio_stft = zeros(window_length,number_times,number_channels);
                 
                 % Loop over the channels
-                for channel_index = 1:number_channels
+                for i = 1:number_channels
                     
-                    % STFT of the current channel
-                    audio_stft(:,:,channel_index) ...
-                        = repet.stft(audio_segment(:,channel_index),window_function,step_length);
+                    % Compute the STFT of the current channel
+                    audio_stft(:,:,i) = repet.stft(audio_segment(:,i),window_function,step_length);
                     
                 end
                 
-                % Magnitude spectrogram (with DC component and without 
-                % mirrored frequencies)
+                % Derive the magnitude spectrogram 
+                % (with the DC component and without the mirrored frequencies)
                 audio_spectrogram = abs(audio_stft(1:window_length/2+1,:,:));
                 
-                % Beat spectrum of the spectrograms averaged over the 
-                % channels (squared to emphasize peaks of periodicitiy)
+                % Compute the beat spectrum of the spectrograms averaged over the channels
+                % (take the square to emphasize peaks of periodicitiy)
                 beat_spectrum = repet.beatspectrum(mean(audio_spectrogram,3).^2);
                 
                 % Repeating period in time frames given the period range
-                repeating_period = repet.periods(beat_spectrum,period_range);
+                repeating_period = repet.periods(beat_spectrum,period_range2);
                 
                 % Initialize the background segment
-                background_segment = zeros(segment_length,number_channels);
+                background_segment = zeros(segment_length2,number_channels);
                 
                 % Loop over the channels
-                for channel_index = 1:number_channels
+                for i = 1:number_channels
                     
-                    % Repeating mask for the current channel
-                    repeating_mask = repet.mask(audio_spectrogram(:,:,channel_index),repeating_period);
+                    % Compute the repeating mask for the current channel
+                    repeating_mask = repet.mask(audio_spectrogram(:,:,i),repeating_period);
                     
-                    % High-pass filtering of the dual foreground
-                    repeating_mask(2:cutoff_frequency+1,:) = 1;
+                    % Perform a high-pass filtering of the dual foreground
+                    repeating_mask(2:cutoff_frequency2+1,:) = 1;
                     
-                    % Mirror the frequency channels
+                    % Recover the mirrored frequencies
                     repeating_mask = cat(1,repeating_mask,repeating_mask(end-1:-1:2,:));
                     
-                    % Estimated repeating background for the current channel
+                    % Synthesize the repeating background for the current channel
                     background_segment1 ...
-                        = repet.istft(repeating_mask.*audio_stft(:,:,channel_index),window_function,step_length);
+                        = repet.istft(repeating_mask.*audio_stft(:,:,i),window_function,step_length);
                     
                     % Truncate to the original number of samples
-                    background_segment(:,channel_index) = background_segment1(1:segment_length);
+                    background_segment(:,i) = background_segment1(1:segment_length2);
                     
                 end
                 
-                % Case one segment
+                % Check again if there is a single segment or multiple ones
                 if number_segments == 1
+                    
+                    % Use the segment as the whole signal
                     background_signal = background_segment;
+                    
                 else
                     
-                    % Case first segment
-                    if segment_index == 1
-                        background_signal(1:segment_length,:) ...
-                            = background_signal(1:segment_length,:) + background_segment;
+                    % Check if it is the first segment or the following ones
+                    if j == 1
                         
-                    % Case last segments
-                    elseif segment_index <= number_segments
+                        % Add the segment to the signal
+                        background_signal(1:segment_length2,:) ...
+                            = background_signal(1:segment_length2,:) + background_segment;
                         
-                        % Half windowing of the overlap part of the background signal on the right
-                        background_signal(sample_index+1:sample_index+segment_overlap,:) ...
-                            = background_signal(sample_index+1:sample_index+segment_overlap,:).*segment_window(segment_overlap+1:2*segment_overlap);
+                    elseif j <= number_segments
                         
-                        %   Half windowing of the overlap part of the background segment on the left
-                        background_segment(1:segment_overlap,:) ...
-                            = background_segment(1:segment_overlap,:).*segment_window(1:segment_overlap);
-                        background_signal(sample_index+1:sample_index+segment_length,:) ...
-                            = background_signal(sample_index+1:sample_index+segment_length,:) + background_segment;
+                        % Perform a half windowing of the overlap part of the background signal on the right
+                        background_signal(k+1:k+segment_overlap2,:) ...
+                            = background_signal(k+1:k+segment_overlap2,:).*segment_window(segment_overlap2+1:2*segment_overlap2);
+                        
+                        % Perform a half windowing of the overlap part of the background segment on the left
+                        background_segment(1:segment_overlap2,:) ...
+                            = background_segment(1:segment_overlap2,:).*segment_window(1:segment_overlap2);
+                        
+                        % Add the segment to the signal
+                        background_signal(k+1:k+segment_length2,:) ...
+                            = background_signal(k+1:k+segment_length2,:) + background_segment;
                         
                     end
+                    
+                    % Update the index
+                    k = k + segment_step2;
+                    
                 end
                 
-                % Update wait bar
-                waitbar(segment_index/number_segments,wait_bar);
-                
             end
-            
-            % Close wait bar
-            close(wait_bar)
             
         end
         
