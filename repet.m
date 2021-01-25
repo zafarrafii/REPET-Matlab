@@ -134,6 +134,7 @@ classdef repet
             step_length = window_length/2;
             
             % Derive the number of time frames
+            % (given the zero-padding at the start and the end of the signal)
             number_times = ceil(((number_samples+2*floor(window_length/2))-window_length) ...
                 /step_length)+1;
             
@@ -456,70 +457,71 @@ classdef repet
             % Get the number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
             
-            % Window length, window function, and step length for the STFT
-            window_length = repet.windowlength(sampling_frequency);
-            window_function = repet.windowfunction(window_length);
-            step_length = repet.steplength(window_length);
+            % Set the parameters for the STFT 
+            % (audio stationary around 40 ms, power of 2 for fast FFT and constant overlap-add (COLA),
+            % periodic Hamming window for COLA, and step equal to half the window length for COLA)
+            window_length = 2^nextpow2(0.04*sampling_frequency);
+            window_function = hamming(window_length,'periodic');
+            step_length = window_length/2;
             
-            % Number of time frames
-            number_times = ceil((window_length-step_length+number_samples)/step_length);
+            % Derive the number of time frames
+            % (given the zero-padding at the start and the end of the signal)
+            number_times = ceil(((number_samples+2*floor(window_length/2))-window_length) ...
+                /step_length)+1;
             
             % Initialize the STFT
             audio_stft = zeros(window_length,number_times,number_channels);
             
             % Loop over the channels
-            for channel_index = 1:number_channels
+            for i = 1:number_channels
                 
                 % STFT of the current channel
-                audio_stft(:,:,channel_index) ...
-                    = repet.stft(audio_signal(:,channel_index),window_function,step_length);
+                audio_stft(:,:,i) = repet.stft(audio_signal(:,i),window_function,step_length);
                 
             end
             
-            % Magnitude spectrogram (with DC component and without mirrored 
-            % frequencies)
+            % Derive the magnitude spectrogram
+            % (with the DC component and without the mirrored frequencies)
             audio_spectrogram = abs(audio_stft(1:window_length/2+1,:,:));
             
-            % Segment length and step in time frames for the beat 
-            % spectrogram
-            segment_length = round(repet.segment_length*sampling_frequency/step_length);
-            segment_step = round(repet.segment_step*sampling_frequency/step_length);
+            % Get the segment length and step in time frames for the beat spectrogram
+            segment_length2 = round(repet.segment_length*sampling_frequency/step_length);
+            segment_step2 = round(repet.segment_step*sampling_frequency/step_length);
             
-            % Beat spectrogram of the spectrograms averaged over the 
-            % channels (squared to emphasize peaks of periodicitiy)
-            beat_spectrogram = repet.beatspectrogram(mean(audio_spectrogram,3).^2,segment_length,segment_step);
+            % Compute the beat spectrogram of the spectrograms averaged over the channels
+            % (take the square to emphasize peaks of periodicitiy)
+            beat_spectrogram = repet.beatspectrogram(mean(audio_spectrogram,3).^2,segment_length2,segment_step2);
             
-            % Period range in time frames for the beat spectrogram 
-            period_range = round(repet.period_range*sampling_frequency/step_length);
+            % Get the period range in time frames
+            period_range2 = round(repet.period_range*sampling_frequency/step_length);
             
-            % Repeating periods in time frames given the period range
-            repeating_periods = repet.periods(beat_spectrogram,period_range);
+            % Estimate the repeating periods in time frames given the period range
+            repeating_periods = repet.periods(beat_spectrogram,period_range2);
             
-            % Cutoff frequency in frequency channels for the dual high-pass 
-            % filter of the foreground
-            cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sampling_frequency);
+            % Get the cutoff frequency in frequency channels for the dual high-pass filter of the foreground
+            cutoff_frequency2 = round(repet.cutoff_frequency*window_length/sampling_frequency);
             
             % Initialize the background signal
             background_signal = zeros(number_samples,number_channels);
             
             % Loop over the channels
-            for channel_index = 1:number_channels
+            for i = 1:number_channels
                 
-                % Repeating mask for the current channel
+                % Compute the repeating mask for the current channel given the repeating periods
                 repeating_mask ...
-                    = repet.adaptivemask(audio_spectrogram(:,:,channel_index),repeating_periods,repet.filter_order);
+                    = repet.adaptivemask(audio_spectrogram(:,:,i),repeating_periods,repet.filter_order);
                 
-                % High-pass filtering of the dual foreground
-                repeating_mask(2:cutoff_frequency+1,:) = 1;
+                % Perform a high-pass filtering of the dual foreground
+                repeating_mask(2:cutoff_frequency2+1,:) = 1;
                 
-                % Mirror the frequency channels
+                % Recover the mirrored frequencies
                 repeating_mask = cat(1,repeating_mask,repeating_mask(end-1:-1:2,:));
                 
-                % Estimated repeating background for the current channel
-                background_signal1 = repet.istft(repeating_mask.*audio_stft(:,:,channel_index),window_function,step_length);
+                % Synthesize the repeating background for the current channel
+                background_signal1 = repet.istft(repeating_mask.*audio_stft(:,:,i),window_function,step_length);
                 
                 % Truncate to the original number of samples
-                background_signal(:,channel_index) = background_signal1(1:number_samples);
+                background_signal(:,i) = background_signal1(1:number_samples);
                 
             end
             
@@ -1018,40 +1020,38 @@ classdef repet
             
         end
         
-        % Beat spectrogram using the beat spectrum
         function beat_spectrogram = beatspectrogram(audio_spectrogram,segment_length,segment_step)
-
-            % Number of frequency channels and time frames
+            % beatspectrogram Compute the beat spectrogram using the beat sectrum.
+            %   autocorrelation_matrix = repet.acorr(data_matrix)
+            %   
+            %   Input:
+            %       audio_spectrogram: audio spectrogram [number_frequencies,number_times]
+            %       segment_length: segment length in seconds for the segmentation
+            %       segment_step: step length in seconds for the segmentation
+            %   Output:
+            %       beat_spectrogram: beat spectrogram [number_lags,number_times]
+            
+            % Get the number of frequency channels and time frames
             [number_frequencies,number_times] = size(audio_spectrogram);
             
-            % Zero-padding the audio spectrogram to center the segments
+            % Zero-pad the audio spectrogram to center the segments
             audio_spectrogram = [zeros(number_frequencies,ceil((segment_length-1)/2)), ...
                 audio_spectrogram,zeros(number_frequencies,floor((segment_length-1)/2))];
             
             % Initialize beat spectrogram
             beat_spectrogram = zeros(segment_length,number_times);
             
-            % Open wait bar
-            wait_bar = waitbar(0,'Adaptive REPET 1/2');
-            
-            % Loop over the time frames
-            for time_index = 1:segment_step:number_times
+            % Loop over the time frames every segment step (including the last one)
+            for i = 1:segment_step:number_times
                 
-                % Beat spectrum of the centered audio spectrogram segment
-                beat_spectrogram(:,time_index) ...
-                    = repet.beatspectrum(audio_spectrogram(:,time_index:time_index+segment_length-1));
+                % Compute the beat spectrum of the centered audio spectrogram segment
+                beat_spectrogram(:,i) = repet.beatspectrum(audio_spectrogram(:,i:i+segment_length-1));
                 
-                % Copy values in-between
-                beat_spectrogram(:,time_index+1:min(time_index+segment_step-1,number_times)) ... 
-                    = repmat(beat_spectrogram(:,time_index),[1,min(time_index+segment_step-1,number_times)-time_index]);
-                
-                % Update wait bar
-                waitbar(time_index/number_times,wait_bar);
+                % Replicate the values between segment steps
+                beat_spectrogram(:,i+1:min(i+segment_step-1,number_times)) ... 
+                    = repmat(beat_spectrogram(:,i),[1,min(i+segment_step-1,number_times)-i]);
                 
             end
-            
-            % Close wait bar
-            close(wait_bar)
 
         end
         
@@ -1195,10 +1195,12 @@ classdef repet
             repeating_segment = [median(audio_spectrogram(:,1:number_times-(number_segments-1)*repeating_period,:),3), ... 
                 median(audio_spectrogram(:,number_times-(number_segments-1)*repeating_period+1:repeating_period,1:end-1),3)];
             
-            % DDerive the repeating spectrogram by ensuring it has less energy than the original spectrogram
+            % Derive the repeating spectrogram by ensuring 
+            % it has less energy than the original spectrogram
             repeating_spectrogram = min(audio_spectrogram,repeating_segment);
             
-            % e the repeating mask by normalizing the repeating spectrogram by the original spectrogram
+            % Derive the repeating mask by normalizing the repeating spectrogram 
+            % by the original spectrogram
             repeating_mask = (repeating_spectrogram+eps)./(audio_spectrogram+eps);
             
             % Reshape the repeating mask into [number_frequencies,number_times] 
@@ -1208,48 +1210,47 @@ classdef repet
             
         end
         
-        % Repeating mask for the adaptive REPET
         function repeating_mask = adaptivemask(audio_spectrogram,repeating_periods,filter_order)
+            % adaptive mask Compute the repeating mask for the adaptive REPET.
+            %   repeating_period = repet.mask(audio_spectrogram,repeating_period)
+            %   
+            %   Input:
+            %       audio_spectrogram: audio spectrogram [number_frequencies,number_times]
+            %   Output:
+            %       repeating_period: repeating period in lag
+            %       filter_order: filter order for the median filter in number of time frames
             
-            % Number of frequency channels and time frames
+            % Get the number of frequency channels and time frames in the spectrogram
             [number_frequencies,number_times] = size(audio_spectrogram);
             
-            % Indices of the frames for the median filter centered on 0 
-            % (e.g., 3 => [-1,0,1], 4 => [-1,0,1,2], etc.)
-            frame_indices = (1:filter_order)-ceil(filter_order/2);
+            % Derive the indices of the center frames for the median filter given the filter order
+            % (3 => [-1, 0, 1], 4 => [-1, 0, 1, 2], etc.)
+            center_indices = (1:filter_order)-ceil(filter_order/2);
             
             % Initialize the repeating spectrogram
             repeating_spectrogram = zeros(number_frequencies,number_times);
             
-            % Open wait bar
-            wait_bar = waitbar(0,'Adaptive REPET 2/2');
-            
             % Loop over the time frames
-            for time_index = 1:number_times
+            for i = 1:number_times
                 
-                % Indices of the frames for the median filter
-                time_indices = time_index+frame_indices*repeating_periods(time_index);
+                % Derive the indices of all the frames for the median filter
+                % given the repeating period for the current frame in the spectrogram
+                all_indices = i+center_indices*repeating_periods(i);
                 
-                % Discard out-of-range indices
-                time_indices(time_indices<1 | time_indices>number_times) = [];
+                % Discard the indices that are out-of-range
+                all_indices(all_indices<1 | all_indices>number_times) = [];
                 
-                % Median filter on the current time frame
-                repeating_spectrogram(:,time_index) = median(audio_spectrogram(:,time_indices),2);
-                
-                % Update wait bar
-                waitbar(time_index/number_times,wait_bar);
+                % Compute the median filter for the current frame in the spectrogram
+                repeating_spectrogram(:,i) = median(audio_spectrogram(:,all_indices),2);
                 
             end
             
-            % Close wait bar
-            close(wait_bar)
-            
-            % Make sure the energy in the repeating spectrogram is smaller 
-            % than in the audio spectrogram, for every time-frequency bin
+            % Refine the repeating spectrogram by ensuring 
+            % it has less energy than the original spectrogram
             repeating_spectrogram = min(audio_spectrogram,repeating_spectrogram);
             
-            % Derive the repeating mask by normalizing the repeating
-            % spectrogram by the audio spectrogram
+            % Derive the repeating mask by normalizing the repeating spectrogram 
+            % by the original spectrogram
             repeating_mask = (repeating_spectrogram+eps)./(audio_spectrogram+eps);
 
         end
