@@ -34,7 +34,7 @@ classdef repet
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   01/25/21
+    %   01/26/21
     
     % Define the properties
     properties (Access = private, Constant = true)
@@ -371,21 +371,27 @@ classdef repet
                         
                         % Add the segment to the signal
                         background_signal(1:segment_length2,:) ...
-                            = background_signal(1:segment_length2,:) + background_segment;
+                            = background_signal(1:segment_length2,:) ...
+                            + background_segment;
                         
                     elseif j <= number_segments
                         
-                        % Perform a half windowing of the overlap part of the background signal on the right
+                        % Perform a half windowing of the overlap part 
+                        % of the background signal on the right
                         background_signal(k+1:k+segment_overlap2,:) ...
-                            = background_signal(k+1:k+segment_overlap2,:).*segment_window(segment_overlap2+1:2*segment_overlap2);
+                            = background_signal(k+1:k+segment_overlap2,:) ...
+                            .*segment_window(segment_overlap2+1:2*segment_overlap2);
                         
-                        % Perform a half windowing of the overlap part of the background segment on the left
+                        % Perform a half windowing of the overlap part 
+                        % of the background segment on the left
                         background_segment(1:segment_overlap2,:) ...
-                            = background_segment(1:segment_overlap2,:).*segment_window(1:segment_overlap2);
+                            = background_segment(1:segment_overlap2,:) ...
+                            .*segment_window(1:segment_overlap2);
                         
                         % Add the segment to the signal
                         background_signal(k+1:k+segment_length2,:) ...
-                            = background_signal(k+1:k+segment_length2,:) + background_segment;
+                            = background_signal(k+1:k+segment_length2,:) ...
+                            + background_segment;
                         
                     end
                     
@@ -498,7 +504,8 @@ classdef repet
             % Estimate the repeating periods in time frames given the period range
             repeating_periods = repet.periods(beat_spectrogram,period_range2);
             
-            % Get the cutoff frequency in frequency channels for the dual high-pass filter of the foreground
+            % Get the cutoff frequency in frequency channels 
+            % for the dual high-pass filter of the foreground
             cutoff_frequency2 = round(repet.cutoff_frequency*window_length/sampling_frequency);
             
             % Initialize the background signal
@@ -585,65 +592,67 @@ classdef repet
             % Get the number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
             
-            % Window length, window function, and step length for the STFT
-            window_length = repet.windowlength(sampling_frequency);
-            window_function = repet.windowfunction(window_length);
-            step_length = repet.steplength(window_length);
+            % Set the parameters for the STFT 
+            % (audio stationary around 40 ms, power of 2 for fast FFT and constant overlap-add (COLA),
+            % periodic Hamming window for COLA, and step equal to half the window length for COLA)
+            window_length = 2^nextpow2(0.04*sampling_frequency);
+            window_function = hamming(window_length,'periodic');
+            step_length = window_length/2;
             
-            % Number of time frames
-            number_times = ceil((window_length-step_length+number_samples)/step_length);
+            % Derive the number of time frames
+            % (given the zero-padding at the start and the end of the signal)
+            number_times = ceil(((number_samples+2*floor(window_length/2))-window_length) ...
+                /step_length)+1;
             
             % Initialize the STFT
             audio_stft = zeros(window_length,number_times,number_channels);
             
             % Loop over the channels
-            for channel_index = 1:number_channels
+            for i = 1:number_channels
                 
                 % STFT of the current channel
-                audio_stft(:,:,channel_index) ...
-                    = repet.stft(audio_signal(:,channel_index),window_function,step_length);
+                audio_stft(:,:,i) = repet.stft(audio_signal(:,i),window_function,step_length);
                 
             end
             
-            % Magnitude spectrogram (with DC component and without mirrored 
-            % frequencies)
+            % Derive the magnitude spectrogram
+            % (with the DC component and without the mirrored frequencies)
             audio_spectrogram = abs(audio_stft(1:window_length/2+1,:,:));
             
-            % Self-similarity of the spectrograms averaged over the
-            % channels
+            % Compute the self-similarity matrix of the spectrograms averaged over the channels
             similarity_matrix = repet.selfsimilaritymatrix(mean(audio_spectrogram,3));
             
-            % Similarity distance in time frames
-            similarity_distance = round(repet.similarity_distance*sampling_frequency/step_length);
+            % Get the similarity distance in time frames
+            similarity_distance2 = round(repet.similarity_distance*sampling_frequency/step_length);
             
-            % Similarity indices for all the frames
+            % Estimate the similarity indices for all the frames
             similarity_indices ...
-                = repet.indices(similarity_matrix,repet.similarity_threshold,similarity_distance,repet.similarity_number);
+                = repet.indices(similarity_matrix,repet.similarity_threshold,similarity_distance2,repet.similarity_number);
             
-            % Cutoff frequency in frequency channels for the dual high-pass 
-            % filter of the foreground
-            cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sampling_frequency);
+            % Get the cutoff frequency in frequency channels
+            % for the dual high-pass filter of the foreground
+            cutoff_frequency2 = ceil(repet.cutoff_frequency*(window_length-1)/sampling_frequency);
             
             % Initialize the background signal
             background_signal = zeros(number_samples,number_channels);
             
             % Loop over the channels
-            for channel_index = 1:number_channels
+            for i = 1:number_channels
                 
-                % Repeating mask for the current channel
-                repeating_mask = repet.simmask(audio_spectrogram(:,:,channel_index),similarity_indices);
+                % Compute the repeating mask for the current channel given the similarity indices
+                repeating_mask = repet.simmask(audio_spectrogram(:,:,i),similarity_indices);
                 
-                % High-pass filtering of the dual foreground
-                repeating_mask(2:cutoff_frequency+1,:) = 1;
+                % Perform a high-pass filtering of the dual foreground
+                repeating_mask(2:cutoff_frequency2+1,:) = 1;
                 
-                % Mirror the frequency channels
+                % Recover the mirrored frequencies
                 repeating_mask = cat(1,repeating_mask,repeating_mask(end-1:-1:2,:));
                 
-                % Estimated repeating background for the current channel
-                background_signal1 = repet.istft(repeating_mask.*audio_stft(:,:,channel_index),window_function,step_length);
+                % Synthesize the repeating background for the current channel
+                background_signal1 = repet.istft(repeating_mask.*audio_stft(:,:,i),window_function,step_length);
                 
                 % Truncate to the original number of samples
-                background_signal(:,channel_index) = background_signal1(1:number_samples);
+                background_signal(:,i) = background_signal1(1:number_samples);
                 
             end
             
@@ -1024,7 +1033,7 @@ classdef repet
             % beatspectrogram Compute the beat spectrogram using the beat sectrum.
             %   autocorrelation_matrix = repet.acorr(data_matrix)
             %   
-            %   Input:
+            %   Inputs:
             %       audio_spectrogram: audio spectrogram [number_frequencies,number_times]
             %       segment_length: segment length in seconds for the segmentation
             %       segment_step: step length in seconds for the segmentation
@@ -1055,9 +1064,14 @@ classdef repet
 
         end
         
-        % Self-similarity matrix using the cosine similarity (faster than
-        % pdist2)
         function similarity_matrix = selfsimilaritymatrix(data_matrix)
+            % selfsimilaritymatrix Compute the self-similarity between the columns of a matrix using the cosine similarity.
+            %   similarity_matrix = repet.selfsimilaritymatrix(data_matrix)
+            %   
+            %   Input:
+            %       data_matrix: data matrix [number_rows,number_columns]
+            %   Output:
+            %       similarity_matrix: self-similarity matrix [number_columns,number_columns]
             
             % Divide each column by its Euclidean norm
             data_matrix = data_matrix./sqrt(sum(data_matrix.^2,1));
@@ -1067,15 +1081,21 @@ classdef repet
             
         end
         
-        % Similarity matrix using the cosine similarity (faster than 
-        % pdist2)
         function similarity_matrix = similaritymatrix(data_matrix1,data_matrix2)
+            % similaritymatrix Compute the similarity between the columns of two matrices using the cosine similarity.
+            %   similarity_matrix = repet.similaritymatrix(data_matrix1,data_matrix2)
+            %   
+            %   Inputs:
+            %       data_matrix1: data matrix [number_rows,number_columns1]
+            %       data_matrix2: data matrix [number_rows,number_columns2]
+            %   Output:
+            %       similarity_matrix: similarity matrix [number_columns1,number_columns2]
             
-            % Divide each column by its Euclidean norm
+            % Divide each column of the matrices by its Euclidean norm
             data_matrix1 = data_matrix1./sqrt(sum(data_matrix1.^2,1));
             data_matrix2 = data_matrix2./sqrt(sum(data_matrix2.^2,1));
             
-            % Multiply each normalized columns with each other
+            % Multiply the normalized matrices with each other
             similarity_matrix = data_matrix1'*data_matrix2;
             
         end
@@ -1090,7 +1110,7 @@ classdef repet
             %       repeating_periods: repeating period(s) in lags [number_periods,1] (or scalar)
             
             % Compute the repeating periods as the argmax for all the time frames given the period range
-            %(should be less than a third of the length to have at least 3 segments for the median filter)
+            % (should be less than a third of the length to have at least 3 segments for the median filter)
             [~,repeating_periods] = max(beat_spectrogram(period_range(1)+1:min(period_range(2),floor(size(beat_spectrogram,1)/3)),:),[],1);
             
             % Re-adjust the indices
@@ -1098,75 +1118,88 @@ classdef repet
             
         end
         
-        % Local maxima, values and indices (Matlab's findpeaks does not 
-        % behave exactly like wanted)
         function [maximum_values,maximum_indices] = localmaxima(data_vector,minimum_value,minimum_distance,number_values)
+            % localmaxima Compute the values and indices of the local maxima in a vector given a number of parameters.
+            %   repeating_periods = repet.periods(beat_spectrogram)
+            %   
+            %   Inputs:
+            %       data_vector: data vector [number_elements,1]
+            %       minimum_value: minimal value for a local maximum
+            %       minimum_distance: minimal distance between two local maxima
+            %       number_values: maximal number of local maxima
+            %   Outputs:
+            %       maximum_value: values of the local maxima [number_maxima,1]
+            %       maximum_index: indices of the local maxima [number_maxima,1]
+        
+            % Get the number of elements in the vector
+            number_elements = numel(data_vector);
             
-            % Number of data points
-            number_data = numel(data_vector);
-            
-            % Initialize maximum indices
+            % Initialize an array for the indices of the local maxima
             maximum_indices = [];
             
-            % Loop over the data points
-            for data_index = 1:number_data
+            % Loop over the elements in the vector
+            for i = 1:number_elements
                 
-                % The local maximum should be greater than the maximum 
-                % value
-                if data_vector(data_index) >= minimum_value
+                % Make sure the local maximum is greater than the minimum value
+                if data_vector(i) >= minimum_value
                     
-                    % The local maximum should be strictly greater than the
-                    % neighboring data points within +- minimum distance
-                    if all(data_vector(data_index) > data_vector(max(data_index-minimum_distance,1):data_index-1)) ...
-                            && all(data_vector(data_index) > data_vector(data_index+1:min(data_index+minimum_distance,number_data)))
+                    % Make sure the local maximum is strictly greater 
+                    % than the neighboring values within +- the minimum distance
+                    if all(data_vector(i) > data_vector(max(i-minimum_distance,1):i-1)) ...
+                            && all(data_vector(i) > data_vector(i+1:min(i+minimum_distance,number_elements)))
                         
-                        % Save the maximum index
-                        maximum_indices = cat(1,maximum_indices,data_index);
+                        % Save the index of the local maxima
+                        maximum_indices = cat(1,maximum_indices,i);
                         
                     end
                 end
             end
             
-            % Sort the maximum values in descending order
+            % Get the values of the local maxima
             maximum_values = data_vector(maximum_indices);
+            
+            % Get the values and the corresponding indices sorted in ascending order
             [maximum_values,sort_indices] = sort(maximum_values,'descend');
             
-            % Keep only the top maximum values and indices
+            % Keep only the sorted indices for the top values
             number_values = min(number_values,numel(maximum_values));
+            sort_indices = sort_indices(1:number_values);
+            
+            % Get the values and indices of the top local maxima
             maximum_values = maximum_values(1:number_values);
-            maximum_indices = maximum_indices(sort_indices(1:number_values));
+            maximum_indices = maximum_indices(sort_indices);
             
         end
         
-        % Similarity indices from the similarity matrix
         function similarity_indices = indices(similarity_matrix,similarity_threshold,similarity_distance,similarity_number)
+            % indices Compute the similarity indices from the similarity matrix.
+            %   repeating_periods = repet.periods(beat_spectrogram)
+            %   
+            %   Inputs:
+            %       similarity_matrix: similarity matrix [number_frames,number_frames]
+            %       similarity_threshold: minimal threshold for two frames to be considered similar in [0,1]
+            %       similarity_distance: minimal distance between two frames to be considered similar in frames
+            %       similarity_number: maximal number of frames to be considered similar for every frame
+            %   Output:
+            %       similarity_indices: list of indices of the similar frames for every frame [number_frames,1]
             
-            % Number of time frames
+            % Get the number of time frames
            	number_times = size(similarity_matrix,1);
             
             % Initialize the similarity indices
             similarity_indices = cell(1,number_times);
             
-            % Open wait bar
-            wait_bar = waitbar(0,'REPET-SIM 1/2');
-            
             % Loop over the time frames
-            for time_index = 1:number_times
+            for i = 1:number_times
                 
-                % Indices of the local maxima
+                % Get the indices of the local maxima
                 [~,maximum_indices]...
-                    = repet.localmaxima(similarity_matrix(:,time_index),similarity_threshold,similarity_distance,similarity_number);
+                    = repet.localmaxima(similarity_matrix(:,i),similarity_threshold,similarity_distance,similarity_number);
                 
-                % Similarity indices for the current time frame
-                similarity_indices{time_index} = maximum_indices;
-                
-                % Update wait bar
-                waitbar(time_index/number_times,wait_bar);
+                % Store the similarity indices for the current time frame
+                similarity_indices{i} = maximum_indices;
                 
             end
-            
-            % Close wait bar
-            close(wait_bar)
             
         end
         
@@ -1174,10 +1207,11 @@ classdef repet
             % mask Compute the repeating mask for REPET.
             %   repeating_period = repet.mask(audio_spectrogram,repeating_period)
             %   
-            %   Input:
+            %   Inputs:
             %       audio_spectrogram: audio spectrogram [number_frequencies,number_times]
-            %   Output:
             %       repeating_period: repeating period in lag
+            %   Output:
+            %       repeating_mask: repeating mask [number_frequencies,number_times]
             
             % Get the number of frequency channels and time frames
             [number_frequencies,number_times] = size(audio_spectrogram);
@@ -1211,14 +1245,15 @@ classdef repet
         end
         
         function repeating_mask = adaptivemask(audio_spectrogram,repeating_periods,filter_order)
-            % adaptive mask Compute the repeating mask for the adaptive REPET.
+            % adaptivemask Compute the repeating mask for the adaptive REPET.
             %   repeating_period = repet.mask(audio_spectrogram,repeating_period)
             %   
-            %   Input:
+            %   Inputs:
             %       audio_spectrogram: audio spectrogram [number_frequencies,number_times]
-            %   Output:
             %       repeating_period: repeating period in lag
             %       filter_order: filter order for the median filter in number of time frames
+            %   Output:
+            %       repeating_mask: repeating mask [number_frequencies,number_times]
             
             % Get the number of frequency channels and time frames in the spectrogram
             [number_frequencies,number_times] = size(audio_spectrogram);
@@ -1255,41 +1290,39 @@ classdef repet
 
         end
         
-        % Repeating mask for REPET-SIM
         function repeating_mask = simmask(audio_spectrogram,similarity_indices)
+            % simmask Compute the repeating mask for REPET-SIM.
+            %   repeating_period = repet.mask(audio_spectrogram,repeating_period)
+            %   
+            %   Input:
+            %       audio_spectrogram: audio spectrogram (number_frequencies, number_times)
+            %       similarity_indices: list of indices of the similar frames for every frame [number_frames,1]
+            %   Output:
+            %       repeating_mask: repeating mask [number_frequencies,number_times]
             
-            % Number of frequency bins and time frames
+            % Get the number of frequency channels and time frames in the spectrogram
             [number_frequencies,number_times] = size(audio_spectrogram);
             
             % Initialize the repeating spectrogram
             repeating_spectrogram = zeros(number_frequencies,number_times);
             
-            % Open Wait bar
-            wait_bar = waitbar(0,'REPET-SIM 2/2');
-            
             % Loop over the time frames
-            for time_index = 1:number_times
+            for i = 1:number_times
                 
-                % Indices of the frames for the median filter
-                time_indices = similarity_indices{time_index};
+                % Get the indices of the similar frames for the median filter
+                time_indices = similarity_indices{i};
                 
-                % Median filter on the current time frame
-                repeating_spectrogram(:,time_index) = median(audio_spectrogram(:,time_indices),2);                                              % Median of the similar frames for frame j
-                
-                % Update wait bar
-                waitbar(time_index/number_times,wait_bar);
+                % Compute the median filter for the current frame in the spectrogram
+                repeating_spectrogram(:,i) = median(audio_spectrogram(:,time_indices),2);
                 
             end
             
-            % Close wait bar
-            close(wait_bar)
-            
-            % Make sure the energy in the repeating spectrogram is smaller 
-            % than in the audio spectrogram, for every time-frequency bin
+            % Refine the repeating spectrogram by ensuring 
+            % it has less energy than the original spectrogram
             repeating_spectrogram = min(audio_spectrogram,repeating_spectrogram);
             
-            % Derive the repeating mask by normalizing the repeating
-            % spectrogram by the audio spectrogram
+            % Derive the repeating mask by normalizing the repeating spectrogram 
+            % by the original spectrogram
             repeating_mask = (repeating_spectrogram+eps)./(audio_spectrogram+eps);
 
         end
