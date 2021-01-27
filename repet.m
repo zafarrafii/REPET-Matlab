@@ -34,7 +34,7 @@ classdef repet
     %   http://zafarrafii.com
     %   https://github.com/zafarrafii
     %   https://www.linkedin.com/in/zafarrafii/
-    %   01/26/21
+    %   01/27/21
     
     % Define the properties
     properties (Access = private, Constant = true)
@@ -713,135 +713,125 @@ classdef repet
             % Get the number of samples and channels
             [number_samples,number_channels] = size(audio_signal);
             
-            % Window length, window function, and step length for the STFT
-            window_length = repet.windowlength(sampling_frequency);
-            window_function = repet.windowfunction(window_length);
-            step_length = repet.steplength(window_length);
+            % Set the parameters for the STFT 
+            % (audio stationary around 40 ms, power of 2 for fast FFT and constant overlap-add (COLA),
+            % periodic Hamming window for COLA, and step equal to half the window length for COLA)
+            window_length = 2^nextpow2(0.04*sampling_frequency);
+            window_function = hamming(window_length,'periodic');
+            step_length = window_length/2;
             
-            % Number of time frames
+            % Derive the number of time frames
             number_times = ceil((number_samples-window_length)/step_length+1);
             
-            % Buffer length in time frames
-            buffer_length = round((repet.buffer_length*sampling_frequency-window_length)/step_length+1);
+            % Derive the number of frequency channels
+            number_frequencies = window_length/2+1;
+            
+            % Get the buffer length in time frames
+            buffer_length2 = round((repet.buffer_length*sampling_frequency)/step_length);
             
             % Initialize the buffer spectrogram
-            buffer_spectrogram = zeros(window_length/2+1,buffer_length,number_channels);
-            
-            % Open the wait bar
-            wait_bar = waitbar(0,'Online REPET-SIM');
+            buffer_spectrogram = zeros(number_frequencies,buffer_length2,number_channels);
             
             % Loop over the time frames to compute the buffer spectrogram
             % (the last frame will be the frame to be processed)
-            for time_index = 1:buffer_length-1
-                
-                % Sample index in the signal
-                sample_index = step_length*(time_index-1);
+            k = 0;
+            for j = 1:buffer_length2-1
                 
                 % Loop over the channels
-                for channel_index = 1:number_channels
+                for i = 1:number_channels
                     
                     % Compute the FT of the segment
-                    buffer_ft = fft(audio_signal(1+sample_index:window_length+sample_index,channel_index).*window_function);
+                    buffer_ft = fft(audio_signal(k+1:k+window_length,i).*window_function);
                     
                     % Derive the spectrum of the frame
-                    buffer_spectrogram(:,time_index,channel_index) = abs(buffer_ft(1:window_length/2+1));
+                    buffer_spectrogram(:,j,i) = abs(buffer_ft(1:number_frequencies));
                     
                 end
                 
-                % Update the wait bar
-                waitbar(time_index/number_times,wait_bar);
+                % Update the index
+                k = k+step_length;
                 
             end
             
             % Zero-pad the audio signal at the end
             audio_signal = [audio_signal;zeros((number_times-1)*step_length+window_length-number_samples,number_channels)];
             
-            % Similarity distance in time frames
-            similarity_distance = round(repet.similarity_distance*sampling_frequency/step_length);
+            % Get the similarity distance in time frames
+            similarity_distance2 = round(repet.similarity_distance*sampling_frequency/step_length);
             
-            % Cutoff frequency in frequency channels for the dual high-pass 
-            % filter of the foreground
-            cutoff_frequency = ceil(repet.cutoff_frequency*(window_length-1)/sampling_frequency);
+            % Get the cutoff frequency in frequency channels 
+            % for the dual high-pass filter of the foreground
+            cutoff_frequency2 = ceil(repet.cutoff_frequency*window_length/sampling_frequency);
             
             % Initialize the background signal
             background_signal = zeros((number_times-1)*step_length+window_length,number_channels);
 
             % Loop over the time frames to compute the background signal
-            for time_index = buffer_length:number_times
+            for j = buffer_length2:number_times
                 
-                % Sample index in the signal
-                sample_index = step_length*(time_index-1);
-                
-                % Time index of the current frame
-                current_index = mod(time_index-1,buffer_length)+1;
+                % Get the time index of the current frame
+                j0 = mod(j-1,buffer_length2)+1;
                 
                 % Initialize the FT of the current segment
                 current_ft = zeros(window_length,number_channels);
                 
                 % Loop over the channels
-                for channel_index = 1:number_channels
+                for i = 1:number_channels
                     
                     % Compute the FT of the current segment
-                    current_ft(:,channel_index) ...
-                        = fft(audio_signal(1+sample_index:window_length+sample_index,channel_index).*window_function);
+                    current_ft(:,i) = fft(audio_signal(k+1:k+window_length,i).*window_function);
                     
-                    % Derive the spectrum of the current frame and update
-                    % the buffer spectrogram
-                    buffer_spectrogram(:,current_index,channel_index) ...
-                        = abs(current_ft(1:window_length/2+1,channel_index));
+                    % Derive the magnitude spectrum and update the buffer spectrogram
+                    buffer_spectrogram(:,j0,i) = abs(current_ft(1:number_frequencies,i));
                     
                 end
                 
-                % Cosine similarity between the spectrum of the current 
-                % frame and the past frames, for all the channels
+                % Compute the cosine similarity between the spectrum of the current frame 
+                % and the past frames, for all the channels
                 similarity_vector ...
-                    = repet.similaritymatrix(mean(buffer_spectrogram,3),mean(buffer_spectrogram(:,current_index,:),3));
+                    = repet.similaritymatrix(mean(buffer_spectrogram,3),mean(buffer_spectrogram(:,j0,:),3));
                 
-                % Indices of the similar frames
+                % Estimate the indices of the similar frames
                 [~,similarity_indices] ...
-                    = repet.localmaxima(similarity_vector,repet.similarity_threshold,similarity_distance,repet.similarity_number);
+                    = repet.localmaxima(similarity_vector,repet.similarity_threshold,similarity_distance2,repet.similarity_number);
                 
                 % Loop over the channels
-                for channel_index = 1:number_channels
+                for i = 1:number_channels
                     
                     % Compute the repeating spectrum for the current frame
-                    repeating_spectrum = median(buffer_spectrogram(:,similarity_indices,channel_index),2);
+                    repeating_spectrum = median(buffer_spectrogram(:,similarity_indices,i),2);
                     
                     % Refine the repeating spectrum
-                    repeating_spectrum = min(repeating_spectrum,buffer_spectrogram(:,current_index,channel_index));
+                    repeating_spectrum = min(repeating_spectrum,buffer_spectrogram(:,j0,i));
                     
                     % Derive the repeating mask for the current frame
-                    repeating_mask = (repeating_spectrum+eps)./(buffer_spectrogram(:,current_index,channel_index)+eps);
+                    repeating_mask = (repeating_spectrum+eps)./(buffer_spectrogram(:,j0,i)+eps);
                     
-                    % High-pass filtering of the (dual) non-repeating 
-                    % foreground 
-                    repeating_mask(2:cutoff_frequency+1,:) = 1;
+                    % Perform a high-pass filtering of the dual foreground
+                    repeating_mask(2:cutoff_frequency2+1,:) = 1;
                     
-                    % Mirror the frequency channels
+                    % Recover the mirrored frequencies
                     repeating_mask = cat(1,repeating_mask,repeating_mask(end-1:-1:2));
                     
                     % Apply the mask to the FT of the current segment
-                    background_ft = repeating_mask.*current_ft(:,channel_index);
+                    background_ft = repeating_mask.*current_ft(:,i);
                     
-                    % Inverse FT of the current segment
-                    background_signal(1+sample_index:window_length+sample_index,channel_index) ...
-                        = background_signal(1+sample_index:window_length+sample_index,channel_index)+real(ifft(background_ft));
+                    % Take the inverse FT of the current segment
+                    background_signal(k+1:k+window_length,i) ...
+                        = background_signal(k+1:k+window_length,i)+real(ifft(background_ft));
                     
                 end
                 
-                % Update the wait bar
-                waitbar(time_index/number_times,wait_bar);
+                % Update the index
+                k = k+step_length;
                 
             end
             
             % Truncate the signal to the original length
             background_signal = background_signal(1:number_samples,:);
             
-            % Un-window the signal (just in case)
+            % Normalize the signal by the gain introduced by the COLA (if any)
             background_signal = background_signal/sum(window_function(1:step_length:window_length));
-            
-            % Close the wait bar
-            close(wait_bar)
             
         end
         
