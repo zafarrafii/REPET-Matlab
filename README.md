@@ -47,7 +47,7 @@ Inputs:
     audio_signal: audio signal (number_samples, number_channels)
     sampling_frequency: sampling frequency in Hz
 Output:
-    background_signal: audio STFT (window_length, number_frames)
+    background_signal: background signal (number_samples, number_channels)
 ```
 
 #### Example: Estimate the background and foreground signals, and display their spectrograms.
@@ -114,7 +114,7 @@ Inputs:
     audio_signal: audio signal (number_samples, number_channels)
     sampling_frequency: sampling frequency in Hz
 Output:
-    background_signal: audio STFT (window_length, number_frames)
+    background_signal: background signal (number_samples, number_channels)
 ```
 
 #### Example: Estimate the background and foreground signals, and display their spectrograms.
@@ -183,7 +183,7 @@ Inputs:
     audio_signal: audio signal (number_samples, number_channels)
     sampling_frequency: sampling frequency in Hz
 Output:
-    background_signal: audio STFT (window_length, number_frames)
+    background_signal: background signal (number_samples, number_channels)
 ```
 
 #### Example: Estimate the background and foreground signals, and display their spectrograms.
@@ -252,7 +252,7 @@ Inputs:
     audio_signal: audio signal (number_samples, number_channels)
     sampling_frequency: sampling frequency in Hz
 Output:
-    background_signal: audio STFT (window_length, number_frames)
+    background_signal: background signal (number_samples, number_channels)
 ```
 
 #### Example: Estimate the background and foreground signals, and display their spectrograms.
@@ -319,7 +319,7 @@ Inputs:
     audio_signal: audio signal (number_samples, number_channels)
     sampling_frequency: sampling frequency in Hz
 Output:
-    background_signal: audio STFT (window_length, number_frames)
+    background_signal: background signal (number_samples, number_channels)
 ```
 
 #### Example: Estimate the background and foreground signals, and display their spectrograms.
